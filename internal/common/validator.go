@@ -2,6 +2,7 @@ package common
 
 import (
 	"errors"
+	"net"
 	"net/url"
 	"reflect"
 	"strings"
@@ -29,6 +30,78 @@ type ValidationError struct {
 	Value string `json:"value"`
 }
 
+// privateRanges lists CIDR blocks that must not be reachable via webhooks.
+var privateRanges = func() []*net.IPNet {
+	cidrs := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"fc00::/7",
+	}
+	nets := make([]*net.IPNet, 0, len(cidrs))
+	for _, cidr := range cidrs {
+		_, n, _ := net.ParseCIDR(cidr)
+		nets = append(nets, n)
+	}
+	return nets
+}()
+
+// isForbiddenIP reports whether ip must not be dialed by the webhook dispatcher.
+func isForbiddenIP(ip net.IP) bool {
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+		return true
+	}
+	for _, r := range privateRanges {
+		if r.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+// validateWebhookURL rejects URLs that are not HTTPS, contain userinfo, or
+// resolve to a private/loopback/link-local address.
+func validateWebhookURL(fl validator.FieldLevel) bool {
+	raw := fl.Field().String()
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+
+	if u.Scheme != "https" {
+		return false
+	}
+
+	if u.User != nil {
+		return false
+	}
+
+	host := u.Hostname()
+	if host == "" {
+		return false
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		return !isForbiddenIP(ip)
+	}
+
+	// DNS lookup is best effort at registration time; unresolvable hostnames
+	// are allowed through. The dispatch-layer dial guard is the real defence.
+	addrs, err := net.LookupHost(host)
+	if err != nil {
+		return true
+	}
+
+	for _, addr := range addrs {
+		if ip := net.ParseIP(addr); ip != nil && isForbiddenIP(ip) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func ValidateStruct(validateStruct any) []ValidationError {
 	validate := validator.New()
 	// https://github.com/go-playground/validator/issues/258#issuecomment-257281334
@@ -37,6 +110,8 @@ func ValidateStruct(validateStruct any) []ValidationError {
 	})
 
 	_ = validate.RegisterValidation("code_hosting_url", validateCodeHostingURL)
+	//nolint:errcheck // registration only fails if tag is empty or already registered
+	_ = validate.RegisterValidation("webhook_url", validateWebhookURL)
 
 	var validationErrors []ValidationError
 

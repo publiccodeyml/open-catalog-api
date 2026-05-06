@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
@@ -23,12 +25,116 @@ import (
 //nolint:gochecknoglobals // tunable for tests, effectively const at runtime
 var dispatchTimeout = 10 * time.Second
 
-// httpClient is shared across dispatches so the underlying http.Transport
-// can reuse TCP and TLS connections to the same subscriber. The per-request
-// deadline is enforced via the request context, not via Client.Timeout.
+// dialGuardDisabled turns off the SSRF dial guard. Tests that use
+// httptest.Server (which binds loopback) set it. An atomic because a
+// dispatch goroutine still in flight from an earlier test reads it while
+// the next test's cleanup restores it.
+//
+//nolint:gochecknoglobals // tunable for tests
+var dialGuardDisabled atomic.Bool
+
+// privateRanges are the RFC 1918 / ULA blocks checked at dial time.
+//
+//nolint:gochecknoglobals // effectively const, computed once
+var privateRanges = func() []*net.IPNet {
+	cidrs := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"fc00::/7",
+	}
+	nets := make([]*net.IPNet, 0, len(cidrs))
+	for _, cidr := range cidrs {
+		_, n, _ := net.ParseCIDR(cidr)
+		nets = append(nets, n)
+	}
+	return nets
+}()
+
+func isForbiddenIP(ip net.IP) bool {
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+		return true
+	}
+	for _, r := range privateRanges {
+		if r.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func safeDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid address %q: %w", addr, err)
+	}
+
+	addrs, err := net.DefaultResolver.LookupHost(ctx, host)
+	if err != nil {
+		return nil, fmt.Errorf("DNS lookup failed for %q: %w", host, err)
+	}
+
+	for _, a := range addrs {
+		ip := net.ParseIP(a)
+		if ip != nil && isForbiddenIP(ip) {
+			return nil, fmt.Errorf("webhook dial to forbidden address %s: %s", a, host)
+		}
+	}
+
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	return dialer.DialContext(ctx, network, net.JoinHostPort(host, port))
+}
+
+func newWebhookClient() *http.Client {
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			if dialGuardDisabled.Load() {
+				dialer := &net.Dialer{Timeout: 5 * time.Second}
+				return dialer.DialContext(ctx, network, addr)
+			}
+			return safeDialContext(ctx, network, addr)
+		},
+	}
+
+	return &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: transport,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if dialGuardDisabled.Load() {
+				return nil
+			}
+
+			host := req.URL.Hostname()
+			if ip := net.ParseIP(host); ip != nil {
+				if isForbiddenIP(ip) {
+					return fmt.Errorf("webhook redirect to forbidden address: %s", host)
+				}
+				return nil
+			}
+
+			addrs, err := net.LookupHost(host)
+			if err != nil {
+				return fmt.Errorf("DNS lookup failed during redirect for %q: %w", host, err)
+			}
+
+			for _, a := range addrs {
+				if ip := net.ParseIP(a); ip != nil && isForbiddenIP(ip) {
+					return fmt.Errorf("webhook redirect to forbidden address %s: %s", a, host)
+				}
+			}
+
+			return nil
+		},
+	}
+}
+
+// httpClient is shared across dispatches so the underlying http.Transport can
+// reuse connections to the same subscriber and so the SSRF dial guard applies
+// to every request. The per-request deadline is enforced via the request
+// context.
 //
 //nolint:gochecknoglobals // singleton needed for connection pool reuse
-var httpClient = &http.Client{}
+var httpClient = newWebhookClient()
 
 func DispatchWebhooks(event models.Event, gorm *gorm.DB) error {
 	var webhooks []models.Webhook
