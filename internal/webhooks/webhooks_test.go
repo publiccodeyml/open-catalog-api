@@ -5,9 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -78,6 +80,9 @@ func TestPostTimesOut(t *testing.T) {
 // TestDispatchWebhooks_PerWebhookSignature verifies that each webhook subscriber
 // receives an HMAC signature computed with its own secret, not another's.
 func TestDispatchWebhooks_PerWebhookSignature(t *testing.T) {
+	dialGuardDisabled.Store(true)
+	t.Cleanup(func() { dialGuardDisabled.Store(false) })
+
 	var mu sync.Mutex
 	received := map[string]string{}
 
@@ -135,6 +140,9 @@ func TestDispatchWebhooks_PerWebhookSignature(t *testing.T) {
 // TestDispatchWebhooks_EmptySecretNoHeader verifies that when a webhook has no
 // secret, the X-Webhook-Signature header is absent from the request.
 func TestDispatchWebhooks_EmptySecretNoHeader(t *testing.T) {
+	dialGuardDisabled.Store(true)
+	t.Cleanup(func() { dialGuardDisabled.Store(false) })
+
 	var mu sync.Mutex
 	var headerPresent bool
 
@@ -173,6 +181,9 @@ func TestDispatchWebhooks_EmptySecretNoHeader(t *testing.T) {
 // in the database signs the next dispatch, with no restart and no cache in
 // front of the lookup.
 func TestDispatchWebhooks_RotatedSecretTakesEffect(t *testing.T) {
+	dialGuardDisabled.Store(true)
+	t.Cleanup(func() { dialGuardDisabled.Store(false) })
+
 	signatures := make(chan string, 2)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -210,4 +221,68 @@ func TestDispatchWebhooks_RotatedSecretTakesEffect(t *testing.T) {
 
 	assert.Equal(t, expectedSignature(oldSecret, payload), before)
 	assert.Equal(t, expectedSignature(newSecret, payload), after)
+}
+
+// TestDispatchWebhooks_SSRFLoopbackBlocked verifies that dispatching to a
+// loopback address is blocked by the dial guard when it is enabled.
+func TestDispatchWebhooks_SSRFLoopbackBlocked(t *testing.T) {
+	dialGuardDisabled.Store(false)
+
+	var hitCount atomic.Int64
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hitCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	db := setupDB(t, []models.Webhook{
+		{ID: "wh-ssrf-1", URL: srv.URL, Secret: "", EntityType: "software", EntityID: ""},
+	})
+
+	event := models.Event{Type: "created", EntityType: "software", EntityID: ""}
+
+	err := DispatchWebhooks(event, db)
+	require.NoError(t, err)
+
+	// post() runs in a goroutine; give it time to attempt (and fail) the dial.
+	// The guard must block before the server handler executes.
+	time.Sleep(200 * time.Millisecond)
+
+	assert.Equal(t, int64(0), hitCount.Load(), "server must not be hit when dial guard blocks loopback")
+}
+
+// TestIsForbiddenIP is a table-driven unit test for the isForbiddenIP helper.
+func TestIsForbiddenIP(t *testing.T) {
+	tests := []struct {
+		ip        string
+		forbidden bool
+	}{
+		{"127.0.0.1", true},
+		{"127.0.0.2", true},
+		{"::1", true},
+		{"0.0.0.0", true},
+		{"169.254.169.254", true},
+		{"169.254.0.1", true},
+		{"fe80::1", true},
+		{"10.0.0.1", true},
+		{"10.255.255.255", true},
+		{"172.16.0.1", true},
+		{"172.31.255.255", true},
+		{"192.168.0.1", true},
+		{"192.168.255.255", true},
+		{"fc00::1", true},
+		{"fdff::1", true},
+		{"8.8.8.8", false},
+		{"1.1.1.1", false},
+		{"2001:4860:4860::8888", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.ip, func(t *testing.T) {
+			ip := net.ParseIP(tt.ip)
+			require.NotNil(t, ip, "invalid IP in test table: %s", tt.ip)
+			assert.Equal(t, tt.forbidden, isForbiddenIP(ip))
+		})
+	}
 }

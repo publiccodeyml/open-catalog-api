@@ -83,7 +83,7 @@ type Log struct {
 }
 
 type Webhook struct {
-	URL    string `json:"url" validate:"required,url"`
+	URL    string `json:"url" validate:"required,url,webhook_url"`
 	Secret string `json:"secret" validate:"omitempty,min=16,max=256"`
 }
 
