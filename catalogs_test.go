@@ -1329,3 +1329,70 @@ func TestCatalogAnalysisDBChecks(t *testing.T) {
 		assert.Contains(t, analysis, "ns-two", "ns-two namespace must be present after second PATCH")
 	})
 }
+
+func TestCatalogPostDBChecks(t *testing.T) {
+	t.Run("POST catalog persists name, alternativeId and publishersNamespace", func(t *testing.T) {
+		loadFixtures(t)
+
+		body := `{"name":"Persisted Catalog","alternativeId":"persisted","publishersNamespace":"ns","sources":[{"url":"https://github.com/example/persisted"}]}`
+
+		req, err := newTestRequest("POST", "/v1/catalogs", strings.NewReader(body))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 200, res.StatusCode)
+
+		var created map[string]any
+		require.NoError(t, json.NewDecoder(res.Body).Decode(&created))
+		catalogID := created["id"].(string)
+
+		assert.Equal(t, "Persisted Catalog", dbValue(t, "catalogs", "name", "id", catalogID))
+		assert.Equal(t, "persisted", dbValue(t, "catalogs", "alternative_id", "id", catalogID))
+		assert.Equal(t, "ns", dbValue(t, "catalogs", "publishers_namespace", "id", catalogID))
+	})
+}
+
+func TestCatalogPatchDBChecks(t *testing.T) {
+	t.Run("PATCH catalog persists updated name to DB", func(t *testing.T) {
+		loadFixtures(t)
+
+		const newName = "Patched Italian Catalog"
+
+		req, err := newTestRequest("PATCH", "/v1/catalogs/"+italiaID, strings.NewReader(`{"name":"`+newName+`"}`))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 200, res.StatusCode)
+
+		assert.Equal(t, newName, dbValue(t, "catalogs", "name", "id", italiaID))
+	})
+
+	t.Run("PATCH catalog persists publishersNamespace to DB", func(t *testing.T) {
+		loadFixtures(t)
+
+		const newNS = "patched-ns"
+
+		req, err := newTestRequest("PATCH", "/v1/catalogs/"+italiaID, strings.NewReader(`{"publishersNamespace":"`+newNS+`"}`))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 200, res.StatusCode)
+
+		assert.Equal(t, newNS, dbValue(t, "catalogs", "publishers_namespace", "id", italiaID))
+	})
+}
