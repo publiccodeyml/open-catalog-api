@@ -344,3 +344,72 @@ func TestPatchWebhookWithoutSecretKeepsTheStoredOne(t *testing.T) {
 	assert.Equal(t, "https://other.example.org/receiver",
 		dbValue(t, "webhooks", "url", "id", webhookID))
 }
+
+func TestWebhooksPostDBChecks(t *testing.T) {
+	t.Run("POST webhook persists URL and entity fields to DB", func(t *testing.T) {
+		loadFixtures(t)
+
+		const url = "https://db-check.example.org/receiver"
+
+		req, err := newTestRequest("POST", "/v1/software/webhooks", strings.NewReader(`{"url":"`+url+`","secret":"1234567890abcdef"}`))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 200, res.StatusCode)
+
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(res.Body).Decode(&body))
+		webhookID := body["id"].(string)
+
+		assert.Equal(t, url, dbValue(t, "webhooks", "url", "id", webhookID))
+		assert.Equal(t, "software", dbValue(t, "webhooks", "entity_type", "id", webhookID))
+		assert.Equal(t, "", dbValue(t, "webhooks", "entity_id", "id", webhookID))
+	})
+}
+
+func TestWebhooksPatchDBChecks(t *testing.T) {
+	t.Run("PATCH webhook persists updated URL to DB", func(t *testing.T) {
+		loadFixtures(t)
+
+		const (
+			webhookID = "007bc84a-7e2d-43a0-b7e1-a256d4114aa7"
+			newURL    = "https://patched.example.org/receiver"
+		)
+
+		req, err := newTestRequest("PATCH", "/v1/webhooks/"+webhookID, strings.NewReader(`{"url":"`+newURL+`"}`))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 200, res.StatusCode)
+
+		assert.Equal(t, newURL, dbValue(t, "webhooks", "url", "id", webhookID))
+	})
+}
+
+func TestWebhooksDeleteDBChecks(t *testing.T) {
+	t.Run("DELETE webhook removes the row from DB", func(t *testing.T) {
+		loadFixtures(t)
+
+		const webhookID = "24bc1b5d-fe81-47be-9d55-910f820bdd04"
+
+		req, err := newTestRequest("DELETE", "/v1/webhooks/"+webhookID, nil)
+		require.NoError(t, err)
+		req.Header = map[string][]string{"Authorization": {goodToken}}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 204, res.StatusCode)
+
+		assert.Equal(t, 0, dbCount(t, "webhooks", "id", webhookID))
+	})
+}
