@@ -8,7 +8,12 @@ import (
 	"gorm.io/gorm"
 )
 
-var EventChan = make(chan Event) //nolint:gochecknoglobals
+// The buffer holds events sent while the dispatch worker is busy, so
+// they are not dropped. The event row is saved either way, the channel
+// only drives the live webhook delivery. 1024 is arbitrary.
+const eventChanBuffer = 1024
+
+var EventChan = make(chan Event, eventChanBuffer) //nolint:gochecknoglobals
 
 func (p Publisher) AfterCreate(trx *gorm.DB) error {
 	event := Event{
@@ -116,6 +121,6 @@ func sendNonBlock(event Event) {
 	select {
 	case EventChan <- event:
 	default:
-		log.Printf("can't send event %v to channel\n", event)
+		log.Printf("event channel full, dropping the live dispatch of event %s (%s)\n", event.ID, event.Type)
 	}
 }
