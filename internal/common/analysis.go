@@ -16,6 +16,7 @@ var (
 	errAnalysisInvalidV     = errors.New("'v' must be an integer")
 	errAnalysisVOutOfRange  = errors.New("'v' must be between 1 and 999")
 	errAnalysisUnexpectedDB = errors.New("unexpected database value type for analysis")
+	errAnalysisAddTimestamp = errors.New("could not add the 't' timestamp")
 )
 
 // AnalysisData is a map of { namespace: arbitrary JSON object }
@@ -97,7 +98,15 @@ func WithTimestamps(analysis AnalysisData, now time.Time) (AnalysisData, error) 
 			return nil, fmt.Errorf("analysis.%s: %w", namespace, errAnalysisVOutOfRange)
 		}
 
-		result[namespace], _ = jsonpatch.MergePatch(raw, tPatch)
+		// MergePatch fails only on invalid JSON and both inputs are
+		// validated above. If it fails anyway, better an error than a
+		// silently nulled namespace.
+		merged, err := jsonpatch.MergePatch(raw, tPatch)
+		if err != nil {
+			return nil, fmt.Errorf("analysis.%s: %w", namespace, errAnalysisAddTimestamp)
+		}
+
+		result[namespace] = merged
 	}
 
 	return result, nil
