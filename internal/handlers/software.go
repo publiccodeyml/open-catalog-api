@@ -213,7 +213,12 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop
 		return common.Error(patchErr.Code, errMsg, patchErr.Error())
 	}
 
-	// Catalog assignment is immutable via this endpoint.
+	// ApplyPatch already refuses an operation on these paths. Putting them
+	// back anyway keeps the save and the response correct should a future
+	// operation kind or an alias slip past that check: the primary key feeds
+	// the WHERE, so a changed one makes gorm update no row at all.
+	updatedSoftware.ID = software.ID
+	updatedSoftware.CreatedAt = software.CreatedAt
 	updatedSoftware.CatalogID = software.CatalogID
 
 	updatedSoftware.URL.URL = common.NormalizeURL(updatedSoftware.URL.URL)
