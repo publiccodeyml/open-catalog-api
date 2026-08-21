@@ -15,8 +15,21 @@ Releases before 1.0.0 are documented only in the
 - A security policy, `SECURITY.md`, saying how to report a vulnerability
   privately and which versions get fixes.
 
+### Changed
+
+- JSON Patch operations on `id`, `createdAt`, `updatedAt` and
+  `catalogId` are refused with `422`, as they already were in a JSON
+  merge patch. `test` operations on those fields are still allowed.
+
+### Fixed
+
+- A JSON Patch replacing the `id` of a software answered `200` but did
+  not save the software.
+
 ### Security
 
+- A JSON Patch could set `createdAt` on a software or a catalog, moving
+  it in the listings and breaking the pagination cursors near it.
 - The database image used for local development is pinned by digest,
   and is the same one the tests run against.
 

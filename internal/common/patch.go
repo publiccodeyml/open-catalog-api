@@ -17,9 +17,10 @@ const (
 )
 
 var (
-	errPatchEmpty   = errors.New("patch must contain at least one operation")
-	errPatchTooMany = fmt.Errorf("patch must not exceed %d operations", maxPatchOps)
-	errPatchPathLen = fmt.Errorf("path and from must not exceed %d characters", maxPatchPathLen)
+	errPatchEmpty     = errors.New("patch must contain at least one operation")
+	errPatchTooMany   = fmt.Errorf("patch must not exceed %d operations", maxPatchOps)
+	errPatchPathLen   = fmt.Errorf("path and from must not exceed %d characters", maxPatchPathLen)
+	errPatchProtected = errors.New("operation not allowed on a read-only field")
 )
 
 type PatchError struct {
@@ -78,15 +79,52 @@ func validatePatch(patch jsonpatch.Patch) error {
 		return errPatchTooMany
 	}
 
-	for _, op := range patch {
-		if path, err := op.Path(); err == nil && len(path) > maxPatchPathLen {
-			return errPatchPathLen
-		}
-
-		if from, err := op.From(); err == nil && len(from) > maxPatchPathLen {
-			return errPatchPathLen
+	for _, operation := range patch {
+		if err := validateOperation(operation); err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func validateOperation(operation jsonpatch.Operation) error {
+	path, pathErr := operation.Path()
+	if pathErr == nil && len(path) > maxPatchPathLen {
+		return errPatchPathLen
+	}
+
+	from, fromErr := operation.From()
+	if fromErr == nil && len(from) > maxPatchPathLen {
+		return errPatchPathLen
+	}
+
+	// A test on a protected path reads it without changing anything.
+	if operation.Kind() == "test" {
+		return nil
+	}
+
+	if pathErr == nil && isProtectedPath(path) {
+		return fmt.Errorf("%w: %s", errPatchProtected, path)
+	}
+
+	if fromErr == nil && isProtectedPath(from) {
+		return fmt.Errorf("%w: %s", errPatchProtected, from)
+	}
+
+	return nil
+}
+
+// isProtectedPath names the fields the server owns on every resource. They
+// show up in the JSON the patch runs over, so without this check an operation
+// on them would apply and then be silently undone by the handler, and a client
+// would have no way to tell. createdAt also keys the list cursors, so moving
+// it would reorder every listing.
+func isProtectedPath(path string) bool {
+	switch path {
+	case "/id", "/createdAt", "/updatedAt", "/catalogId":
+		return true
+	}
+
+	return false
 }
