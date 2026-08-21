@@ -324,6 +324,179 @@ func TestPatchRejectsImmutableFieldsInMergePatch(t *testing.T) {
 	runTestCases(t, tests)
 }
 
+// TestPostRejectsServerOwnedFields covers the create side. The request is
+// decoded into a struct that carries no id, no timestamps and no catalog
+// assignment, so naming one has to be refused rather than quietly dropped.
+func TestPostRejectsServerOwnedFields(t *testing.T) {
+	tests := []TestCase{
+		{
+			description:         "POST publisher with an id",
+			query:               "POST /v1/publishers",
+			body:                `{"id": "` + unusedID + `", "description": "new", "codeHosting": [{"url": "https://post-1.example.org"}], "email": "post-1@example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Publisher","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST publisher with a createdAt",
+			query:               "POST /v1/publishers",
+			body:                `{"createdAt": "` + forgedCreated + `", "description": "new", "codeHosting": [{"url": "https://post-2.example.org"}], "email": "post-2@example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Publisher","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST publisher with a catalogId",
+			query:               "POST /v1/publishers",
+			body:                `{"catalogId": "` + swissID + `", "description": "new", "codeHosting": [{"url": "https://post-3.example.org"}], "email": "post-3@example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Publisher","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST software with an id",
+			query:               "POST /v1/software",
+			body:                `{"id": "` + unusedID + `", "publiccodeYml": "-", "url": "https://post-4.example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Software","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST software with a createdAt",
+			query:               "POST /v1/software",
+			body:                `{"createdAt": "` + forgedCreated + `", "publiccodeYml": "-", "url": "https://post-5.example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Software","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST software with a catalogId",
+			query:               "POST /v1/software",
+			body:                `{"catalogId": "` + swissID + `", "publiccodeYml": "-", "url": "https://post-6.example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Software","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST catalog with an id",
+			query:               "POST /v1/catalogs",
+			body:                `{"id": "` + unusedID + `", "name": "New Catalog", "sources": [{"url": "https://github.com/example/post-7"}]}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Catalog","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST catalog with a createdAt",
+			query:               "POST /v1/catalogs",
+			body:                `{"createdAt": "` + forgedCreated + `", "name": "New Catalog", "sources": [{"url": "https://github.com/example/post-8"}]}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Catalog","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST catalog publisher with a catalogId",
+			query:               "POST /v1/catalogs/" + italiaID + "/publishers",
+			body:                `{"catalogId": "` + swissID + `", "description": "new", "codeHosting": [{"url": "https://post-9.example.org"}], "email": "post-9@example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Publisher","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST catalog software with a catalogId",
+			query:               "POST /v1/catalogs/" + italiaID + "/software",
+			body:                `{"catalogId": "` + swissID + `", "publiccodeYml": "-", "url": "https://post-10.example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Software","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST log with an id",
+			query:               "POST /v1/logs",
+			body:                `{"id": "` + unusedID + `", "message": "new"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Log","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description:         "POST webhook with an id",
+			query:               "POST /v1/software/" + italiaSoftwareID + "/webhooks",
+			body:                `{"id": "` + unusedID + `", "url": "https://post-11.example.org/hook"}`,
+			headers:             patchHeaders(),
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Webhook","detail":"unknown field in JSON input","status":422}`,
+		},
+	}
+
+	runTestCases(t, tests)
+}
+
+// TestPostAssignsItsOwnIdentifiers pins that a create answers with a server
+// generated id and with timestamps of its own, so nothing a client sends can
+// end up in those columns.
+func TestPostAssignsItsOwnIdentifiers(t *testing.T) {
+	tests := []TestCase{
+		{
+			description:         "POST publisher",
+			query:               "POST /v1/publishers",
+			body:                `{"description": "new", "codeHosting": [{"url": "https://post-12.example.org"}], "email": "post-12@example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				t.Helper()
+
+				assertUUID(t, response["id"])
+				assert.NotEqual(t, unusedID, response["id"])
+				assertTimestamps(t, response)
+			},
+		},
+		{
+			description:         "POST software",
+			query:               "POST /v1/software",
+			body:                `{"publiccodeYml": "-", "url": "https://post-13.example.org"}`,
+			headers:             patchHeaders(),
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				t.Helper()
+
+				assertUUID(t, response["id"])
+				assert.NotEqual(t, unusedID, response["id"])
+				assertTimestamps(t, response)
+			},
+		},
+		{
+			description:         "POST catalog",
+			query:               "POST /v1/catalogs",
+			body:                `{"name": "New Catalog", "sources": [{"url": "https://github.com/example/post-14"}]}`,
+			headers:             patchHeaders(),
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				t.Helper()
+
+				assertUUID(t, response["id"])
+				assert.NotEqual(t, unusedID, response["id"])
+				assertTimestamps(t, response)
+			},
+		},
+	}
+
+	runTestCases(t, tests)
+}
+
 func patchHeaders() map[string][]string {
 	return map[string][]string{
 		"Authorization": {goodToken},
