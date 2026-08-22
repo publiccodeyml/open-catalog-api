@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -18,6 +19,15 @@ import (
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 )
+
+const (
+	dialTimeout   = 5 * time.Second
+	clientTimeout = 10 * time.Second
+)
+
+// errForbiddenAddress is returned when a webhook target is one the dispatcher
+// must never reach, so callers can tell it apart from a transport failure.
+var errForbiddenAddress = errors.New("webhook target is not publicly routable")
 
 // dispatchTimeout caps the per-request webhook dispatch. It is a var (not
 // const) so tests can shorten it without sleeping for whole seconds.
@@ -33,34 +43,39 @@ var dispatchTimeout = 10 * time.Second
 //nolint:gochecknoglobals // tunable for tests
 var dialGuardDisabled atomic.Bool
 
-// privateRanges are the RFC 1918 / ULA blocks checked at dial time.
-//
-//nolint:gochecknoglobals // effectively const, computed once
-var privateRanges = func() []*net.IPNet {
-	cidrs := []string{
-		"10.0.0.0/8",
-		"172.16.0.0/12",
-		"192.168.0.0/16",
-		"fc00::/7",
-	}
-	nets := make([]*net.IPNet, 0, len(cidrs))
-	for _, cidr := range cidrs {
-		_, n, _ := net.ParseCIDR(cidr)
-		nets = append(nets, n)
-	}
-	return nets
-}()
-
+// isForbiddenIP reports whether ip must not be dialed by the webhook
+// dispatcher. IsPrivate covers RFC 1918 and RFC 4193.
 func isForbiddenIP(ip net.IP) bool {
-	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
-		return true
+	return ip.IsLoopback() ||
+		ip.IsLinkLocalUnicast() ||
+		ip.IsLinkLocalMulticast() ||
+		ip.IsUnspecified() ||
+		ip.IsPrivate()
+}
+
+// checkHostAllowed refuses a host that is, or resolves to, an address outside
+// the publicly routable space.
+func checkHostAllowed(ctx context.Context, host string) error {
+	if ip := net.ParseIP(host); ip != nil {
+		if isForbiddenIP(ip) {
+			return fmt.Errorf("%w: %s", errForbiddenAddress, host)
+		}
+
+		return nil
 	}
-	for _, r := range privateRanges {
-		if r.Contains(ip) {
-			return true
+
+	addrs, err := net.DefaultResolver.LookupHost(ctx, host)
+	if err != nil {
+		return fmt.Errorf("resolving webhook host %q: %w", host, err)
+	}
+
+	for _, addr := range addrs {
+		if ip := net.ParseIP(addr); ip != nil && isForbiddenIP(ip) {
+			return fmt.Errorf("%w: %s resolves to %s", errForbiddenAddress, host, addr)
 		}
 	}
-	return false
+
+	return nil
 }
 
 func safeDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -69,61 +84,42 @@ func safeDialContext(ctx context.Context, network, addr string) (net.Conn, error
 		return nil, fmt.Errorf("invalid address %q: %w", addr, err)
 	}
 
-	addrs, err := net.DefaultResolver.LookupHost(ctx, host)
+	if err := checkHostAllowed(ctx, host); err != nil {
+		return nil, err
+	}
+
+	dialer := &net.Dialer{Timeout: dialTimeout}
+
+	conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(host, port))
 	if err != nil {
-		return nil, fmt.Errorf("DNS lookup failed for %q: %w", host, err)
+		return nil, fmt.Errorf("dialing webhook target %q: %w", addr, err)
 	}
 
-	for _, a := range addrs {
-		ip := net.ParseIP(a)
-		if ip != nil && isForbiddenIP(ip) {
-			return nil, fmt.Errorf("webhook dial to forbidden address %s: %s", a, host)
-		}
-	}
-
-	dialer := &net.Dialer{Timeout: 5 * time.Second}
-	return dialer.DialContext(ctx, network, net.JoinHostPort(host, port))
+	return conn, nil
 }
 
 func newWebhookClient() *http.Client {
 	transport := &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			if dialGuardDisabled.Load() {
-				dialer := &net.Dialer{Timeout: 5 * time.Second}
+				dialer := &net.Dialer{Timeout: dialTimeout}
+
 				return dialer.DialContext(ctx, network, addr)
 			}
+
 			return safeDialContext(ctx, network, addr)
 		},
 	}
 
 	return &http.Client{
-		Timeout:   10 * time.Second,
+		Timeout:   clientTimeout,
 		Transport: transport,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
 			if dialGuardDisabled.Load() {
 				return nil
 			}
 
-			host := req.URL.Hostname()
-			if ip := net.ParseIP(host); ip != nil {
-				if isForbiddenIP(ip) {
-					return fmt.Errorf("webhook redirect to forbidden address: %s", host)
-				}
-				return nil
-			}
-
-			addrs, err := net.LookupHost(host)
-			if err != nil {
-				return fmt.Errorf("DNS lookup failed during redirect for %q: %w", host, err)
-			}
-
-			for _, a := range addrs {
-				if ip := net.ParseIP(a); ip != nil && isForbiddenIP(ip) {
-					return fmt.Errorf("webhook redirect to forbidden address %s: %s", a, host)
-				}
-			}
-
-			return nil
+			return checkHostAllowed(req.Context(), req.URL.Hostname())
 		},
 	}
 }

@@ -1,11 +1,13 @@
 package common
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -22,6 +24,10 @@ var hostValidator = validator.New()
 const (
 	tagPosition      = 2
 	maxProvidedValue = 255
+
+	// A webhook URL is validated while a request is being served, so the
+	// resolution has to give up quickly if the resolver is slow.
+	webhookLookupTimeout = 2 * time.Second
 )
 
 type ValidationError struct {
@@ -30,54 +36,33 @@ type ValidationError struct {
 	Value string `json:"value"`
 }
 
-// privateRanges lists CIDR blocks that must not be reachable via webhooks.
-var privateRanges = func() []*net.IPNet {
-	cidrs := []string{
-		"10.0.0.0/8",
-		"172.16.0.0/12",
-		"192.168.0.0/16",
-		"fc00::/7",
-	}
-	nets := make([]*net.IPNet, 0, len(cidrs))
-	for _, cidr := range cidrs {
-		_, n, _ := net.ParseCIDR(cidr)
-		nets = append(nets, n)
-	}
-	return nets
-}()
-
-// isForbiddenIP reports whether ip must not be dialed by the webhook dispatcher.
+// isForbiddenIP reports whether ip must not be dialed by the webhook
+// dispatcher. IsPrivate covers RFC 1918 and RFC 4193.
 func isForbiddenIP(ip net.IP) bool {
-	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
-		return true
-	}
-	for _, r := range privateRanges {
-		if r.Contains(ip) {
-			return true
-		}
-	}
-	return false
+	return ip.IsLoopback() ||
+		ip.IsLinkLocalUnicast() ||
+		ip.IsLinkLocalMulticast() ||
+		ip.IsUnspecified() ||
+		ip.IsPrivate()
 }
 
 // validateWebhookURL rejects URLs that are not HTTPS, contain userinfo, or
 // resolve to a private/loopback/link-local address.
 func validateWebhookURL(fl validator.FieldLevel) bool {
-	raw := fl.Field().String()
-
-	u, err := url.Parse(raw)
+	parsed, err := url.Parse(fl.Field().String())
 	if err != nil {
 		return false
 	}
 
-	if u.Scheme != "https" {
+	if parsed.Scheme != "https" {
 		return false
 	}
 
-	if u.User != nil {
+	if parsed.User != nil {
 		return false
 	}
 
-	host := u.Hostname()
+	host := parsed.Hostname()
 	if host == "" {
 		return false
 	}
@@ -86,9 +71,12 @@ func validateWebhookURL(fl validator.FieldLevel) bool {
 		return !isForbiddenIP(ip)
 	}
 
-	// DNS lookup is best effort at registration time; unresolvable hostnames
-	// are allowed through. The dispatch-layer dial guard is the real defence.
-	addrs, err := net.LookupHost(host)
+	ctx, cancel := context.WithTimeout(context.Background(), webhookLookupTimeout)
+	defer cancel()
+
+	// Resolution is best effort at registration time, so a name that does not
+	// resolve yet is accepted. The dispatcher checks again before every send.
+	addrs, err := net.DefaultResolver.LookupHost(ctx, host)
 	if err != nil {
 		return true
 	}
@@ -110,7 +98,6 @@ func ValidateStruct(validateStruct any) []ValidationError {
 	})
 
 	_ = validate.RegisterValidation("code_hosting_url", validateCodeHostingURL)
-	//nolint:errcheck // registration only fails if tag is empty or already registered
 	_ = validate.RegisterValidation("webhook_url", validateWebhookURL)
 
 	var validationErrors []ValidationError
