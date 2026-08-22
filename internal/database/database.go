@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -13,14 +14,41 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func NewDatabase(connection string) (*gorm.DB, error) {
-	var (
-		database *gorm.DB
-		err      error
-	)
+const (
+	SQLite   = "sqlite"
+	Postgres = "postgres"
+)
 
+var ErrUnknownDialect = errors.New(
+	`unrecognized database DSN: expected a "file:" SQLite DSN, a "postgres://" URL or a key=value connection string`,
+)
+
+// Dialect reports which database a DSN points at. Everything that opens
+// a connection goes through here, so the application and the test
+// harness can't disagree and end up talking to two different databases.
+func Dialect(connection string) (string, error) {
 	switch {
 	case strings.HasPrefix(connection, "file:"):
+		return SQLite, nil
+	case strings.HasPrefix(connection, "postgres://"),
+		strings.HasPrefix(connection, "postgresql://"),
+		strings.Contains(connection, "="):
+		return Postgres, nil
+	}
+
+	return "", fmt.Errorf("%w: %q", ErrUnknownDialect, connection)
+}
+
+func NewDatabase(connection string) (*gorm.DB, error) {
+	dialect, err := Dialect(connection)
+	if err != nil {
+		return nil, err
+	}
+
+	var database *gorm.DB
+
+	switch dialect {
+	case SQLite:
 		log.Println("using SQLite database")
 
 		database, err = gorm.Open(sqlite.Open(connection), &gorm.Config{})
@@ -44,7 +72,7 @@ func NewDatabase(connection string) (*gorm.DB, error) {
 
 	// Workaround until #72 (proper migrations): GIN index on analysis for
 	// per-namespace queries. SQLite doesn't support GIN, PostgreSQL only.
-	if !strings.HasPrefix(connection, "file:") {
+	if dialect != SQLite {
 		sql := "CREATE INDEX IF NOT EXISTS idx_software_analysis_gin ON software USING GIN (analysis)"
 		if err := database.Exec(sql).Error; err != nil {
 			return nil, fmt.Errorf("can't create analysis GIN index: %w", err)
