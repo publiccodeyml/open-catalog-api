@@ -49,9 +49,13 @@ compose file and point `DATABASE_DSN` at it:
 
 ```sh
 docker compose up -d db
-DATABASE_DSN='host=localhost user=postgres password=postgres dbname=postgres port=5432' \
+DATABASE_DSN='postgres://postgres:postgres@localhost:5432/test?sslmode=disable' \
   go test -race ./...
 ```
+
+The database name has to contain `test`, otherwise the fixtures refuse
+to load into it. That holds for SQLite too, where the name is the file
+name: `file:./scratch.db` is rejected, `file:./scratch-test.db` is not.
 
 Before opening a pull request, run the linter as well:
 
