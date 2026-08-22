@@ -18,6 +18,7 @@ import (
 	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/gofiber/fiber/v2"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -64,14 +65,18 @@ func init() {
 	_ = os.Setenv("PASETO_KEY", "dGVzdC1wYXNldG8ta2V5LWRvbnQtdXNlLWluLXByb2Q=")
 
 	dsn := os.Getenv("DATABASE_DSN")
-	switch {
-	case strings.HasPrefix(dsn, "postgres:"):
-		dbDriver = "postgres"
-	default:
+
+	dialect, err := database.Dialect(dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// database/sql registers the SQLite driver under a name of its own.
+	dbDriver = dialect
+	if dialect == database.SQLite {
 		dbDriver = "sqlite3"
 	}
 
-	var err error
 	db, err = sql.Open(dbDriver, dsn)
 	if err != nil {
 		log.Fatal(err)

@@ -53,6 +53,10 @@ DATABASE_DSN='postgres://postgres:postgres@localhost:5432/test?sslmode=disable' 
   go test -race ./...
 ```
 
+`DATABASE_DSN` takes a `file:` SQLite DSN, a PostgreSQL URL or a
+PostgreSQL `key=value` connection string. Anything else stops the run
+with an error instead of guessing.
+
 The database name has to contain `test`, otherwise the fixtures refuse
 to load into it. That holds for SQLite too, where the name is the file
 name: `file:./scratch.db` is rejected, `file:./scratch-test.db` is not.
