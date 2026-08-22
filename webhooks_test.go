@@ -64,6 +64,32 @@ func TestWebhooksEndpoints(t *testing.T) {
 			expectedContentType: "application/problem+json",
 		},
 
+		// GET /software/webhooks
+		{
+			description:         "GET webhooks with invalid format for page[size] query param",
+			query:               "GET /v1/software/webhooks?page[size]=NOT_AN_INT",
+			headers:             map[string][]string{"Authorization": {goodToken}},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "can't get Webhooks", response["title"])
+				assert.Equal(t, "page[size] must be an integer", response["detail"])
+			},
+		},
+
+		// GET /software/:id/webhooks
+		{
+			description:         "GET webhooks of a software with invalid format for page[size] query param",
+			query:               "GET /v1/software/9f135268-a37e-4ead-96ec-e4a24bb9344a/webhooks?page[size]=NOT_AN_INT",
+			headers:             map[string][]string{"Authorization": {goodToken}},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "can't get Webhooks", response["title"])
+				assert.Equal(t, "page[size] must be an integer", response["detail"])
+			},
+		},
+
 		// PATCH /webhooks/:id
 		{
 			query: "PATCH /v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",

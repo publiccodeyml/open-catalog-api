@@ -45,14 +45,14 @@ func (p *Log) GetLogs(ctx *fiber.Ctx) error {
 		return common.Error(
 			fiber.StatusUnprocessableEntity,
 			"can't get Logs",
-			err.Error(),
+			general.QueryErrorDetail(err),
 		)
 	}
 
 	// Logs are returned in descending order, last first
 	paginator, err := general.NewPaginatorWithConfig(ctx, &paginator.Config{Order: paginator.DESC})
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Logs", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Logs", general.QueryErrorDetail(err))
 	}
 
 	result, cursor, err := paginator.Paginate(stmt, &logs)
@@ -267,7 +267,7 @@ func (p *Log) getEntityLogs(ctx *fiber.Ctx, entity models.Model, entityName stri
 	// Logs are returned in descending order, last first
 	paginator, err := general.NewPaginatorWithConfig(ctx, &paginator.Config{Order: paginator.DESC})
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Logs", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Logs", general.QueryErrorDetail(err))
 	}
 
 	result, cursor, err := paginator.Paginate(stmt, &logs)

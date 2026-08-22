@@ -1,6 +1,8 @@
 package general
 
 import (
+	"errors"
+	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -8,6 +10,27 @@ import (
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"gorm.io/gorm"
 )
+
+const unknownQueryDetail = "invalid query parameters"
+
+// QueryErrorDetail turns an error raised while reading the query string into a
+// problem detail. Only the errors listed here describe what the caller got
+// wrong. Anything else comes from the paginator or the driver and can carry
+// the schema or the failing statement, so it stays in the server log.
+func QueryErrorDetail(err error) string {
+	switch {
+	case errors.Is(err, common.ErrInvalidDateTime):
+		return common.ErrInvalidDateTime.Error()
+	case errors.Is(err, errInvalidPageSize):
+		return errInvalidPageSize.Error()
+	case errors.Is(err, errPageSizeOutOfRange):
+		return errPageSizeOutOfRange.Error()
+	default:
+		log.Printf("unexpected query parameter error: %s", err)
+
+		return unknownQueryDetail
+	}
+}
 
 func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, searchFieldName string) (*gorm.DB, error) {
 	ret := stmt

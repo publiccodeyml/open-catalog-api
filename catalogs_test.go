@@ -82,6 +82,26 @@ func TestCatalogEndpoints(t *testing.T) {
 			expectedContentType: "application/problem+json",
 			expectedBody:        `{"title":"can't get Catalog","detail":"Catalog was not found","status":404}`,
 		},
+		{
+			description:         "GET catalogs with invalid format for page[size] query param",
+			query:               "GET /v1/catalogs?page[size]=NOT_AN_INT",
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "can't get Catalogs", response["title"])
+				assert.Equal(t, "page[size] must be an integer", response["detail"])
+			},
+		},
+		{
+			description:         "GET catalogs with invalid cursor in page[after] query param",
+			query:               "GET /v1/catalogs?page[after]=NOT_A_CURSOR",
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "can't get Catalogs", response["title"])
+				assert.Equal(t, "wrong cursor format in page[after] or page[before]", response["detail"])
+			},
+		},
 
 		// POST /catalogs
 		{
@@ -426,6 +446,16 @@ func TestCatalogEndpoints(t *testing.T) {
 			expectedContentType: "application/problem+json",
 			expectedBody:        `{"title":"can't get Publishers","detail":"Catalog was not found","status":404}`,
 		},
+		{
+			description:         "GET catalog publishers with invalid format for page[size] query param",
+			query:               "GET /v1/catalogs/" + italiaID + "/publishers?page[size]=NOT_AN_INT",
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "can't get Publishers", response["title"])
+				assert.Equal(t, "page[size] must be an integer", response["detail"])
+			},
+		},
 
 		// POST /catalogs/:id/software
 		{
@@ -659,6 +689,16 @@ func TestCatalogEndpoints(t *testing.T) {
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
 			expectedBody:        `{"title":"can't get Software","detail":"Catalog was not found","status":404}`,
+		},
+		{
+			description:         "GET catalog software with invalid format for page[size] query param",
+			query:               "GET /v1/catalogs/" + italiaID + "/software?page[size]=NOT_AN_INT",
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "can't get Software", response["title"])
+				assert.Equal(t, "page[size] must be an integer", response["detail"])
+			},
 		},
 	}
 

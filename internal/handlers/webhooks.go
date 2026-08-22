@@ -57,7 +57,7 @@ func (p *Webhook[T]) GetResourceWebhooks(ctx *fiber.Ctx) error {
 
 	paginator, err := general.NewPaginator(ctx)
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Webhooks", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Webhooks", general.QueryErrorDetail(err))
 	}
 
 	result, cursor, err := paginator.Paginate(stmt, &webhooks)
@@ -106,7 +106,7 @@ func (p *Webhook[T]) GetSingleResourceWebhooks(ctx *fiber.Ctx) error {
 
 	paginator, err := general.NewPaginator(ctx)
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Webhooks", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Webhooks", general.QueryErrorDetail(err))
 	}
 
 	result, cursor, err := paginator.Paginate(stmt, &webhooks)
