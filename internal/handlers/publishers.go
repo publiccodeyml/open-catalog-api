@@ -43,7 +43,7 @@ func (p *Publisher) GetPublishers(ctx *fiber.Ctx) error {
 		return common.Error(
 			fiber.StatusUnprocessableEntity,
 			"can't get Publishers",
-			err.Error(),
+			general.QueryErrorDetail(err),
 		)
 	}
 
@@ -53,7 +53,7 @@ func (p *Publisher) GetPublishers(ctx *fiber.Ctx) error {
 
 	paginator, err := general.NewPaginator(ctx)
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Publishers", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Publishers", general.QueryErrorDetail(err))
 	}
 
 	result, cursor, err := paginator.Paginate(stmt, &publishers)

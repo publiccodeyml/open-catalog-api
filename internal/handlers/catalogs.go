@@ -75,7 +75,7 @@ func (c *Catalog) GetCatalogs(ctx *fiber.Ctx) error {
 
 	stmt, err := general.Clauses(ctx, c.db.Preload("Sources"), "")
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Catalogs", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Catalogs", general.QueryErrorDetail(err))
 	}
 
 	if all := ctx.QueryBool("all", false); !all {
@@ -84,7 +84,7 @@ func (c *Catalog) GetCatalogs(ctx *fiber.Ctx) error {
 
 	paginator, err := general.NewPaginator(ctx)
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Catalogs", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Catalogs", general.QueryErrorDetail(err))
 	}
 
 	result, cursor, err := paginator.Paginate(stmt, &catalogs)
@@ -359,7 +359,7 @@ func (c *Catalog) GetCatalogPublishers(ctx *fiber.Ctx) error {
 
 	stmt, err = general.Clauses(ctx, stmt, "")
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Publishers", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Publishers", general.QueryErrorDetail(err))
 	}
 
 	if all := ctx.QueryBool("all", false); !all {
@@ -368,7 +368,7 @@ func (c *Catalog) GetCatalogPublishers(ctx *fiber.Ctx) error {
 
 	paginator, err := general.NewPaginator(ctx)
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Publishers", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Publishers", general.QueryErrorDetail(err))
 	}
 
 	result, cursor, err := paginator.Paginate(stmt, &publishers)
@@ -769,7 +769,7 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 
 	stmt, err = general.Clauses(ctx, stmt, "")
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
 
 	if urlFilter := common.NormalizeURL(ctx.Query("url", "")); urlFilter != "" {
@@ -794,7 +794,7 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 
 	paginator, err := general.NewPaginator(ctx)
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
 
 	result, cursor, err := paginator.Paginate(stmt, &software)

@@ -52,7 +52,7 @@ func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error { //nolint:cyclop // mos
 		return common.Error(
 			fiber.StatusUnprocessableEntity,
 			"can't get Software",
-			err.Error(),
+			general.QueryErrorDetail(err),
 		)
 	}
 
@@ -82,7 +82,7 @@ func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error { //nolint:cyclop // mos
 
 	paginator, err := general.NewPaginator(ctx)
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
 
 	result, cursor, err := paginator.Paginate(stmt, &software)
