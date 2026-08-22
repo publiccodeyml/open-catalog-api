@@ -996,9 +996,11 @@ func (c *Catalog) PatchCatalogAnalysis(ctx *fiber.Ctx) error {
 
 	var incoming common.AnalysisData
 	if err := json.Unmarshal(ctx.Body(), &incoming); err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
+		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "invalid or malformed JSON")
 	}
 
+	// The error here is one of a fixed set of validation messages prefixed
+	// with the namespace the caller sent, so it can be returned as is.
 	merged, err := injectTouchedAnalysis(catalog.Analysis, incoming, time.Now())
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())

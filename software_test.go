@@ -1696,6 +1696,21 @@ func TestSoftwareAnalysisEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "PATCH analysis with malformed JSON returns 422",
+			query:       "PATCH /v1/software/" + softwareID + "/analysis",
+			body:        `{"badges": `,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/merge-patch+json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "can't update Software analysis", response["title"])
+				assert.Equal(t, "invalid or malformed JSON", response["detail"])
+			},
+		},
+		{
 			description:         "GET analysis on nonexistent software returns 404",
 			query:               "GET /v1/software/" + missingID + "/analysis",
 			expectedCode:        404,

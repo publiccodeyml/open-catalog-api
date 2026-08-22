@@ -1250,6 +1250,21 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "PATCH analysis with malformed JSON returns 422",
+			query:       "PATCH /v1/catalogs/" + italiaID + "/analysis",
+			body:        `{"badges": `,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/merge-patch+json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "can't update Catalog analysis", response["title"])
+				assert.Equal(t, "invalid or malformed JSON", response["detail"])
+			},
+		},
+		{
 			description:         "GET analysis on nonexistent catalog returns 404",
 			query:               "GET /v1/catalogs/" + missingID + "/analysis",
 			expectedCode:        404,
