@@ -22,5 +22,9 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      # The fixtures refuse to load into a database whose name has no
+      # "test" in it, so the suite gets one of its own next to the
+      # "postgres" database the api service uses.
+      POSTGRES_DB: test
     ports:
       - '5432:5432'
