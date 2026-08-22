@@ -61,6 +61,9 @@ The database name has to contain `test`, otherwise the fixtures refuse
 to load into it. That holds for SQLite too, where the name is the file
 name: `file:./scratch.db` is rejected, `file:./scratch-test.db` is not.
 
+The suite pins itself to UTC, so it passes on a host set to any
+timezone and needs no `TZ` in front of the command.
+
 Before opening a pull request, run the linter as well:
 
 ```sh

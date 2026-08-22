@@ -53,6 +53,11 @@ type TestCase struct {
 }
 
 func init() {
+	// Timestamps are asserted as literal strings and the PostgreSQL driver
+	// returns timestamptz values in the process local zone, so on a host
+	// that is not on UTC every one of them would come back shifted.
+	time.Local = time.UTC
+
 	// Test on SQLite by default if DATABASE_DSN is not set
 	if _, exists := os.LookupEnv("DATABASE_DSN"); !exists {
 		_ = os.Setenv("DATABASE_DSN", "file:./test.db")
