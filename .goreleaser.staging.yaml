@@ -21,5 +21,12 @@ builds:
 dockers:
  -
    dockerfile: Dockerfile.goreleaser
+   build_flag_templates:
+     # Same reproducibility flags as .goreleaser.yaml: timestamps
+     # clamped to the commit date, no inline attestation. Needs a
+     # docker-container builder.
+     - "--build-arg=SOURCE_DATE_EPOCH={{ .CommitTimestamp }}"
+     - "--provenance=false"
+     - "--output=type=docker,rewrite-timestamp=true"
    image_templates:
      - "ghcr.io/publiccodeyml/open-catalog-api:main"

@@ -100,3 +100,72 @@ jobs:
           sha256sum /tmp/goreleaser-build /tmp/plain-build
           cmp /tmp/goreleaser-build /tmp/plain-build \
             && echo "Reproducible build confirmed"
+
+  image-rebuild:
+    # The staging :main image uses the same Dockerfile and binary, so this
+    # check covers it too.
+    runs-on: ubuntu-latest
+    env:
+      BUILDX_BUILDER: repro
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # goreleaser reads the tag history
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
+        with:
+          version: v2.15.2
+          install-only: true
+      - run: go install github.com/reproducible-containers/diffoci/cmd/diffoci@v0.1.8
+      - # The reproducibility flags in the goreleaser configs need a
+        # docker-container builder, selected via BUILDX_BUILDER: plain
+        # docker build ignores the buildx selected builder, and the
+        # default one silently drops rewrite-timestamp.
+        run: docker buildx create --name "$BUILDX_BUILDER"
+
+      - name: Build the shipped image with goreleaser
+        run: |
+          goreleaser release --snapshot --clean --skip=sbom
+          docker tag ghcr.io/publiccodeyml/open-catalog-api:latest repro:shipped
+        env:
+          # The newest tag may well be a helm/* one, which goreleaser
+          # cannot parse as semver.
+          GORELEASER_CURRENT_TAG: v0.0.0
+
+      - name: Rebuild the image from a source tree at another path
+        run: |
+          cp -a . /tmp/src-elsewhere
+          mkdir "$RUNNER_TEMP/context"
+          cp Dockerfile.goreleaser "$RUNNER_TEMP/context/"
+          cd /tmp/src-elsewhere
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOAMD64=v1 \
+            go build -trimpath -ldflags="-s -w -buildid=" \
+              -o "$RUNNER_TEMP/context/open-catalog-api" .
+          # Without --no-cache the layer cache hands back the first build
+          # untouched and the comparison below passes having built nothing.
+          SOURCE_DATE_EPOCH=$(git -C "$GITHUB_WORKSPACE" log -1 --format=%ct) \
+            docker build --no-cache --platform=linux/amd64 --provenance=false \
+            --output type=docker,rewrite-timestamp=true \
+            -f "$RUNNER_TEMP/context/Dockerfile.goreleaser" \
+            -t repro:rebuilt "$RUNNER_TEMP/context"
+
+      - name: Compare the two images
+        run: |
+          # The two images need different tags to coexist, and the tag
+          # lands in the manifest descriptor annotations.
+          if diffoci --backend local diff --ignore-image-name \
+              docker://repro:shipped docker://repro:rebuilt; then
+            echo "The rebuilt image matches the shipped one."
+            exit 0
+          fi
+          echo "The images differ. Semantic comparison, timestamps ignored:"
+          diffoci --backend local diff --semantic \
+            docker://repro:shipped docker://repro:rebuilt
+          exit 1

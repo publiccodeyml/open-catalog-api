@@ -33,6 +33,15 @@ changelog:
 dockers:
  -
    dockerfile: Dockerfile.goreleaser
+   build_flag_templates:
+     # Clamp every timestamp in the image to the commit date and drop
+     # the BuildKit inline attestation, which embeds the build time
+     # (CI attests provenance separately). A rebuild from the same
+     # commit then produces the identical image. Needs a
+     # docker-container builder.
+     - "--build-arg=SOURCE_DATE_EPOCH={{ .CommitTimestamp }}"
+     - "--provenance=false"
+     - "--output=type=docker,rewrite-timestamp=true"
    image_templates:
      - "ghcr.io/publiccodeyml/open-catalog-api:{{ .Tag }}"
      - "ghcr.io/publiccodeyml/open-catalog-api:latest"
