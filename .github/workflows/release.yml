@@ -8,6 +8,8 @@ permissions: {}
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    env:
+      BUILDX_BUILDER: repro
     permissions:
       contents: write
       packages: write
@@ -33,6 +35,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - # goreleaser shells out to syft for the sboms stanza
         uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+      - # The reproducibility flags in the goreleaser config need a
+        # docker-container builder, selected via BUILDX_BUILDER: plain
+        # docker build ignores the buildx selected builder, and the
+        # default one silently drops rewrite-timestamp.
+        run: docker buildx create --name "$BUILDX_BUILDER"
       - name: Take the release notes from the changelog
         # Written outside the checkout because goreleaser refuses to
         # release from a dirty tree, and an untracked file counts.

@@ -16,6 +16,8 @@ permissions: {}
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    env:
+      BUILDX_BUILDER: repro
     permissions:
       # To check out the repository
       contents: read
@@ -37,6 +39,12 @@ jobs:
         run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u docker --password-stdin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - # The reproducibility flags in the goreleaser config need a
+        # docker-container builder, selected via BUILDX_BUILDER: plain
+        # docker build ignores the buildx selected builder, and the
+        # default one silently drops rewrite-timestamp.
+        run: docker buildx create --name "$BUILDX_BUILDER"
 
       - # Tag with a temporary valid semantic version. This is required by goreleaser.
         run: git tag v0-main-$(git rev-parse --short HEAD)
