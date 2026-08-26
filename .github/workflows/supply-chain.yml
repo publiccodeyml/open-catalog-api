@@ -7,6 +7,40 @@ on:
 permissions: {}
 
 jobs:
+  pin-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check every action is pinned to a commit SHA
+        run: |
+          # The version comment after the ref is the whole point of the
+          # pin, so cut the comment off before looking at the ref.
+          bad=$(grep -rn -E '^[[:space:]]*(-[[:space:]]+)?uses:' .github/workflows/ \
+            | sed -E 's/[[:space:]]*#.*$//; s/[[:space:]]+$//' \
+            | grep -v -E 'uses:[[:space:]]*\.' \
+            | grep -v -E 'uses:[[:space:]]*[^[:space:]]+@[0-9a-f]{40}$' || true)
+          if [ -n "$bad" ]; then
+            echo "Action refs not pinned to a 40 character commit SHA:"
+            echo "$bad"
+            exit 1
+          fi
+          echo "Every action ref is pinned to a commit SHA."
+      - name: Check every Dockerfile FROM is pinned to a digest
+        run: |
+          bad=$(grep -n -E '^[[:space:]]*FROM[[:space:]]' Dockerfile* \
+            | sed -E 's/[[:space:]]*#.*$//; s/[[:space:]]+$//' \
+            | grep -v -i -E '@sha256:[0-9a-f]{64}([[:space:]]+AS[[:space:]]+[^[:space:]]+)?$' || true)
+          if [ -n "$bad" ]; then
+            echo "FROM directives not pinned to an image digest:"
+            echo "$bad"
+            exit 1
+          fi
+          echo "Every FROM directive is pinned to an image digest."
+
   zizmor:
     runs-on: ubuntu-latest
     permissions:
