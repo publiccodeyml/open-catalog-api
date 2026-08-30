@@ -82,6 +82,35 @@ func TestValidateWebhookURLStruct(t *testing.T) {
 	}
 }
 
+// TestValidateGitHubWebhook exercises the struct-level check tying the
+// github format to the repository_dispatch endpoint.
+func TestValidateGitHubWebhook(t *testing.T) {
+	tests := []struct {
+		name   string
+		url    string
+		format string
+		valid  bool
+	}{
+		{"dispatch endpoint", "https://api.github.com/repos/o/r/dispatches", "github", true},
+		{"other github api path", "https://api.github.com/repos/o/r/issues", "github", false},
+		{"missing repo", "https://api.github.com/repos/o//dispatches", "github", false},
+		{"wrong host", "https://example.com/repos/o/r/dispatches", "github", false},
+		{"default format any url", "https://example.com/hook", "", true},
+		{"standard-webhooks any url", "https://example.com/hook", "standard-webhooks", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errs := ValidateStruct(Webhook{URL: tt.url, Format: tt.format, Secret: "0123456789abcdef"})
+			if tt.valid {
+				assert.Empty(t, errs, "expected valid: %s %s", tt.format, tt.url)
+			} else {
+				assert.NotEmpty(t, errs, "expected invalid: %s %s", tt.format, tt.url)
+			}
+		})
+	}
+}
+
 func TestValidateCodeHostingURL(t *testing.T) {
 	tests := []struct {
 		name  string
