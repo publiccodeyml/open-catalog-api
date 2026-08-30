@@ -51,6 +51,8 @@ linters:
         - ^data$
         - ^links$
         - ^entity_type$
+        - ^event$
+        - ^subject$
     wrapcheck:
       ignore-sigs:
         # Fiber takes care of unwrapping the error

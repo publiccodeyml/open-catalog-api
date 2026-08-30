@@ -1439,6 +1439,20 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "POST webhook with github format",
+			query:       "POST /v1/software/c5dec6fa-8a01-4881-9e7d-132770d4214d/webhooks",
+			body:        `{"url": "https://api.github.com/repos/example/repo/dispatches", "format": "github"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "github", response["format"])
+			},
+		},
+		{
 			description: "POST webhook with unknown format",
 			query:       "POST /v1/software/c5dec6fa-8a01-4881-9e7d-132770d4214d/webhooks",
 			body:        `{"url": "https://format-bogus.example.org", "format": "carrier-pigeon"}`,

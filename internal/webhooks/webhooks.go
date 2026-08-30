@@ -173,11 +173,44 @@ func DispatchWebhooks(event models.Event, gorm *gorm.DB) error {
 // the default format.
 func buildRequest(webhook models.Webhook, event models.Event, subject string) ([]byte, map[string]string, error) {
 	switch webhook.Format {
+	case common.WebhookFormatGitHub:
+		return githubRequest(webhook, event, subject)
 	case common.WebhookFormatStandardWebhooks:
 		return standardWebhooksRequest(webhook, event, subject)
 	default:
 		return defaultRequest(webhook, event, subject)
 	}
+}
+
+// githubRequest builds the request GitHub expects inbound on its
+// repository_dispatch endpoint (the webhook URL points at
+// https://api.github.com/repos/{owner}/{repo}/dispatches), so catalog events
+// can trigger Actions workflows. The webhook secret is the GitHub token, sent
+// as the bearer, and the payload is the default format's one wrapped in
+// client_payload. See
+// https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event.
+func githubRequest(webhook models.Webhook, event models.Event, subject string) ([]byte, map[string]string, error) {
+	body, err := json.Marshal(map[string]any{
+		"event_type": event.EntityType + "." + event.Type,
+		"client_payload": map[string]string{
+			"event":   event.Type,
+			"subject": subject,
+		},
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("error marshaling event JSON for %s: %w", subject, err)
+	}
+
+	headers := map[string]string{
+		"Accept":               "application/vnd.github+json",
+		"X-GitHub-Api-Version": "2022-11-28",
+	}
+
+	if webhook.Secret != "" {
+		headers["Authorization"] = "Bearer " + webhook.Secret
+	}
+
+	return body, headers, nil
 }
 
 func defaultRequest(webhook models.Webhook, event models.Event, subject string) ([]byte, map[string]string, error) {

@@ -419,6 +419,51 @@ func TestDispatchStandardWebhooksFormatNoSecret(t *testing.T) {
 	assert.False(t, present, "webhook-signature must be absent when the secret is empty")
 }
 
+func TestDispatchGitHubFormat(t *testing.T) {
+	received := captureDispatch(t,
+		models.Webhook{
+			ID: "wh-gh-1", Secret: "a-github-token", Format: "github",
+			EntityType: "software", EntityID: "sw-1",
+		},
+		models.Event{ID: "ev-gh-1", Type: "update", EntityType: "software", EntityID: "sw-1"},
+	)
+
+	assert.JSONEq(
+		t,
+		`{
+			"event_type": "software.update",
+			"client_payload": {"event": "update", "subject": "/software/sw-1"}
+		}`,
+		string(received.body),
+	)
+	assert.Equal(t, "application/json", received.headers.Get("Content-Type"))
+	assert.Equal(t, "application/vnd.github+json", received.headers.Get("Accept"))
+	assert.Equal(t, "2022-11-28", received.headers.Get("X-GitHub-Api-Version"))
+	assert.Equal(t, "Bearer a-github-token", received.headers.Get("Authorization"))
+}
+
+func TestDispatchGitHubFormatNoSecret(t *testing.T) {
+	received := captureDispatch(t,
+		models.Webhook{
+			ID: "wh-gh-2", Secret: "", Format: "github",
+			EntityType: "software", EntityID: "",
+		},
+		models.Event{ID: "ev-gh-2", Type: "delete", EntityType: "software", EntityID: ""},
+	)
+
+	assert.JSONEq(
+		t,
+		`{
+			"event_type": "software.delete",
+			"client_payload": {"event": "delete", "subject": "/software"}
+		}`,
+		string(received.body),
+	)
+
+	_, present := received.headers["Authorization"]
+	assert.False(t, present, "Authorization must be absent when the secret is empty")
+}
+
 func TestDispatchDefaultFormatNoSecret(t *testing.T) {
 	received := captureDispatch(t,
 		models.Webhook{ID: "wh-fmt-3", Secret: "", Format: "default", EntityType: "software", EntityID: ""},

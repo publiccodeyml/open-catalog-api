@@ -8,5 +8,6 @@ const (
 	EventTypeDelete = "delete"
 
 	WebhookFormatDefault          = "default"
+	WebhookFormatGitHub           = "github"
 	WebhookFormatStandardWebhooks = "standard-webhooks"
 )

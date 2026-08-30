@@ -2643,11 +2643,15 @@ components:
           type: string
           enum:
             - default
+            - github
             - standard-webhooks
           default: default
           description: |
             Format used to deliver the webhook payload
-            ("standard-webhooks" follows https://www.standardwebhooks.com)
+            ("standard-webhooks" follows https://www.standardwebhooks.com,
+            "github" posts a repository_dispatch event to the
+            https://api.github.com/repos/{owner}/{repo}/dispatches URL set
+            in "url", authenticated with the token set in "secret")
         createdAt:
           type: string
           description: The time the webhook was created (RFC 3339 datetime)

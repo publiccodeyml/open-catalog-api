@@ -46,6 +46,32 @@ func isForbiddenIP(ip net.IP) bool {
 		ip.IsPrivate()
 }
 
+// validateGitHubWebhook requires a github format webhook to target the
+// repository_dispatch endpoint, the one URL its payload is valid for.
+// Anything else would receive the bearer secret for nothing.
+func validateGitHubWebhook(level validator.StructLevel) {
+	webhook, ok := reflect.TypeAssert[Webhook](level.Current())
+	if !ok || webhook.Format != WebhookFormatGitHub {
+		return
+	}
+
+	parsed, err := url.Parse(webhook.URL)
+	if err != nil {
+		level.ReportError(webhook.URL, "url", "URL", "github_api_url", "")
+
+		return
+	}
+
+	parts := strings.Split(parsed.Path, "/")
+	dispatchPath := len(parts) == 5 &&
+		parts[1] == "repos" && parts[2] != "" && parts[3] != "" &&
+		parts[4] == "dispatches"
+
+	if parsed.Hostname() != "api.github.com" || !dispatchPath {
+		level.ReportError(webhook.URL, "url", "URL", "github_api_url", "")
+	}
+}
+
 // validateWebhookURL rejects URLs that are not HTTPS, contain userinfo, or
 // resolve to a private/loopback/link-local address.
 func validateWebhookURL(fl validator.FieldLevel) bool {
@@ -99,6 +125,7 @@ func ValidateStruct(validateStruct any) []ValidationError {
 
 	_ = validate.RegisterValidation("code_hosting_url", validateCodeHostingURL)
 	_ = validate.RegisterValidation("webhook_url", validateWebhookURL)
+	validate.RegisterStructValidation(validateGitHubWebhook, Webhook{})
 
 	var validationErrors []ValidationError
 
@@ -181,6 +208,9 @@ func GenerateErrorDetails(validationErrors []ValidationError) string {
 			errors = append(errors, validationError.Field+" does not meet its size limits (too few items)")
 		case "code_hosting_url":
 			errors = append(errors, validationError.Field+" is not a valid public http(s) URL")
+		case "github_api_url":
+			errors = append(errors, validationError.Field+
+				" must be https://api.github.com/repos/{owner}/{repo}/dispatches for the github format")
 		default:
 			errors = append(errors, validationError.Field+" is invalid")
 		}
