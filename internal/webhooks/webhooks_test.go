@@ -3,12 +3,14 @@ package webhooks
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -76,7 +78,7 @@ func TestPostTimesOut(t *testing.T) {
 		defer func() { httpClient = originalClient }()
 
 		start := time.Now()
-		post(srv.URL, []byte(`{"event":"test","subject":"/software"}`), "")
+		post(srv.URL, []byte(`{"event":"test","subject":"/software"}`), nil)
 		elapsed := time.Since(start)
 
 		assert.Equal(t, dispatchTimeout, elapsed,
@@ -363,6 +365,58 @@ func TestDispatchEmptyFormat(t *testing.T) {
 
 	assert.JSONEq(t, `{"event": "update", "subject": "/software/sw-1"}`, string(received.body))
 	assert.Equal(t, expectedSignature("a-webhook-secret", received.body), received.headers.Get("X-Webhook-Signature"))
+}
+
+func TestDispatchStandardWebhooksFormat(t *testing.T) {
+	received := captureDispatch(t,
+		models.Webhook{
+			ID: "wh-sw-1", Secret: "a-webhook-secret", Format: "standard-webhooks",
+			EntityType: "software", EntityID: "",
+		},
+		models.Event{ID: "ev-sw-1", Type: "create", EntityType: "software", EntityID: ""},
+	)
+
+	var envelope struct {
+		Type      string            `json:"type"`
+		Timestamp time.Time         `json:"timestamp"`
+		Data      map[string]string `json:"data"`
+	}
+
+	require.NoError(t, json.Unmarshal(received.body, &envelope))
+
+	assert.Equal(t, "software.create", envelope.Type)
+	assert.WithinDuration(t, time.Now(), envelope.Timestamp, time.Minute)
+	assert.Equal(t, map[string]string{"event": "create", "subject": "/software"}, envelope.Data)
+
+	assert.Equal(t, "application/json", received.headers.Get("Content-Type"))
+	assert.Equal(t, "ev-sw-1", received.headers.Get("webhook-id"))
+
+	unixTimestamp := received.headers.Get("webhook-timestamp")
+	seconds, err := strconv.ParseInt(unixTimestamp, 10, 64)
+	require.NoError(t, err)
+	assert.WithinDuration(t, time.Now(), time.Unix(seconds, 0), time.Minute)
+
+	h := hmac.New(sha256.New, []byte("a-webhook-secret"))
+	_, _ = h.Write([]byte("ev-sw-1." + unixTimestamp + "." + string(received.body)))
+	expected := "v1," + base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	assert.Equal(t, expected, received.headers.Get("webhook-signature"))
+}
+
+func TestDispatchStandardWebhooksFormatNoSecret(t *testing.T) {
+	received := captureDispatch(t,
+		models.Webhook{
+			ID: "wh-sw-2", Secret: "", Format: "standard-webhooks",
+			EntityType: "software", EntityID: "",
+		},
+		models.Event{ID: "ev-sw-2", Type: "delete", EntityType: "software", EntityID: ""},
+	)
+
+	assert.Equal(t, "ev-sw-2", received.headers.Get("webhook-id"))
+	assert.NotEmpty(t, received.headers.Get("webhook-timestamp"))
+
+	_, present := received.headers["Webhook-Signature"]
+	assert.False(t, present, "webhook-signature must be absent when the secret is empty")
 }
 
 func TestDispatchDefaultFormatNoSecret(t *testing.T) {
