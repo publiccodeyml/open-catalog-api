@@ -205,7 +205,7 @@ func post(url string, body []byte, signature string) {
 		//nolint:godox // need to implement this in the future
 		// TODO: Replace this and send anonymous failure metrics to a monitoring
 		// system instead.
-		// (https://github.com/italia/developers-italia-api/issues/73)
+		// (https://github.com/publiccodeyml/open-catalog-api/issues/73)
 		log.Printf("error while dispatching webhook %s: %s", url, err.Error())
 
 		return
@@ -222,7 +222,7 @@ func post(url string, body []byte, signature string) {
 		//nolint:godox // need to implement this in the future
 		// TODO: Replace this and send anonymous failure metrics to a monitoring
 		// system instead.
-		// (https://github.com/italia/developers-italia-api/issues/73)
+		// (https://github.com/publiccodeyml/open-catalog-api/issues/73)
 		log.Printf("error while dispatching webhook %s: got HTTP %d", url, response.StatusCode)
 
 		return

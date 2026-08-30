@@ -19,6 +19,14 @@ func NewWebhook[T models.Model](db *gorm.DB) *Webhook[T] {
 	return &Webhook[T]{db: db}
 }
 
+func webhookFormatOrDefault(format string) string {
+	if format == "" {
+		return common.WebhookFormatDefault
+	}
+
+	return format
+}
+
 // GetWebhook gets the webhook with the given ID and returns any error encountered.
 func (p *Webhook[T]) GetWebhook(ctx *fiber.Ctx) error {
 	webhook := models.Webhook{}
@@ -137,6 +145,7 @@ func (p *Webhook[T]) PostResourceWebhook(ctx *fiber.Ctx) error {
 	webhook := models.Webhook{
 		ID:         utils.UUIDv4(),
 		URL:        common.NormalizeURL(webhookReq.URL),
+		Format:     webhookFormatOrDefault(webhookReq.Format),
 		Secret:     webhookReq.Secret,
 		EntityID:   "", // this webhook is triggered for all the resources of this kind
 		EntityType: resource.TableName(),
@@ -177,6 +186,7 @@ func (p *Webhook[T]) PostSingleResourceWebhook(ctx *fiber.Ctx) error {
 	webhook := models.Webhook{
 		ID:         utils.UUIDv4(),
 		URL:        common.NormalizeURL(webhookReq.URL),
+		Format:     webhookFormatOrDefault(webhookReq.Format),
 		Secret:     webhookReq.Secret,
 		EntityID:   resource.UUID(),
 		EntityType: resource.TableName(),
@@ -219,6 +229,12 @@ func (p *Webhook[T]) PatchWebhook(ctx *fiber.Ctx) error {
 	// value instead of clearing it.
 	if webhookReq.Secret != "" {
 		webhook.Secret = webhookReq.Secret
+	}
+
+	// The format is optional on PATCH, so an omitted one keeps the stored
+	// value instead of resetting it.
+	if webhookReq.Format != "" {
+		webhook.Format = webhookReq.Format
 	}
 
 	if err := p.db.Updates(&webhook).Error; err != nil {

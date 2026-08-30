@@ -40,7 +40,7 @@ func TestLogsEndpoints(t *testing.T) {
 					// Only certain logs from the fixtures have an associated entity.
 					//
 					// FIXME: This is ugly, see the issue about improving tests:
-					// https://github.com/italia/developers-italia-api/issues/91
+					// https://github.com/publiccodeyml/open-catalog-api/issues/91
 					if log["id"] == "2dfb2bc2-042d-11ed-9338-d8bbc146d165" ||
 						log["id"] == "12f30d9e-042e-11ed-8ddc-d8bbc146d165" ||
 						log["id"] == "18a70362-042e-11ed-b793-d8bbc146d165" {
@@ -248,7 +248,6 @@ func TestLogsEndpoints(t *testing.T) {
 				assertTimestamps(t, response)
 
 				assert.Nil(t, response["entity"])
-
 			},
 		},
 		{

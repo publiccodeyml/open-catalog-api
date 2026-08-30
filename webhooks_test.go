@@ -46,7 +46,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 		{
 			query:               "GET /v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",
 			expectedCode:        200,
-			expectedBody:        `{"id":"007bc84a-7e2d-43a0-b7e1-a256d4114aa7","url":"https://1-b.example.org/receiver","createdAt":"2017-05-01T00:00:00Z","updatedAt":"2017-05-01T00:00:00Z"}`,
+			expectedBody:        `{"id":"007bc84a-7e2d-43a0-b7e1-a256d4114aa7","url":"https://1-b.example.org/receiver","format":"default","createdAt":"2017-05-01T00:00:00Z","updatedAt":"2017-05-01T00:00:00Z"}`,
 			expectedContentType: "application/json",
 		},
 		{
@@ -74,7 +74,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 				assert.Equal(t, "2017-05-01T00:00:00Z", response["createdAt"])
 
 				assertRFC3339(t, response["updatedAt"])
-				assertOnlyKeys(t, response, "id", "url", "createdAt", "updatedAt")
+				assertOnlyKeys(t, response, "id", "url", "format", "createdAt", "updatedAt")
 			},
 		},
 		{
@@ -89,6 +89,40 @@ func TestWebhooksEndpoints(t *testing.T) {
 			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://new.example.org/receiver", response["url"])
+			},
+		},
+		{
+			description: "PATCH webhook without format keeps the stored format",
+			query:       "PATCH /v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",
+			body:        `{"url": "https://new.example.org/receiver"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "default", response["format"])
+			},
+		},
+		{
+			description: "PATCH webhook with unknown format",
+			query:       "PATCH /v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",
+			body:        `{"url": "https://new.example.org/receiver", "format": "carrier-pigeon"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, `can't update Webhook`, response["title"])
+
+				validationErrors := response["validationErrors"].([]interface{})
+				assert.Equal(t, 1, len(validationErrors))
+
+				firstValidationError := validationErrors[0].(map[string]interface{})
+				assert.Equal(t, "format", firstValidationError["field"])
 			},
 		},
 		{
@@ -241,7 +275,7 @@ func TestPatchWebhookPersistsSecret(t *testing.T) {
 	var response map[string]interface{}
 	require.NoError(t, json.NewDecoder(res.Body).Decode(&response))
 
-	assertOnlyKeys(t, response, "id", "url", "createdAt", "updatedAt")
+	assertOnlyKeys(t, response, "id", "url", "format", "createdAt", "updatedAt")
 
 	assert.Equal(t, "rotated-secret-long-enough",
 		dbValue(t, "webhooks", "secret", "id", webhookID))

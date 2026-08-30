@@ -2639,6 +2639,13 @@ components:
           description: |
             Secret used to authenticate to the webhook endpoint
           example: 'my-secret-token-16c'
+        format:
+          type: string
+          enum:
+            - default
+          default: default
+          description: |
+            Format used to deliver the webhook payload
         createdAt:
           type: string
           description: The time the webhook was created (RFC 3339 datetime)
