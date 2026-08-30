@@ -6,4 +6,6 @@ const (
 	EventTypeCreate = "create"
 	EventTypeUpdate = "update"
 	EventTypeDelete = "delete"
+
+	WebhookFormatDefault = "default"
 )

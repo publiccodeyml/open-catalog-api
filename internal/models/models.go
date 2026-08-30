@@ -178,6 +178,7 @@ func (slice *SoftwareURLSlice) UnmarshalJSON(data []byte) error {
 type Webhook struct {
 	ID        string    `json:"id" gorm:"primaryKey"`
 	URL       string    `json:"url" gorm:"index:idx_webhook_url,unique"`
+	Format    string    `json:"format" gorm:"default:'default'"`
 	Secret    string    `json:"-"`
 	CreatedAt time.Time `json:"createdAt" gorm:"index"`
 	UpdatedAt time.Time `json:"updatedAt"`

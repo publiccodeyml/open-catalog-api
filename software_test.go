@@ -371,7 +371,6 @@ func TestSoftwareEndpoints(t *testing.T) {
 				assert.Equal(t, true, response["active"])
 
 				assertOnlyKeys(t, response, "id", "createdAt", "updatedAt", "url", "aliases", "publiccodeYml", "active", "vitality", "catalogId")
-
 			},
 		},
 		{
@@ -399,7 +398,6 @@ func TestSoftwareEndpoints(t *testing.T) {
 				assertUUID(t, response["id"])
 				assertTimestamps(t, response)
 				assertOnlyKeys(t, response, "id", "createdAt", "updatedAt", "url", "aliases", "publiccodeYml", "active", "vitality", "catalogId")
-
 			},
 		},
 		{
@@ -443,7 +441,6 @@ func TestSoftwareEndpoints(t *testing.T) {
 				assertUUID(t, response["id"])
 				assertTimestamps(t, response)
 				assertOnlyKeys(t, response, "id", "createdAt", "updatedAt", "url", "aliases", "publiccodeYml", "active", "vitality", "catalogId")
-
 			},
 		},
 		{
@@ -1222,7 +1219,6 @@ func TestSoftwareEndpoints(t *testing.T) {
 				assertTimestamps(t, response)
 
 				assert.Equal(t, "/software/c353756e-8597-4e46-a99b-7da2e141603b", response["entity"])
-
 			},
 		},
 		{
@@ -1326,7 +1322,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				assert.Equal(t, "2017-05-01T00:00:00Z", firstWebhook["createdAt"])
 				assert.Equal(t, "2017-05-01T00:00:00Z", firstWebhook["updatedAt"])
 
-				assertOnlyKeys(t, firstWebhook, "id", "url", "createdAt", "updatedAt")
+				assertOnlyKeys(t, firstWebhook, "id", "url", "format", "createdAt", "updatedAt")
 			},
 		},
 		{
@@ -1397,8 +1393,55 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assertUUID(t, response["id"])
 				assertTimestamps(t, response)
-				assertOnlyKeys(t, response, "id", "url", "createdAt", "updatedAt")
+				assertOnlyKeys(t, response, "id", "url", "format", "createdAt", "updatedAt")
+			},
+		},
+		{
+			description: "POST webhook with explicit default format",
+			query:       "POST /v1/software/c5dec6fa-8a01-4881-9e7d-132770d4214d/webhooks",
+			body:        `{"url": "https://format-explicit.example.org", "format": "default"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "default", response["format"])
+			},
+		},
+		{
+			description: "POST webhook without format defaults to default",
+			query:       "POST /v1/software/c5dec6fa-8a01-4881-9e7d-132770d4214d/webhooks",
+			body:        `{"url": "https://format-implicit.example.org"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "default", response["format"])
+			},
+		},
+		{
+			description: "POST webhook with unknown format",
+			query:       "POST /v1/software/c5dec6fa-8a01-4881-9e7d-132770d4214d/webhooks",
+			body:        `{"url": "https://format-bogus.example.org", "format": "carrier-pigeon"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, `can't create Webhook`, response["title"])
 
+				validationErrors := response["validationErrors"].([]interface{})
+				assert.Equal(t, 1, len(validationErrors))
+
+				firstValidationError := validationErrors[0].(map[string]interface{})
+				assert.Equal(t, "format", firstValidationError["field"])
 			},
 		},
 		{
@@ -1708,7 +1751,6 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 		assert.Contains(t, analysis, "ns-one", "ns-one namespace must survive a subsequent PATCH of a different namespace")
 		assert.Contains(t, analysis, "ns-two", "ns-two namespace must be present after second PATCH")
 	})
-
 }
 
 func TestSoftwareDeleteDBChecks(t *testing.T) {

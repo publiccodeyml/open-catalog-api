@@ -8,10 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/publiccodeyml/open-catalog-api/internal/models"
 )
 
 // The goroutineleak profile flags goroutines blocked on primitives no

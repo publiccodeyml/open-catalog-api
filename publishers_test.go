@@ -281,7 +281,6 @@ func TestPublishersEndpoints(t *testing.T) {
 
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "example-testcase-1@example.com", response["email"])
-
 			},
 		},
 		{
@@ -919,7 +918,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				assert.Equal(t, "2018-07-15T00:00:00Z", firstWebhook["createdAt"])
 				assert.Equal(t, "2018-07-15T00:00:00Z", firstWebhook["updatedAt"])
 
-				assertOnlyKeys(t, firstWebhook, "id", "url", "createdAt", "updatedAt")
+				assertOnlyKeys(t, firstWebhook, "id", "url", "format", "createdAt", "updatedAt")
 			},
 		},
 		{
@@ -990,8 +989,7 @@ func TestPublishersEndpoints(t *testing.T) {
 
 				assertUUID(t, response["id"])
 				assertTimestamps(t, response)
-				assertOnlyKeys(t, response, "id", "url", "createdAt", "updatedAt")
-
+				assertOnlyKeys(t, response, "id", "url", "format", "createdAt", "updatedAt")
 			},
 		},
 		{

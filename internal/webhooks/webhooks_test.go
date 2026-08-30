@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -14,19 +15,25 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-
-	"github.com/publiccodeyml/open-catalog-api/internal/models"
 )
+
+type receivedRequest struct {
+	headers http.Header
+	body    []byte
+}
 
 func setupDB(t *testing.T, webhooks []models.Webhook) *gorm.DB {
 	t.Helper()
 
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
+	// A per-test DSN: with a single shared in-memory database rows leak
+	// between tests and dispatch picks up other tests' webhooks.
+	db, err := gorm.Open(sqlite.Open("file:"+t.Name()+"?mode=memory&cache=shared"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	require.NoError(t, err)
@@ -285,4 +292,85 @@ func TestIsForbiddenIP(t *testing.T) {
 			assert.Equal(t, tt.forbidden, isForbiddenIP(ip))
 		})
 	}
+}
+
+func captureDispatch(t *testing.T, webhook models.Webhook, event models.Event) receivedRequest {
+	t.Helper()
+
+	dialGuardDisabled.Store(true)
+	t.Cleanup(func() { dialGuardDisabled.Store(false) })
+
+	var (
+		mu       sync.Mutex
+		received receivedRequest
+	)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		mu.Lock()
+		received = receivedRequest{headers: r.Header.Clone(), body: body}
+		mu.Unlock()
+
+		wg.Done()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	webhook.URL = srv.URL
+	db := setupDB(t, []models.Webhook{webhook})
+
+	// GORM replaces a zero-valued Format with the column default on insert,
+	// so a legacy row predating the column is recreated with an update.
+	if webhook.Format == "" {
+		require.NoError(t, db.Model(&models.Webhook{}).
+			Where("id = ?", webhook.ID).
+			Update("format", "").Error)
+	}
+
+	require.NoError(t, DispatchWebhooks(event, db))
+	wg.Wait()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	return received
+}
+
+func TestDispatchDefaultFormat(t *testing.T) {
+	received := captureDispatch(t,
+		models.Webhook{ID: "wh-fmt-1", Secret: "a-webhook-secret", Format: "default", EntityType: "software", EntityID: ""},
+		models.Event{ID: "ev-1", Type: "create", EntityType: "software", EntityID: ""},
+	)
+
+	assert.JSONEq(t, `{"event": "create", "subject": "/software"}`, string(received.body))
+	assert.Equal(t, "application/json", received.headers.Get("Content-Type"))
+	assert.Equal(t, expectedSignature("a-webhook-secret", received.body), received.headers.Get("X-Webhook-Signature"))
+}
+
+// TestDispatchEmptyFormat covers rows created before the format column existed,
+// which dispatch must treat as the default format.
+func TestDispatchEmptyFormat(t *testing.T) {
+	received := captureDispatch(t,
+		models.Webhook{ID: "wh-fmt-2", Secret: "a-webhook-secret", Format: "", EntityType: "software", EntityID: "sw-1"},
+		models.Event{ID: "ev-2", Type: "update", EntityType: "software", EntityID: "sw-1"},
+	)
+
+	assert.JSONEq(t, `{"event": "update", "subject": "/software/sw-1"}`, string(received.body))
+	assert.Equal(t, expectedSignature("a-webhook-secret", received.body), received.headers.Get("X-Webhook-Signature"))
+}
+
+func TestDispatchDefaultFormatNoSecret(t *testing.T) {
+	received := captureDispatch(t,
+		models.Webhook{ID: "wh-fmt-3", Secret: "", Format: "default", EntityType: "software", EntityID: ""},
+		models.Event{ID: "ev-3", Type: "delete", EntityType: "software", EntityID: ""},
+	)
+
+	_, present := received.headers["X-Webhook-Signature"]
+	assert.False(t, present, "X-Webhook-Signature must be absent when the secret is empty")
 }
