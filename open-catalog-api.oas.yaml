@@ -2643,9 +2643,11 @@ components:
           type: string
           enum:
             - default
+            - standard-webhooks
           default: default
           description: |
             Format used to deliver the webhook payload
+            ("standard-webhooks" follows https://www.standardwebhooks.com)
         createdAt:
           type: string
           description: The time the webhook was created (RFC 3339 datetime)

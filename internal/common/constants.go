@@ -7,5 +7,6 @@ const (
 	EventTypeUpdate = "update"
 	EventTypeDelete = "delete"
 
-	WebhookFormatDefault = "default"
+	WebhookFormatDefault          = "default"
+	WebhookFormatStandardWebhooks = "standard-webhooks"
 )

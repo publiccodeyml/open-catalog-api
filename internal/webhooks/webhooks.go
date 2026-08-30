@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -13,9 +14,11 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"sync/atomic"
 	"time"
 
+	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 )
@@ -149,37 +152,101 @@ func DispatchWebhooks(event models.Event, gorm *gorm.DB) error {
 			event.EntityID,
 		)
 
-	if err := stmt.Select("url, secret").Find(&webhooks).Error; err != nil {
+	if err := stmt.Select("url, secret, format").Find(&webhooks).Error; err != nil {
 		return fmt.Errorf("error finding webhooks for %s: %w", subject, err)
 	}
 
-	jsonBody, err := json.Marshal(map[string]string{
-		"event":   event.Type,
-		"subject": subject,
-	})
-	if err != nil {
-		return fmt.Errorf("error marshaling event JSON for %s: %w", subject, err)
-	}
-
 	for _, webhook := range webhooks {
-		signature := ""
-
-		if webhook.Secret != "" {
-			h := hmac.New(sha256.New, []byte(webhook.Secret))
-
-			// This can't fail
-			_, _ = h.Write(jsonBody)
-
-			signature = hex.EncodeToString(h.Sum(nil))
+		body, headers, err := buildRequest(webhook, event, subject)
+		if err != nil {
+			return fmt.Errorf("error building webhook request for %s: %w", subject, err)
 		}
 
-		go post(webhook.URL, jsonBody, signature)
+		go post(webhook.URL, body, headers)
 	}
 
 	return nil
 }
 
-func post(url string, body []byte, signature string) {
+// buildRequest returns the payload and the format-specific headers for one
+// webhook. An empty format means the row predates the format column and gets
+// the default format.
+func buildRequest(webhook models.Webhook, event models.Event, subject string) ([]byte, map[string]string, error) {
+	switch webhook.Format {
+	case common.WebhookFormatStandardWebhooks:
+		return standardWebhooksRequest(webhook, event, subject)
+	default:
+		return defaultRequest(webhook, event, subject)
+	}
+}
+
+func defaultRequest(webhook models.Webhook, event models.Event, subject string) ([]byte, map[string]string, error) {
+	body, err := json.Marshal(map[string]string{
+		"event":   event.Type,
+		"subject": subject,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("error marshaling event JSON for %s: %w", subject, err)
+	}
+
+	headers := map[string]string{}
+
+	if webhook.Secret != "" {
+		headers["X-Webhook-Signature"] = hex.EncodeToString(hmacSHA256(webhook.Secret, body))
+	}
+
+	return body, headers, nil
+}
+
+func hmacSHA256(secret string, chunks ...[]byte) []byte {
+	mac := hmac.New(sha256.New, []byte(secret))
+
+	for _, chunk := range chunks {
+		// This can't fail
+		_, _ = mac.Write(chunk)
+	}
+
+	return mac.Sum(nil)
+}
+
+// standardWebhooksRequest builds the payload and headers per
+// https://www.standardwebhooks.com: the signed content is
+// "<id>.<timestamp>.<body>" and the signature is prefixed with its scheme
+// version.
+func standardWebhooksRequest(
+	webhook models.Webhook, event models.Event, subject string,
+) ([]byte, map[string]string, error) {
+	now := time.Now()
+
+	body, err := json.Marshal(map[string]any{
+		"type":      event.EntityType + "." + event.Type,
+		"timestamp": now.UTC().Format(time.RFC3339),
+		"data": map[string]string{
+			"event":   event.Type,
+			"subject": subject,
+		},
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("error marshaling event JSON for %s: %w", subject, err)
+	}
+
+	timestamp := strconv.FormatInt(now.Unix(), 10)
+
+	headers := map[string]string{
+		"webhook-id":        event.ID,
+		"webhook-timestamp": timestamp,
+	}
+
+	if webhook.Secret != "" {
+		signature := hmacSHA256(webhook.Secret, []byte(event.ID+"."+timestamp+"."), body)
+
+		headers["webhook-signature"] = "v1," + base64.StdEncoding.EncodeToString(signature)
+	}
+
+	return body, headers, nil
+}
+
+func post(url string, body []byte, headers map[string]string) {
 	ctx, cancel := context.WithTimeout(context.Background(), dispatchTimeout)
 	defer cancel()
 
@@ -196,8 +263,8 @@ func post(url string, body []byte, signature string) {
 	req.Header.Set("User-Agent", "DevelopersItaliaAPI-Webhook/1.0")
 	req.Header.Set("Content-Type", "application/json")
 
-	if signature != "" {
-		req.Header.Set("X-Webhook-Signature", signature)
+	for name, value := range headers {
+		req.Header.Set(name, value)
 	}
 
 	response, err := httpClient.Do(req)
