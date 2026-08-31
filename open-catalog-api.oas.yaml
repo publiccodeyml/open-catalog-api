@@ -20,16 +20,15 @@ info:
     name: Apache
     url: 'https://www.apache.org/licenses/LICENSE-2.0'
   contact:
-    email: contatti@developers.italia.it
-    url: 'https://developers.italia.it/en/contacts'
-    name: Developers Italia
+    url: 'https://github.com/publiccodeyml/open-catalog-api'
+    name: Open Catalog API - publiccode.yml project
   x-api-id: 0f9ca6b0-db47-11ec-96f7-d8bbc146d165
-  termsOfService: 'https://developers.italia.it/en/api/developers-italia#terms-of-service'
+  termsOfService: 'https://publiccodeyml.github.io/open-catalog-api/#terms-of-service'
 servers:
   - url: 'https://api.developers.italia.it/v1'
-    description: The production server
-  - url: 'https://api-staging.developers.italia.it/v1'
-    description: The staging server
+    description: Italian Catalog
+  - url: 'https://oss-catalog-api.ocp.cloudscale.puzzle.ch/v1'
+    description: Swiss Catalog
 tags:
   - name: catalogs
     description: Operations on catalogs
