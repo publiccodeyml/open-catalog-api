@@ -15,7 +15,7 @@ description:
       - Containerization support
       - Helm chart available
     longDescription: |
-      **software-catalog-api** is a RESTful API for public software catalogs.
+      **open-catalog-api** is a RESTful API for public software catalogs.
       It powers developers.italia.it and can be deployed as a standalone
       instance for any public software catalog.
     shortDescription: |-
@@ -46,7 +46,7 @@ maintenance:
   contacts:
     - name: Fabio Bonelli
   type: community
-name: software-catalog-api
+name: open-catalog-api
 platforms:
   - web
 dependsOn:
@@ -55,4 +55,4 @@ dependsOn:
       optional: true
 softwareType: standalone/backend
 softwareVersion: v1.0.0
-url: "https://github.com/italia/developers-italia-api"
+url: "https://github.com/italia/open-catalog-api"

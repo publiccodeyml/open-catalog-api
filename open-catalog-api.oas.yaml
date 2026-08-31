@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  title: Software Catalog API
+  title: Open Catalog API
   version: 1.0.0
-  x-summary: Software Catalog API
+  x-summary: Open Catalog API
   description: |
     REST API for public software catalogs.
 

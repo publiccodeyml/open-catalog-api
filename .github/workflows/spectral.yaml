@@ -29,7 +29,7 @@ jobs:
       - uses: bfabio/spectral-action@5af95a6a2985901bd5e689c663b4f93c660f0d2c
         id: lint
         with:
-          file_glob: software-catalog-api.oas.yaml
+          file_glob: open-catalog-api.oas.yaml
           spectral_ruleset: .spectral.yml
           repo_token: ${{ secrets.GITHUB_TOKEN }}
 
