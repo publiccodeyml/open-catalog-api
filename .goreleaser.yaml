@@ -7,7 +7,7 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-  - binary: software-catalog-api
+  - binary: open-catalog-api
     env:
       - CGO_ENABLED=0
     flags:
@@ -34,5 +34,5 @@ dockers:
  -
    dockerfile: Dockerfile.goreleaser
    image_templates:
-     - "ghcr.io/italia/developers-italia-api:{{ .Tag }}"
-     - "ghcr.io/italia/developers-italia-api:latest"
+     - "ghcr.io/italia/open-catalog-api:{{ .Tag }}"
+     - "ghcr.io/italia/open-catalog-api:latest"

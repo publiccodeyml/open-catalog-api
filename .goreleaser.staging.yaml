@@ -9,7 +9,7 @@ release:
   disable: true
 
 builds:
-  - binary: software-catalog-api
+  - binary: open-catalog-api
     env:
       - CGO_ENABLED=0
     flags:
@@ -22,4 +22,4 @@ dockers:
  -
    dockerfile: Dockerfile.goreleaser
    image_templates:
-     - "ghcr.io/italia/developers-italia-api:main"
+     - "ghcr.io/italia/open-catalog-api:main"
