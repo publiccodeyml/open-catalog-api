@@ -8,8 +8,8 @@ import (
 
 	pasetoware "github.com/gofiber/contrib/paseto"
 	"github.com/gofiber/fiber/v2"
-	"github.com/italia/open-catalog-api/internal/common"
 	"github.com/o1egl/paseto"
+	"github.com/publiccodeyml/open-catalog-api/internal/common"
 )
 
 func NewRandomPasetoKey() *common.Base64Key {

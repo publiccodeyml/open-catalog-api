@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/italia/open-catalog-api/internal/models"
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 

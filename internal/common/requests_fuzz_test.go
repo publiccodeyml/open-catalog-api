@@ -3,8 +3,8 @@ package common_test
 import (
 	"testing"
 
-	"github.com/italia/open-catalog-api/internal/common"
-	"github.com/italia/open-catalog-api/internal/jsondecoder"
+	"github.com/publiccodeyml/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/jsondecoder"
 )
 
 // FuzzValidatePostRequests mirrors the POST body path: Fiber's BodyParser

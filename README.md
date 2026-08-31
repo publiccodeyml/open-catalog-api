@@ -11,7 +11,7 @@
     <img src="https://www.bestpractices.dev/projects/14158/badge">
   </a> 
   
-  <img alt="License" src="https://img.shields.io/github/license/italia/open-catalog-api?color=brightgreen">
+  <img alt="License" src="https://img.shields.io/github/license/publiccodeyml/open-catalog-api?color=brightgreen">
 </p>
 
 <div align="center">
@@ -85,9 +85,9 @@ You can configure the API with environment variables:
 This project exists also thanks to your contributions! Here is a list of people
 who already contributed to this repository:
 
-<a href="https://github.com/italia/open-catalog-api/graphs/contributors">
+<a href="https://github.com/publiccodeyml/open-catalog-api/graphs/contributors">
   <img
-  src="https://contributors-img.web.app/image?repo=italia/open-catalog-api"
+  src="https://contributors-img.web.app/image?repo=publiccodeyml/open-catalog-api"
   />
 </a>
 
