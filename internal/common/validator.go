@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/italia/open-catalog-api/internal/jsondecoder"
+	"github.com/publiccodeyml/open-catalog-api/internal/jsondecoder"
 )
 
 // hostValidator runs the `fqdn` tag against the host of a candidate URL.

@@ -55,4 +55,4 @@ dependsOn:
       optional: true
 softwareType: standalone/backend
 softwareVersion: v1.0.0
-url: "https://github.com/italia/open-catalog-api"
+url: "https://github.com/publiccodeyml/open-catalog-api"

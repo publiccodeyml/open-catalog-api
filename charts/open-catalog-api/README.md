@@ -19,7 +19,7 @@ The API of Developers Italia
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"ghcr.io/italia/open-catalog-api"` |  |
+| image.repository | string | `"ghcr.io/publiccodeyml/open-catalog-api"` |  |
 | image.tag | string | `""` |  |
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |

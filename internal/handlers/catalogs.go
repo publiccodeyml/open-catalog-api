@@ -9,9 +9,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
-	"github.com/italia/open-catalog-api/internal/common"
-	"github.com/italia/open-catalog-api/internal/handlers/general"
-	"github.com/italia/open-catalog-api/internal/models"
+	"github.com/publiccodeyml/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 )
 

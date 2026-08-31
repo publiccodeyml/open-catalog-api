@@ -13,7 +13,7 @@ patched, so upgrade to the latest tag before reporting a problem.
 ## Reporting a vulnerability
 
 Report security vulnerabilities via [GitHub private vulnerability
-reporting](https://github.com/italia/open-catalog-api/security/advisories/new).
+reporting](https://github.com/publiccodeyml/open-catalog-api/security/advisories/new).
 The report stays private between you and the maintainers until a fix is
 released.
 

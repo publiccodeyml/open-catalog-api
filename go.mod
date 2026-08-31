@@ -1,4 +1,4 @@
-module github.com/italia/open-catalog-api
+module github.com/publiccodeyml/open-catalog-api
 
 go 1.25.0
 

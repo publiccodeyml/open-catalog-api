@@ -34,5 +34,5 @@ dockers:
  -
    dockerfile: Dockerfile.goreleaser
    image_templates:
-     - "ghcr.io/italia/open-catalog-api:{{ .Tag }}"
-     - "ghcr.io/italia/open-catalog-api:latest"
+     - "ghcr.io/publiccodeyml/open-catalog-api:{{ .Tag }}"
+     - "ghcr.io/publiccodeyml/open-catalog-api:latest"

@@ -17,7 +17,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/italia/open-catalog-api/internal/models"
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 )
 
 func setupDB(t *testing.T, webhooks []models.Webhook) *gorm.DB {

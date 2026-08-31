@@ -9,8 +9,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/italia/open-catalog-api/internal/common"
 	"github.com/o1egl/paseto"
+	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/spf13/cobra"
 )
 

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/italia/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"gorm.io/gorm"
 )
 
