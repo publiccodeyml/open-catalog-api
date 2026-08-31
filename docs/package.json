@@ -1,0 +1,7 @@
+{
+  "name": "open-catalog-api-docs",
+  "private": true,
+  "dependencies": {
+    "@scalar/api-reference": "1.67.0"
+  }
+}
