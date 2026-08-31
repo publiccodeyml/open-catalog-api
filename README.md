@@ -1,9 +1,9 @@
 <!-- markdownlint-disable no-inline-html -->
 
-<h1 align="center">Software Catalog API</h1>
+<h1 align="center">Open Catalog API</h1>
 
 <p align="center">
-  <img width="200" src=".github/logo.png" alt="software-catalog-api logo">
+  <img width="200" src=".github/logo.png" alt="open-catalog-api logo">
 </p>
 
 <p align="center">
@@ -11,7 +11,7 @@
     <img src="https://www.bestpractices.dev/projects/14158/badge">
   </a> 
   
-  <img alt="License" src="https://img.shields.io/github/license/italia/developers-italia-api?color=brightgreen">
+  <img alt="License" src="https://img.shields.io/github/license/italia/open-catalog-api?color=brightgreen">
 </p>
 
 <div align="center">
@@ -23,7 +23,7 @@
 </div>
 
 <p align="center">
-  <strong>Software Catalog API</strong> is a RESTful API for public software catalogs.
+  <strong>Open Catalog API</strong> is a RESTful API for public software catalogs.
   It powers national open source catalogs for public administrations:
 </p>
 
@@ -64,7 +64,7 @@ You can configure the API with environment variables:
   and a token with the built-in subcommand:
 
   ```console
-  developers-italia-api token create
+  open-catalog-api token create
   ```
 
   Pass `--key` to use an existing key, `--sub` to identify the caller,
@@ -85,9 +85,9 @@ You can configure the API with environment variables:
 This project exists also thanks to your contributions! Here is a list of people
 who already contributed to this repository:
 
-<a href="https://github.com/italia/developers-italia-api/graphs/contributors">
+<a href="https://github.com/italia/open-catalog-api/graphs/contributors">
   <img
-  src="https://contributors-img.web.app/image?repo=italia/developers-italia-api"
+  src="https://contributors-img.web.app/image?repo=italia/open-catalog-api"
   />
 </a>
 
