@@ -2,9 +2,9 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "developers-italia-api.fullname" . }}
+  name: {{ include "open-catalog-api.fullname" . }}
   labels:
-    {{- include "developers-italia-api.labels" . | nindent 4 }}
+    {{- include "open-catalog-api.labels" . | nindent 4 }}
   {{- if .Values.serviceMonitor.additionalLabels }}
     {{- toYaml .Values.serviceMonitor.additionalLabels | nindent 4 }}
   {{- end }}
@@ -31,5 +31,5 @@ spec:
 {{- end }}
   selector:
     matchLabels:
-      {{- include "developers-italia-api.selectorLabels" . | nindent 6 }}
+      {{- include "open-catalog-api.selectorLabels" . | nindent 6 }}
 {{- end }}

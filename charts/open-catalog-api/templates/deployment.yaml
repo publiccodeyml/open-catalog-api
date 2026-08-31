@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "developers-italia-api.fullname" . }}
+  name: {{ include "open-catalog-api.fullname" . }}
   labels:
-    {{- include "developers-italia-api.labels" . | nindent 4 }}
+    {{- include "open-catalog-api.labels" . | nindent 4 }}
   {{- with .Values.deploymentAnnotations }}
   annotations:
     timestamp: {{ now | date "20060102150405" | quote }}
@@ -16,7 +16,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      {{- include "developers-italia-api.selectorLabels" . | nindent 6 }}
+      {{- include "open-catalog-api.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -24,13 +24,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "developers-italia-api.selectorLabels" . | nindent 8 }}
+        {{- include "open-catalog-api.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "developers-italia-api.serviceAccountName" . }}
+      serviceAccountName: {{ include "open-catalog-api.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -47,7 +47,7 @@ spec:
             - name: DATABASE_DSN
               valueFrom:
                 secretKeyRef:
-                  name: {{ default (include "developers-italia-api.fullname" .) .Values.useExistingSecret }}
+                  name: {{ default (include "open-catalog-api.fullname" .) .Values.useExistingSecret }}
                   key: databaseDSN
             {{- if .Values.maxRequests }}
             - name: MAX_REQUESTS
@@ -56,7 +56,7 @@ spec:
             - name: PASETO_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ default (include "developers-italia-api.fullname" .) .Values.useExistingSecret }}
+                  name: {{ default (include "open-catalog-api.fullname" .) .Values.useExistingSecret }}
                   key: pasetoKey
           livenessProbe:
             httpGet:
