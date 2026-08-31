@@ -8,9 +8,9 @@ test.db-shm
 test.db-wal
 
 # Compiled binary
-/developers-italia-api
+/open-catalog-api
 
 # Helm chart package
-/developers-italia-api-*.tgz
+/open-catalog-api-*.tgz
 
 .env

@@ -1,4 +1,4 @@
-# Push the staging Docker image (ghcr.italia/developers-italia-api:main)
+# Push the staging Docker image (ghcr.io/italia/open-catalog-api:main)
 # on updates to main.
 
 on:
