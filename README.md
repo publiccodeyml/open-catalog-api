@@ -16,7 +16,7 @@
 
 <div align="center">
   <h3>
-    <a href="https://developers.italia.it/it/api/developers-italia">
+    <a href="https://publiccodeyml.github.io/open-catalog-api/">
       API documentation
     </a>
   </h3>

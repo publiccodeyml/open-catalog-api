@@ -7,7 +7,7 @@ categories:
   - data-collection
 description:
   en:
-    apiDocumentation: "https://developers.italia.it/it/api/developers-italia"
+    apiDocumentation: "https://publiccodeyml.github.io/open-catalog-api/"
     features:
       - RESTful API Design
       - Can use either SQLite or PostgreSQL
