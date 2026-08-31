@@ -1,5 +1,5 @@
 apiVersion: v2
-name: developers-italia-api
+name: open-catalog-api
 description: The API of Developers Italia
 
 # A chart can be either an 'application' or a 'library' chart.

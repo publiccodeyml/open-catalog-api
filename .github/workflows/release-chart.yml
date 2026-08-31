@@ -23,7 +23,7 @@ jobs:
       - name: Push chart to GitHub Container Registry
         uses: appany/helm-oci-chart-releaser@d94988c92bed2e09c6113981f15f8bb495d10943 # v0.5.0
         with:
-          name: developers-italia-api
+          name: open-catalog-api
           repository: ${{ github.repository }}/charts
           tag: ${{ steps.get_version.outputs.version }}
           registry: ghcr.io

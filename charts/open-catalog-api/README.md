@@ -1,4 +1,4 @@
-# developers-italia-api
+# open-catalog-api
 
 ![Version: v0.4.0](https://img.shields.io/badge/Version-v0.4.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.1.0](https://img.shields.io/badge/AppVersion-v1.1.0-informational?style=flat-square)
 
@@ -19,7 +19,7 @@ The API of Developers Italia
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `""` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"ghcr.io/italia/developers-italia-api"` |  |
+| image.repository | string | `"ghcr.io/italia/open-catalog-api"` |  |
 | image.tag | string | `""` |  |
 | imagePullSecrets | list | `[]` |  |
 | ingress.annotations | object | `{}` |  |
