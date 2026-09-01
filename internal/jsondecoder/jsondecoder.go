@@ -1,28 +1,22 @@
 package jsondecoder
 
 import (
-	"bytes"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
-	"io"
-	"strings"
 )
 
-var (
-	ErrExtraDataAfterDecoding = errors.New("extra data after decoding")
-	ErrUnknownField           = errors.New("unknown field in JSON input")
-)
+var ErrUnknownField = errors.New("unknown field in JSON input")
 
 // UnmarshalDisallowUnknownFields parses the JSON-encoded data
 // and stores the result in the value pointed to by v like json.Unmarshal,
-// but with DisallowUnknownFields() set by default for extra security.
+// but rejecting unknown fields for extra security.
+//
+// json/v2 is also stricter than encoding/json out of the box: it errors
+// on trailing data after the top-level value, duplicate object member
+// names and member names differing in case from the struct tag.
 func UnmarshalDisallowUnknownFields(data []byte, v any) error {
-	dec := json.NewDecoder(bytes.NewReader(data))
-	dec.DisallowUnknownFields()
-
-	if err := dec.Decode(v); err != nil {
-		// Ugly, but the encoding/json uses a dynamic error here
-		if strings.HasPrefix(err.Error(), "json: unknown field ") {
+	if err := json.Unmarshal(data, v, json.RejectUnknownMembers(true)); err != nil {
+		if errors.Is(err, json.ErrUnknownName) {
 			return ErrUnknownField
 		}
 
@@ -30,15 +24,6 @@ func UnmarshalDisallowUnknownFields(data []byte, v any) error {
 		// unwrapped errors
 		//nolint:wrapcheck
 		return err
-	}
-
-	// Check if there's any data left in the decoder's buffer.
-	// This ensures that there's no extra JSON after the main object
-	// otherwise something like '{"foo": 1}{"bar": 2}' or even '{}garbage'
-	// will not error out. dec.More() is not enough: it returns false
-	// when the next byte is '}' or ']', letting '{}}' pass.
-	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
-		return ErrExtraDataAfterDecoding
 	}
 
 	return nil
