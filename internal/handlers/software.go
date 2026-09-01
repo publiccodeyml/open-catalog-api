@@ -306,7 +306,7 @@ func loadSoftware(gormdb *gorm.DB, software *models.Software, id string) error {
 		return errLoad
 	}
 
-	if err := gormdb.Debug().Where("id = ?", software.SoftwareURLID).First(&software.URL).Error; err != nil {
+	if err := gormdb.Where("id = ?", software.SoftwareURLID).First(&software.URL).Error; err != nil {
 		return errLoad
 	}
 

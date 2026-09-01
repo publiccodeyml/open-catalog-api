@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWebhooksEndpoints(t *testing.T) {
@@ -206,4 +210,57 @@ func TestWebhooksEndpoints(t *testing.T) {
 	}
 
 	runTestCases(t, tests)
+}
+
+func patchWebhook(t *testing.T, id, body string) *http.Response {
+	t.Helper()
+
+	req, err := newTestRequest("PATCH", "/v1/webhooks/"+id, strings.NewReader(body))
+	require.NoError(t, err)
+
+	req.Header = map[string][]string{
+		"Authorization": {goodToken},
+		"Content-Type":  {"application/json"},
+	}
+
+	res, err := app.Test(req, -1)
+	require.NoError(t, err)
+
+	return res
+}
+
+func TestPatchWebhookPersistsSecret(t *testing.T) {
+	loadFixtures(t)
+
+	const webhookID = "007bc84a-7e2d-43a0-b7e1-a256d4114aa7"
+
+	res := patchWebhook(t, webhookID,
+		`{"url": "https://new.example.org/receiver", "secret": "rotated-secret-long-enough"}`)
+	assert.Equal(t, 200, res.StatusCode)
+
+	var response map[string]interface{}
+	require.NoError(t, json.NewDecoder(res.Body).Decode(&response))
+
+	assertOnlyKeys(t, response, "id", "url", "createdAt", "updatedAt")
+
+	assert.Equal(t, "rotated-secret-long-enough",
+		dbValue(t, "webhooks", "secret", "id", webhookID))
+}
+
+func TestPatchWebhookWithoutSecretKeepsTheStoredOne(t *testing.T) {
+	loadFixtures(t)
+
+	const webhookID = "007bc84a-7e2d-43a0-b7e1-a256d4114aa7"
+
+	res := patchWebhook(t, webhookID,
+		`{"url": "https://new.example.org/receiver", "secret": "stored-secret-long-enough"}`)
+	require.Equal(t, 200, res.StatusCode)
+
+	res = patchWebhook(t, webhookID, `{"url": "https://other.example.org/receiver"}`)
+	assert.Equal(t, 200, res.StatusCode)
+
+	assert.Equal(t, "stored-secret-long-enough",
+		dbValue(t, "webhooks", "secret", "id", webhookID))
+	assert.Equal(t, "https://other.example.org/receiver",
+		dbValue(t, "webhooks", "url", "id", webhookID))
 }
