@@ -27,7 +27,7 @@ func TestWithTimestamps(t *testing.T) {
 		result, err := WithTimestamps(input, now)
 		require.NoError(t, err)
 
-		var ns map[string]interface{}
+		var ns map[string]any
 		require.NoError(t, json.Unmarshal(result["scanner"], &ns))
 
 		assert.Equal(t, float64(1), ns["v"])
@@ -45,7 +45,7 @@ func TestWithTimestamps(t *testing.T) {
 		require.NoError(t, err)
 
 		for _, ns := range []string{"scanner", "enricher"} {
-			var m map[string]interface{}
+			var m map[string]any
 			require.NoError(t, json.Unmarshal(result[ns], &m))
 			assert.Equal(t, "2024-01-15T10:30:00Z", m["t"])
 		}
@@ -59,7 +59,7 @@ func TestWithTimestamps(t *testing.T) {
 		result, err := WithTimestamps(input, now)
 		require.NoError(t, err)
 
-		var ns map[string]interface{}
+		var ns map[string]any
 		require.NoError(t, json.Unmarshal(result["scanner"], &ns))
 
 		assert.Equal(t, "2024-01-15T10:30:00Z", ns["t"])

@@ -19,7 +19,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't create Webhook", response["title"])
 			},
 		},
@@ -33,7 +33,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assertUUID(t, response["id"])
 				assert.Equal(t, "https://example.org/receiver", response["url"])
 			},
@@ -64,7 +64,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "007bc84a-7e2d-43a0-b7e1-a256d4114aa7", response["id"])
 				assert.Equal(t, "https://new.example.org/receiver", response["url"])
 				assert.Equal(t, "2017-05-01T00:00:00Z", response["createdAt"])
@@ -83,7 +83,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://new.example.org/receiver", response["url"])
 			},
 		},
@@ -109,7 +109,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't update Webhook`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -136,16 +136,16 @@ func TestWebhooksEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't update Webhook`, response["title"])
 				assert.Equal(t, "invalid format: url is invalid", response["detail"])
 
-				assert.IsType(t, []interface{}{}, response["validationErrors"])
+				assert.IsType(t, []any{}, response["validationErrors"])
 
-				validationErrors := response["validationErrors"].([]interface{})
+				validationErrors := response["validationErrors"].([]any)
 				assert.Equal(t, 1, len(validationErrors))
 
-				firstValidationError := validationErrors[0].(map[string]interface{})
+				firstValidationError := validationErrors[0].(map[string]any)
 
 				for key := range firstValidationError {
 					assert.Contains(t, []string{"field", "rule", "value"}, key)
@@ -162,7 +162,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't update Webhook`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},

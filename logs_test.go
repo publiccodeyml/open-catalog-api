@@ -17,7 +17,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:               "GET /v1/logs",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 25, len(data))
@@ -68,7 +68,7 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 3, len(data))
@@ -82,12 +82,12 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 3, len(data))
 
-				links := response["links"].(map[string]interface{})
+				links := response["links"].(map[string]any)
 				next := links["next"].(string)
 				assert.Contains(t, next, "from=2010-03-01T09%3A56%3A23Z")
 				assert.Contains(t, next, "page[after]=")
@@ -99,7 +99,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:               "GET /v1/logs?page[size]=NOT_AN_INT",
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Logs`, response["title"])
 				assert.Equal(t, "page[size] must be an integer", response["detail"])
 			},
@@ -110,7 +110,7 @@ func TestLogsEndpoints(t *testing.T) {
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			setupFunc:           addLogsForPaginationCapTest,
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				items := assertListResponse(t, response)
 				assert.Equal(t, 100, len(items))
 			},
@@ -121,7 +121,7 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 18, len(data))
@@ -135,7 +135,7 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Logs`, response["title"])
 				assert.Equal(t, "wrong cursor format in page[after] or page[before]", response["detail"])
 			},
@@ -146,7 +146,7 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 8, len(data))
@@ -160,7 +160,7 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Logs`, response["title"])
 				assert.Equal(t, "wrong cursor format in page[after] or page[before]", response["detail"])
 			},
@@ -171,7 +171,7 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 20, len(data))
@@ -183,7 +183,7 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Logs`, response["title"])
 				assert.Equal(t, "invalid date time format (RFC 3339 needed)", response["detail"])
 			},
@@ -194,8 +194,8 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
-				data := response["data"].([]interface{})
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := response["data"].([]any)
 
 				assert.Equal(t, 6, len(data))
 			},
@@ -206,7 +206,7 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Logs`, response["title"])
 				assert.Equal(t, "invalid date time format (RFC 3339 needed)", response["detail"])
 			},
@@ -217,8 +217,8 @@ func TestLogsEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
-				data := response["data"].([]interface{})
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := response["data"].([]any)
 
 				assert.Equal(t, 5, len(data))
 			},
@@ -241,7 +241,7 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "New log from test suite", response["message"])
 
 				assertUUID(t, response["id"])
@@ -285,7 +285,7 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Log`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -312,16 +312,16 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Log`, response["title"])
 				assert.Equal(t, "invalid format: message is required", response["detail"])
 
-				assert.IsType(t, []interface{}{}, response["validationErrors"])
+				assert.IsType(t, []any{}, response["validationErrors"])
 
-				validationErrors := response["validationErrors"].([]interface{})
+				validationErrors := response["validationErrors"].([]any)
 				assert.Equal(t, 1, len(validationErrors))
 
-				firstValidationError := validationErrors[0].(map[string]interface{})
+				firstValidationError := validationErrors[0].(map[string]any)
 
 				for key := range firstValidationError {
 					assert.Contains(t, []string{"field", "rule", "value"}, key)
@@ -338,7 +338,7 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Log`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -355,7 +355,7 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "log scoped to italia catalog", response["message"])
 				assertUUID(t, response["id"])
 				assertTimestamps(t, response)
@@ -371,7 +371,7 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "log on the implicit root catalog", response["message"])
 				assertUUID(t, response["id"])
 				assertTimestamps(t, response)
