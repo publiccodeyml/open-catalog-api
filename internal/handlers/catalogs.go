@@ -436,9 +436,7 @@ func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop
 
 		return tran.Create(&publisher).Error
 	}); err != nil {
-		var idConflict idConflictError
-
-		if errors.As(err, &idConflict) {
+		if idConflict, ok := errors.AsType[idConflictError](err); ok {
 			return common.Error(fiber.StatusConflict, errMsg, idConflict.Error())
 		}
 
@@ -540,9 +538,7 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,
 
 		return nil
 	}); err != nil {
-		var idConflict idConflictError
-
-		if errors.As(err, &idConflict) {
+		if idConflict, ok := errors.AsType[idConflictError](err); ok {
 			return common.Error(fiber.StatusConflict, errMsg, idConflict.Error())
 		}
 

@@ -32,8 +32,7 @@ func ErrorWithValidationErrors(
 func CustomErrorHandler(ctx *fiber.Ctx, err error) error {
 	var problemJSON *ProblemJSONError
 
-	var e *fiber.Error
-	if errors.As(err, &e) {
+	if e, ok := errors.AsType[*fiber.Error](err); ok {
 		problemJSON = &ProblemJSONError{Status: e.Code, Title: http.StatusText(e.Code), Detail: e.Message}
 	}
 

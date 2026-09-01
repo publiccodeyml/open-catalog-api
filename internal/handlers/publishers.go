@@ -134,9 +134,7 @@ func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
 
 		return tran.Create(&publisher).Error
 	}); err != nil {
-		var idConflict idConflictError
-
-		if errors.As(err, &idConflict) {
+		if idConflict, ok := errors.AsType[idConflictError](err); ok {
 			return common.Error(fiber.StatusConflict, errMsg, idConflict.Error())
 		}
 
@@ -226,9 +224,7 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funle
 
 		return nil
 	}); err != nil {
-		var idConflict idConflictError
-
-		if errors.As(err, &idConflict) {
+		if idConflict, ok := errors.AsType[idConflictError](err); ok {
 			return common.Error(fiber.StatusConflict, errMsg, idConflict.Error())
 		}
 
