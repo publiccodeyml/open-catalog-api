@@ -172,7 +172,16 @@ func (p *Software) PostSoftware(ctx *fiber.Ctx) error {
 	}
 
 	if err := p.db.Create(&software).Error; err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, err.Error())
+		if field := common.DuplicateField(err); field != nil {
+			detail := alreadyExists
+			if *field != "" {
+				detail = *field + " " + alreadyExists
+			}
+
+			return common.Error(fiber.StatusConflict, errMsg, detail)
+		}
+
+		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
 	return ctx.JSON(&software)
