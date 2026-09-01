@@ -103,6 +103,16 @@ func Setup() (*fiber.App, *webhooks.Debouncer) {
 		// Fiber doesn't set DisallowUnknownFields by default
 		// (https://github.com/gofiber/fiber/issues/2601)
 		JSONDecoder: jsondecoder.UnmarshalDisallowUnknownFields,
+
+		// With the check on and no trusted proxy configured, Fiber ignores
+		// X-Forwarded-For and c.IP() is the peer of the connection, so a
+		// client can't pick the address it is rate limited by.
+		ProxyHeader:             fiber.HeaderXForwardedFor,
+		EnableTrustedProxyCheck: true,
+		TrustedProxies:          common.EnvironmentConfig.TrustedProxies,
+		// Without validation c.IP() is the whole header value, so a client
+		// behind a trusted proxy could still change it on every request.
+		EnableIPValidation: true,
 	})
 
 	// Automatically recover panics in handlers
@@ -120,7 +130,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer) {
 			Max:               common.EnvironmentConfig.MaxRequests,
 			LimiterMiddleware: limiter.SlidingWindow{},
 			KeyGenerator: func(ctx *fiber.Ctx) string {
-				return ctx.IP() + ctx.Get(fiber.HeaderXForwardedFor, "")
+				return ctx.IP()
 			},
 		}))
 	}

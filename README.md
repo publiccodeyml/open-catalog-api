@@ -80,6 +80,15 @@ You can configure the API with environment variables:
   will be ratelimited.
   Default: no limit.
 
+* `TRUSTED_PROXIES` (optional): comma separated list of addresses or
+  CIDRs of the reverse proxies in front of the API,
+  fe `10.0.0.0/8,192.168.1.7`.
+  The `X-Forwarded-For` header is trusted only on requests coming from
+  these addresses, and its first entry is the client the rate limit
+  counts. Leave it empty when the API is exposed directly: the header
+  is then ignored and the client is the peer of the connection.
+  Default: empty.
+
 ## Contributing
 
 This project exists also thanks to your contributions! Here is a list of people

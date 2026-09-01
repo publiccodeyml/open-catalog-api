@@ -15,6 +15,12 @@ type Environment struct {
 	Database           string     `env:"DATABASE_DSN"`
 	PasetoKey          *Base64Key `env:"PASETO_KEY"`
 
+	// TrustedProxies is the list of addresses or CIDRs of the reverse
+	// proxies in front of the API. X-Forwarded-For is trusted only on
+	// requests coming from them: when the list is empty the header is
+	// ignored and the client is the peer of the connection.
+	TrustedProxies []string `env:"TRUSTED_PROXIES" envSeparator:","`
+
 	// WebhookDebounceMS is the delay in milliseconds before a
 	// webhook is dispatched after the last write. Set to 0 to disable
 	// debouncing entirely. Note: debouncing is per replica.

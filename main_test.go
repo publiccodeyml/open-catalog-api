@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/gofiber/fiber/v2"
+	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -275,4 +276,79 @@ func dbCount(t *testing.T, table, column, value string) int {
 	require.NoError(t, err)
 
 	return n
+}
+
+// requestFrom does a GET on the given app claiming to come from the client
+// in the X-Forwarded-For header, and returns the status code.
+func requestFrom(t *testing.T, rateLimitedApp *fiber.App, forwardedFor string) int {
+	t.Helper()
+
+	req, err := newTestRequest("GET", "/v1/status", strings.NewReader(""))
+	require.NoError(t, err)
+
+	req.Header.Set(fiber.HeaderXForwardedFor, forwardedFor)
+
+	res, err := rateLimitedApp.Test(req, -1)
+	require.NoError(t, err)
+
+	return res.StatusCode
+}
+
+func TestRateLimiterBuckets(t *testing.T) {
+	// GET /v1/status answers 204 when the request goes through.
+	const (
+		statusOK          = 204
+		statusRateLimited = 429
+		maxRequests       = 3
+	)
+
+	savedConfig := common.EnvironmentConfig
+	t.Cleanup(func() { common.EnvironmentConfig = savedConfig })
+
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("MAX_REQUESTS", strconv.Itoa(maxRequests))
+
+	// An empty variable leaves the already parsed value alone, so the app
+	// trusting nobody has to be built before the one with a trusted proxy.
+	t.Setenv("TRUSTED_PROXIES", "")
+	directApp, _ := Setup()
+
+	// 0.0.0.0 is the peer address of a request made through app.Test().
+	t.Setenv("TRUSTED_PROXIES", "0.0.0.0/32")
+	proxiedApp, _ := Setup()
+
+	t.Run("a client varying X-Forwarded-For stays in one bucket", func(t *testing.T) {
+		codes := make([]int, 0, maxRequests+1)
+		for i := range maxRequests + 1 {
+			codes = append(codes, requestFrom(t, directApp, fmt.Sprintf("203.0.113.%d", i)))
+		}
+
+		assert.Equal(t, []int{statusOK, statusOK, statusOK, statusRateLimited}, codes)
+	})
+
+	t.Run("each client behind a trusted proxy gets its own budget", func(t *testing.T) {
+		for range maxRequests {
+			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "198.51.100.1"))
+			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "198.51.100.2"))
+		}
+
+		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "198.51.100.1"))
+		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "198.51.100.2"))
+	})
+
+	t.Run("the first entry of the forwarded chain identifies the client", func(t *testing.T) {
+		for range maxRequests {
+			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "198.51.100.3, 10.0.0.7"))
+		}
+
+		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "198.51.100.3"))
+	})
+
+	t.Run("an IPv6 client keeps a single bucket", func(t *testing.T) {
+		for range maxRequests {
+			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "2001:db8::1"))
+		}
+
+		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "2001:db8::1"))
+	})
 }
