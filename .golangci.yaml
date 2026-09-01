@@ -25,8 +25,11 @@ linters:
     - depguard
     # Deprecated, superseded by wsl_v5
     - wsl
+    # Deprecated, superseded by gomodguard_v2
+    - gomodguard
     # Not terribly useful and ends up in too much boilerplate
     - exhaustruct
+    - exhaustruct_v5
     # https://github.com/italia/developers-italia-api/issues/190)
     # Don't feel about chasing this one down
     - musttag
@@ -42,6 +45,12 @@ linters:
     - revive
 
   settings:
+    goconst:
+      # JSON and column names are clearer inline than as constants
+      ignore-string-values:
+        - ^data$
+        - ^links$
+        - ^entity_type$
     wrapcheck:
       ignore-sigs:
         # Fiber takes care of unwrapping the error
