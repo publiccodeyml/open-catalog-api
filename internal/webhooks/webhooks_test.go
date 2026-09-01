@@ -168,3 +168,46 @@ func TestDispatchWebhooks_EmptySecretNoHeader(t *testing.T) {
 
 	assert.False(t, present, "X-Webhook-Signature header must be absent when secret is empty")
 }
+
+// TestDispatchWebhooks_RotatedSecretTakesEffect verifies that a secret rotated
+// in the database signs the next dispatch, with no restart and no cache in
+// front of the lookup.
+func TestDispatchWebhooks_RotatedSecretTakesEffect(t *testing.T) {
+	signatures := make(chan string, 2)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		signatures <- r.Header.Get("X-Webhook-Signature")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	const (
+		oldSecret = "secret-before-rotation"
+		newSecret = "secret-after-rotation"
+	)
+
+	db := setupDB(t, []models.Webhook{
+		{ID: "wh-4", URL: srv.URL, Secret: oldSecret, EntityType: "publishers", EntityID: ""},
+	})
+
+	event := models.Event{Type: "created", EntityType: "publishers", EntityID: ""}
+
+	require.NoError(t, DispatchWebhooks(event, db))
+	before := <-signatures
+
+	require.NoError(t, db.Model(&models.Webhook{}).
+		Where("id = ?", "wh-4").
+		Update("secret", newSecret).Error)
+
+	require.NoError(t, DispatchWebhooks(event, db))
+	after := <-signatures
+
+	payload, err := json.Marshal(map[string]string{
+		"event":   "created",
+		"subject": "/publishers",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, expectedSignature(oldSecret, payload), before)
+	assert.Equal(t, expectedSignature(newSecret, payload), after)
+}

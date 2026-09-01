@@ -215,6 +215,12 @@ func (p *Webhook[T]) PatchWebhook(ctx *fiber.Ctx) error {
 
 	webhook.URL = common.NormalizeURL(webhookReq.URL)
 
+	// The secret is optional on PATCH, so an omitted one keeps the stored
+	// value instead of clearing it.
+	if webhookReq.Secret != "" {
+		webhook.Secret = webhookReq.Secret
+	}
+
 	if err := p.db.Updates(&webhook).Error; err != nil {
 		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
 	}
