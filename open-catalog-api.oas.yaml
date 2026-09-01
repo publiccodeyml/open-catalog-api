@@ -29,6 +29,8 @@ servers:
     description: Italian Catalog
   - url: 'https://oss-catalog-api.ocp.cloudscale.puzzle.ch/v1'
     description: Swiss Catalog
+  - url: 'https://oss-catalog-api.eu/v1'
+    description: EU OSS Catalog (unofficial)
 tags:
   - name: catalogs
     description: Operations on catalogs
