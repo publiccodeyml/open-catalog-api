@@ -20,7 +20,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 25, len(data))
@@ -34,8 +34,8 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assert.Equal(t, "https://1-a.example.org/code/repo", firstSoftware["url"])
 
-				assert.IsType(t, []interface{}{}, firstSoftware["aliases"])
-				assert.Equal(t, 1, len(firstSoftware["aliases"].([]interface{})))
+				assert.IsType(t, []any{}, firstSoftware["aliases"])
+				assert.Equal(t, 1, len(firstSoftware["aliases"].([]any)))
 
 				assertUUID(t, firstSoftware["id"])
 				assertTimestamps(t, firstSoftware)
@@ -51,7 +51,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 30, len(data))
@@ -63,8 +63,8 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assert.Equal(t, "https://1-a.example.org/code/repo", firstSoftware["url"])
 
-				assert.IsType(t, []interface{}{}, firstSoftware["aliases"])
-				assert.Equal(t, 1, len(firstSoftware["aliases"].([]interface{})))
+				assert.IsType(t, []any{}, firstSoftware["aliases"])
+				assert.Equal(t, 1, len(firstSoftware["aliases"].([]any)))
 
 				assertUUID(t, firstSoftware["id"])
 
@@ -80,7 +80,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 31, len(data))
@@ -92,8 +92,8 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assert.Equal(t, "https://1-a.example.org/code/repo", firstSoftware["url"])
 
-				assert.IsType(t, []interface{}{}, firstSoftware["aliases"])
-				assert.Equal(t, 1, len(firstSoftware["aliases"].([]interface{})))
+				assert.IsType(t, []any{}, firstSoftware["aliases"])
+				assert.Equal(t, 1, len(firstSoftware["aliases"].([]any)))
 
 				assertUUID(t, firstSoftware["id"])
 				assertTimestamps(t, firstSoftware)
@@ -106,7 +106,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 1, len(data))
@@ -118,8 +118,8 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assert.Equal(t, "https://1-a.example.org/code/repo", firstSoftware["url"])
 
-				assert.IsType(t, []interface{}{}, firstSoftware["aliases"])
-				assert.Equal(t, 1, len(firstSoftware["aliases"].([]interface{})))
+				assert.IsType(t, []any{}, firstSoftware["aliases"])
+				assert.Equal(t, 1, len(firstSoftware["aliases"].([]any)))
 
 				assert.Equal(t, "c353756e-8597-4e46-a99b-7da2e141603b", firstSoftware["id"])
 
@@ -135,7 +135,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 1, len(data))
@@ -150,7 +150,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 0, len(data))
@@ -164,7 +164,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 0, len(data))
@@ -176,7 +176,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 2, len(data))
@@ -190,7 +190,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Software`, response["title"])
 				assert.Equal(t, "page[size] must be an integer", response["detail"])
 			},
@@ -202,7 +202,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			setupFunc:           addSoftwareForPaginationCapTest,
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				items := assertListResponse(t, response)
 				assert.Equal(t, 100, len(items))
 			},
@@ -213,7 +213,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 5, len(data))
@@ -227,7 +227,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Software`, response["title"])
 				assert.Equal(t, "wrong cursor format in page[after] or page[before]", response["detail"])
 			},
@@ -238,7 +238,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 25, len(data))
@@ -252,7 +252,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Software`, response["title"])
 				assert.Equal(t, "wrong cursor format in page[after] or page[before]", response["detail"])
 			},
@@ -263,7 +263,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 7, len(data))
@@ -275,7 +275,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Software`, response["title"])
 				assert.Equal(t, "invalid date time format (RFC 3339 needed)", response["detail"])
 			},
@@ -286,8 +286,8 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
-				data := response["data"].([]interface{})
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := response["data"].([]any)
 
 				assert.Equal(t, 13, len(data))
 			},
@@ -298,7 +298,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Software`, response["title"])
 				assert.Equal(t, "invalid date time format (RFC 3339 needed)", response["detail"])
 			},
@@ -316,13 +316,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:               "GET /v1/software/e7576e7f-9dcf-4979-b9e9-d8cdcad3b60e",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.NotEmpty(t, response["publiccodeYml"])
 
 				assert.Equal(t, "https://8-a.example.org/code/repo", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
-				assert.Equal(t, 1, len(response["aliases"].([]interface{})))
+				assert.IsType(t, []any{}, response["aliases"])
+				assert.Equal(t, 1, len(response["aliases"].([]any)))
 
 				assertUUID(t, response["id"])
 				assertTimestamps(t, response)
@@ -334,13 +334,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:               "GET /v1/software/9f135268-a37e-4ead-96ec-e4a24bb9344a",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.NotEmpty(t, response["publiccodeYml"])
 
 				assert.Equal(t, "https://2-a.example.org/code/repo", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
-				assert.Equal(t, 1, len(response["aliases"].([]interface{})))
+				assert.IsType(t, []any{}, response["aliases"])
+				assert.Equal(t, 1, len(response["aliases"].([]any)))
 
 				assertUUID(t, response["id"])
 				assertTimestamps(t, response)
@@ -358,12 +358,12 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://software.example.org", response["url"])
 				assert.NotEmpty(t, response["publiccodeYml"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
-				assert.Empty(t, response["aliases"].([]interface{}))
+				assert.IsType(t, []any{}, response["aliases"])
+				assert.Empty(t, response["aliases"].([]any))
 
 				assertUUID(t, response["id"])
 				assertTimestamps(t, response)
@@ -384,13 +384,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://software.example.org", response["url"])
 				assert.NotEmpty(t, response["publiccodeYml"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 2, len(aliases))
 
 				assert.Equal(t, "https://software-1.example.org", aliases[0])
@@ -412,10 +412,10 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://software.example.org", response["url"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 1, len(aliases))
 				assert.Equal(t, "https://alias.example.org", aliases[0])
 			},
@@ -431,12 +431,12 @@ func TestSoftwareEndpoints(t *testing.T) {
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			expectedBody:        "x",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://software.example.net", response["url"])
 				assert.NotEmpty(t, response["publiccodeYml"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
-				assert.Empty(t, response["aliases"].([]interface{}))
+				assert.IsType(t, []any{}, response["aliases"])
+				assert.Empty(t, response["aliases"].([]any))
 
 				assert.Equal(t, "90,90,90", response["vitality"])
 
@@ -456,7 +456,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't create Software", response["title"])
 			},
 		},
@@ -493,7 +493,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Software`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -520,7 +520,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, false, response["active"])
 			},
 		},
@@ -534,16 +534,16 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Software`, response["title"])
 				assert.Equal(t, "invalid format: url is required", response["detail"])
 
-				assert.IsType(t, []interface{}{}, response["validationErrors"])
+				assert.IsType(t, []any{}, response["validationErrors"])
 
-				validationErrors := response["validationErrors"].([]interface{})
+				validationErrors := response["validationErrors"].([]any)
 				assert.Equal(t, 1, len(validationErrors))
 
-				firstValidationError := validationErrors[0].(map[string]interface{})
+				firstValidationError := validationErrors[0].(map[string]any)
 
 				for key := range firstValidationError {
 					assert.Contains(t, []string{"field", "rule", "value"}, key)
@@ -560,7 +560,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Software`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -589,13 +589,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://software-new.example.org", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 2, len(aliases))
 
 				assert.Equal(t, "https://software-old.example.org", aliases[0])
@@ -623,13 +623,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			expectedBody:        "",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://software-new.example.org", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 1, len(aliases))
 
 				assert.Equal(t, "https://18-b.example.org/code/repo", aliases[0])
@@ -655,13 +655,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://software-new.example.org", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 0, len(aliases))
 
 				assert.Equal(t, "publiccodedata", response["publiccodeYml"])
@@ -698,13 +698,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, false, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 1, len(aliases))
 
 				assert.Equal(t, "https://18-b.example.org/code/repo", aliases[0])
@@ -730,12 +730,12 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://18-b.example.org/code/repo", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 1, len(aliases))
 
 				assert.Equal(t, "https://18-a.example.org/code/repo", aliases[0])
@@ -761,13 +761,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 1, len(aliases))
 
 				assert.Equal(t, "https://18-b.example.org/code/repo", aliases[0])
@@ -794,13 +794,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 1, len(aliases))
 
 				assert.Equal(t, "https://18-b.example.org/code/repo", aliases[0])
@@ -825,14 +825,14 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
 				assert.Equal(t, "10,11", response["vitality"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 1, len(aliases))
 
 				assert.Equal(t, "https://18-b.example.org/code/repo", aliases[0])
@@ -858,13 +858,13 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
 
-				assert.IsType(t, []interface{}{}, response["aliases"])
+				assert.IsType(t, []any{}, response["aliases"])
 
-				aliases := response["aliases"].([]interface{})
+				aliases := response["aliases"].([]any)
 				assert.Equal(t, 2, len(aliases))
 
 				assert.Equal(t, "https://18-b.example.org/code/repo", aliases[0])
@@ -890,7 +890,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't update Software`, response["title"])
 				assert.Contains(t, response["detail"], "cannot unmarshal")
 			},
@@ -905,7 +905,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't update Software", response["title"])
 				assert.Equal(t, "patch must contain at least one operation", response["detail"])
 			},
@@ -926,7 +926,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't update Software", response["title"])
 				assert.Equal(t, "patch must not exceed 100 operations", response["detail"])
 			},
@@ -941,7 +941,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't update Software", response["title"])
 				assert.Equal(t, "path and from must not exceed 255 characters", response["detail"])
 			},
@@ -994,7 +994,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't update Software`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -1021,16 +1021,16 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't update Software`, response["title"])
 				assert.Equal(t, "invalid format: url is invalid", response["detail"])
 
-				assert.IsType(t, []interface{}{}, response["validationErrors"])
+				assert.IsType(t, []any{}, response["validationErrors"])
 
-				validationErrors := response["validationErrors"].([]interface{})
+				validationErrors := response["validationErrors"].([]any)
 				assert.Equal(t, 1, len(validationErrors))
 
-				firstValidationError := validationErrors[0].(map[string]interface{})
+				firstValidationError := validationErrors[0].(map[string]any)
 
 				for key := range firstValidationError {
 					assert.Contains(t, []string{"field", "rule", "value"}, key)
@@ -1060,7 +1060,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't update Software`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -1105,7 +1105,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 3, len(data))
@@ -1144,7 +1144,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't get Software`, response["title"])
 				assert.Equal(t, "Software was not found", response["detail"])
 			},
@@ -1155,7 +1155,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 2, len(data))
@@ -1175,7 +1175,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Log`, response["title"])
 				assert.Equal(t, "Software was not found", response["detail"])
 			},
@@ -1189,7 +1189,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "New software log from test suite", response["message"])
 
 				assertUUID(t, response["id"])
@@ -1221,7 +1221,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Log`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -1248,16 +1248,16 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Log`, response["title"])
 				assert.Equal(t, "invalid format: message is required", response["detail"])
 
-				assert.IsType(t, []interface{}{}, response["validationErrors"])
+				assert.IsType(t, []any{}, response["validationErrors"])
 
-				validationErrors := response["validationErrors"].([]interface{})
+				validationErrors := response["validationErrors"].([]any)
 				assert.Equal(t, 1, len(validationErrors))
 
-				firstValidationError := validationErrors[0].(map[string]interface{})
+				firstValidationError := validationErrors[0].(map[string]any)
 
 				for key := range firstValidationError {
 					assert.Contains(t, []string{"field", "rule", "value"}, key)
@@ -1274,7 +1274,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Log`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -1285,7 +1285,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 1, len(data))
@@ -1309,7 +1309,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't find resource`, response["title"])
 				assert.Equal(t, "resource was not found", response["detail"])
 			},
@@ -1320,7 +1320,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 0, len(data))
@@ -1332,7 +1332,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 1, len(data))
@@ -1352,7 +1352,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't find resource`, response["title"])
 				assert.Equal(t, "resource was not found", response["detail"])
 			},
@@ -1366,7 +1366,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://new.example.org", response["url"])
 
 				assertUUID(t, response["id"])
@@ -1397,7 +1397,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Webhook`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -1424,16 +1424,16 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Webhook`, response["title"])
 				assert.Equal(t, "invalid format: url is invalid", response["detail"])
 
-				assert.IsType(t, []interface{}{}, response["validationErrors"])
+				assert.IsType(t, []any{}, response["validationErrors"])
 
-				validationErrors := response["validationErrors"].([]interface{})
+				validationErrors := response["validationErrors"].([]any)
 				assert.Equal(t, 1, len(validationErrors))
 
-				firstValidationError := validationErrors[0].(map[string]interface{})
+				firstValidationError := validationErrors[0].(map[string]any)
 
 				for key := range firstValidationError {
 					assert.Contains(t, []string{"field", "rule", "value"}, key)
@@ -1450,7 +1450,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 			expectedCode:        400,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, `can't create Webhook`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
@@ -1554,7 +1554,7 @@ func TestSoftwareAnalysisEndpoints(t *testing.T) {
 			query:               "GET /v1/software/" + softwareID + "/analysis",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Empty(t, response)
 			},
 		},
@@ -1568,8 +1568,8 @@ func TestSoftwareAnalysisEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
-				badges := response["badges"].(map[string]interface{})
+			validateFunc: func(t *testing.T, response map[string]any) {
+				badges := response["badges"].(map[string]any)
 
 				assert.Equal(t, float64(1), badges["v"])
 				assert.Equal(t, float64(90), badges["score"])
@@ -1586,7 +1586,7 @@ func TestSoftwareAnalysisEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't update Software analysis", response["title"])
 			},
 		},
@@ -1595,7 +1595,7 @@ func TestSoftwareAnalysisEndpoints(t *testing.T) {
 			query:               "GET /v1/software/" + missingID + "/analysis",
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't get Software analysis", response["title"])
 			},
 		},
@@ -1609,7 +1609,7 @@ func TestSoftwareAnalysisEndpoints(t *testing.T) {
 			},
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't update Software analysis", response["title"])
 			},
 		},
@@ -1638,10 +1638,10 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 
 		raw := dbValue(t, "software", "analysis", "id", softwareID)
 
-		var analysis map[string]interface{}
+		var analysis map[string]any
 		require.NoError(t, json.NewDecoder(strings.NewReader(raw)).Decode(&analysis))
 
-		badges := analysis["badges"].(map[string]interface{})
+		badges := analysis["badges"].(map[string]any)
 		assert.Equal(t, float64(1), badges["v"])
 		assert.Equal(t, float64(75), badges["score"])
 		assertRFC3339(t, badges["t"])
@@ -1676,7 +1676,7 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 
 		raw := dbValue(t, "software", "analysis", "id", softwareID)
 
-		var analysis map[string]interface{}
+		var analysis map[string]any
 		require.NoError(t, json.NewDecoder(strings.NewReader(raw)).Decode(&analysis))
 
 		assert.Contains(t, analysis, "ns-one", "ns-one namespace must survive a subsequent PATCH of a different namespace")

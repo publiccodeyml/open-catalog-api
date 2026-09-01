@@ -33,7 +33,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 2, len(data))
@@ -51,7 +51,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/" + italiaID,
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaID, response["id"])
 				assert.Equal(t, "Italian Catalog", response["name"])
 				assert.Equal(t, "italia", response["alternativeId"])
@@ -63,7 +63,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/swiss",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, swissID, response["id"])
 				assert.Equal(t, "Swiss Catalog", response["name"])
 			},
@@ -94,7 +94,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assertUUID(t, response["id"])
 				assert.Equal(t, "New Catalog", response["name"])
 				assertOnlyKeys(t, response, "id", "name", "active", "sources", "createdAt", "updatedAt")
@@ -110,7 +110,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "another", response["alternativeId"])
 			},
 		},
@@ -168,9 +168,9 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t,
-					[]interface{}{"m49:150", "iso3166:IT", "iso3166:IT-25"},
+					[]any{"m49:150", "iso3166:IT", "iso3166:IT-25"},
 					response["scopes"],
 				)
 			},
@@ -185,8 +185,8 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
-				assert.Equal(t, []interface{}{"IT-25"}, response["scopes"])
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, []any{"IT-25"}, response["scopes"])
 			},
 		},
 		{
@@ -213,7 +213,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaID, response["id"])
 				assert.Equal(t, "Updated Italian Catalog", response["name"])
 			},
@@ -279,7 +279,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assertUUID(t, response["id"])
 				assert.Equal(t, italiaID, response["catalogId"])
 			},
@@ -294,7 +294,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Nil(t, response["catalogId"])
 			},
 		},
@@ -330,7 +330,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaPublisherID, response["id"])
 				assert.Equal(t, "Updated Publisher", response["description"])
 			},
@@ -357,7 +357,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, rootPublisherID, response["id"])
 			},
 		},
@@ -388,7 +388,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/" + italiaID + "/publishers",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 1, len(data))
@@ -400,7 +400,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/swiss/publishers",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 1, len(data))
@@ -412,7 +412,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/%E2%88%85/publishers",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				// All publishers except the 2 assigned to named catalogs, minus the inactive one
@@ -438,7 +438,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assertUUID(t, response["id"])
 				assert.Equal(t, italiaID, response["catalogId"])
 			},
@@ -453,7 +453,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaID, response["catalogId"])
 			},
 		},
@@ -467,7 +467,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Nil(t, response["catalogId"])
 			},
 		},
@@ -503,7 +503,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaSoftwareID, response["id"])
 				assert.Equal(t, "updated", response["publiccodeYml"])
 			},
@@ -518,7 +518,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaSoftwareID, response["id"])
 			},
 		},
@@ -544,7 +544,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, rootSoftwareID, response["id"])
 			},
 		},
@@ -587,7 +587,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/" + italiaID + "/software",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 1, len(data))
@@ -599,7 +599,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/" + italiaID + "/software?url=https://1-a.example.org/code/repo",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 1, len(data))
@@ -611,7 +611,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/%E2%88%85/software?url=https://31-a.example.org/code/repo",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 0, len(data))
@@ -622,7 +622,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/" + italiaID + "/software?url=https://no.such.url.example.org",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				assert.Equal(t, 0, len(data))
@@ -633,7 +633,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/%E2%88%85/software",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
 				// All active software except the 2 assigned to named catalogs
@@ -671,7 +671,7 @@ func TestCatalogSoftwareDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
-		var created map[string]interface{}
+		var created map[string]any
 		require.NoError(t, json.NewDecoder(res.Body).Decode(&created))
 		softwareID := created["id"].(string)
 
@@ -716,7 +716,7 @@ func TestCatalogDeleteDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
-		var created map[string]interface{}
+		var created map[string]any
 		require.NoError(t, json.NewDecoder(res.Body).Decode(&created))
 		catalogID := created["id"].(string)
 
@@ -749,7 +749,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
-		var created map[string]interface{}
+		var created map[string]any
 		require.NoError(t, json.NewDecoder(res.Body).Decode(&created))
 		catalogID := created["id"].(string)
 
@@ -809,17 +809,17 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
-		var catalog map[string]interface{}
+		var catalog map[string]any
 		require.NoError(t, json.NewDecoder(res.Body).Decode(&catalog))
 
-		sources, ok := catalog["sources"].([]interface{})
+		sources, ok := catalog["sources"].([]any)
 		require.True(t, ok)
 		require.Equal(t, 1, len(sources))
 
-		src := sources[0].(map[string]interface{})
+		src := sources[0].(map[string]any)
 		assert.Equal(t, "json", src["driver"])
 
-		args, ok := src["args"].([]interface{})
+		args, ok := src["args"].([]any)
 		require.True(t, ok)
 		require.Equal(t, 1, len(args))
 		assert.Equal(t, "$.items[*].url", args[0])
@@ -956,7 +956,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 }
 
 func TestRootCatalogMaterialize(t *testing.T) {
-	post := func(t *testing.T, path, body string) (int, map[string]interface{}) {
+	post := func(t *testing.T, path, body string) (int, map[string]any) {
 		t.Helper()
 
 		req, err := newTestRequest("POST", path, strings.NewReader(body))
@@ -969,7 +969,7 @@ func TestRootCatalogMaterialize(t *testing.T) {
 		res, err := app.Test(req, -1)
 		require.NoError(t, err)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		if res.StatusCode == 200 {
 			require.NoError(t, json.NewDecoder(res.Body).Decode(&resp))
 		}
@@ -977,7 +977,7 @@ func TestRootCatalogMaterialize(t *testing.T) {
 		return res.StatusCode, resp
 	}
 
-	patch := func(t *testing.T, path, body string) (int, map[string]interface{}) {
+	patch := func(t *testing.T, path, body string) (int, map[string]any) {
 		t.Helper()
 
 		req, err := newTestRequest("PATCH", path, strings.NewReader(body))
@@ -990,7 +990,7 @@ func TestRootCatalogMaterialize(t *testing.T) {
 		res, err := app.Test(req, -1)
 		require.NoError(t, err)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		require.NoError(t, json.NewDecoder(res.Body).Decode(&resp))
 
 		return res.StatusCode, resp
@@ -1107,10 +1107,10 @@ func TestRootCatalogMaterialize(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		require.NoError(t, json.NewDecoder(res.Body).Decode(&resp))
 
-		data, ok := resp["data"].([]interface{})
+		data, ok := resp["data"].([]any)
 		require.True(t, ok, "expected data slice")
 		assert.NotEmpty(t, data, "root publishers (catalog_id IS NULL) should still be visible")
 	})
@@ -1125,7 +1125,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/" + italiaID + "/analysis",
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Empty(t, response)
 			},
 		},
@@ -1139,8 +1139,8 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
-				badges := response["badges"].(map[string]interface{})
+			validateFunc: func(t *testing.T, response map[string]any) {
+				badges := response["badges"].(map[string]any)
 
 				assert.Equal(t, float64(1), badges["v"])
 				assert.Equal(t, float64(90), badges["score"])
@@ -1157,9 +1157,9 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
-				badges := response["badges"].(map[string]interface{})
-				maxima := response["maxima"].(map[string]interface{})
+			validateFunc: func(t *testing.T, response map[string]any) {
+				badges := response["badges"].(map[string]any)
+				maxima := response["maxima"].(map[string]any)
 
 				assertRFC3339(t, badges["t"])
 				assertRFC3339(t, maxima["t"])
@@ -1175,8 +1175,8 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
-				badges := response["badges"].(map[string]interface{})
+			validateFunc: func(t *testing.T, response map[string]any) {
+				badges := response["badges"].(map[string]any)
 
 				assert.Equal(t, float64(10), badges["score"])
 				assertRFC3339(t, badges["t"])
@@ -1192,7 +1192,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			},
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't update Catalog analysis", response["title"])
 			},
 		},
@@ -1201,7 +1201,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/" + missingID + "/analysis",
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't get Catalog analysis", response["title"])
 			},
 		},
@@ -1210,7 +1210,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			query:               "GET /v1/catalogs/%E2%88%85/analysis",
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't get Catalog analysis", response["title"])
 			},
 		},
@@ -1224,7 +1224,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			},
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't update Catalog analysis", response["title"])
 			},
 		},
@@ -1238,7 +1238,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			},
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
-			validateFunc: func(t *testing.T, response map[string]interface{}) {
+			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "can't update Catalog analysis", response["title"])
 			},
 		},
@@ -1273,10 +1273,10 @@ func TestCatalogAnalysisDBChecks(t *testing.T) {
 
 		raw := dbValue(t, "catalogs", "analysis", "id", italiaID)
 
-		var analysis map[string]interface{}
+		var analysis map[string]any
 		require.NoError(t, json.NewDecoder(strings.NewReader(raw)).Decode(&analysis))
 
-		badges := analysis["badges"].(map[string]interface{})
+		badges := analysis["badges"].(map[string]any)
 		assert.Equal(t, float64(1), badges["v"])
 		assert.Equal(t, float64(75), badges["score"])
 		assertRFC3339(t, badges["t"])
@@ -1309,7 +1309,7 @@ func TestCatalogAnalysisDBChecks(t *testing.T) {
 
 		raw := dbValue(t, "catalogs", "analysis", "id", italiaID)
 
-		var analysis map[string]interface{}
+		var analysis map[string]any
 		require.NoError(t, json.NewDecoder(strings.NewReader(raw)).Decode(&analysis))
 
 		assert.Contains(t, analysis, "ns-one", "ns-one namespace must survive a subsequent PATCH of a different namespace")

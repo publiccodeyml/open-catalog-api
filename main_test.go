@@ -47,7 +47,7 @@ type TestCase struct {
 	expectedCode        int
 	expectedBody        string
 	expectedContentType string
-	validateFunc        func(t *testing.T, response map[string]interface{})
+	validateFunc        func(t *testing.T, response map[string]any)
 }
 
 func init() {
@@ -159,7 +159,7 @@ func runTestCases(t *testing.T, tests []TestCase) {
 			assert.Nil(t, err)
 
 			if test.validateFunc != nil {
-				var bodyMap map[string]interface{}
+				var bodyMap map[string]any
 				err = json.Unmarshal(body, &bodyMap)
 				require.NoError(t, err, "failed to unmarshal response body:\n%s", body)
 
@@ -177,7 +177,7 @@ func runTestCases(t *testing.T, tests []TestCase) {
 }
 
 // assertUUID checks that val is a string matching the UUID format.
-func assertUUID(t *testing.T, val interface{}) {
+func assertUUID(t *testing.T, val any) {
 	t.Helper()
 
 	s, ok := val.(string)
@@ -189,7 +189,7 @@ func assertUUID(t *testing.T, val interface{}) {
 }
 
 // assertRFC3339 checks that val is a string in RFC3339 format and returns the parsed time.
-func assertRFC3339(t *testing.T, val interface{}) time.Time {
+func assertRFC3339(t *testing.T, val any) time.Time {
 	t.Helper()
 
 	s, ok := val.(string)
@@ -202,7 +202,7 @@ func assertRFC3339(t *testing.T, val interface{}) time.Time {
 }
 
 // assertTimestamps checks that the map has valid RFC3339 createdAt and updatedAt fields.
-func assertTimestamps(t *testing.T, m map[string]interface{}) {
+func assertTimestamps(t *testing.T, m map[string]any) {
 	t.Helper()
 
 	assertRFC3339(t, m["createdAt"])
@@ -210,7 +210,7 @@ func assertTimestamps(t *testing.T, m map[string]interface{}) {
 }
 
 // assertOnlyKeys checks that the map contains no keys outside the allowed set.
-func assertOnlyKeys(t *testing.T, m map[string]interface{}, keys ...string) {
+func assertOnlyKeys(t *testing.T, m map[string]any, keys ...string) {
 	t.Helper()
 
 	for key := range m {
@@ -219,16 +219,16 @@ func assertOnlyKeys(t *testing.T, m map[string]interface{}, keys ...string) {
 }
 
 // assertListResponse extracts the data array from a paginated response.
-func assertListResponse(t *testing.T, response map[string]interface{}) []map[string]interface{} {
+func assertListResponse(t *testing.T, response map[string]any) []map[string]any {
 	t.Helper()
 
-	require.IsType(t, []interface{}{}, response["data"], "response.data should be an array")
-	raw := response["data"].([]interface{})
+	require.IsType(t, []any{}, response["data"], "response.data should be an array")
+	raw := response["data"].([]any)
 
-	items := make([]map[string]interface{}, len(raw))
+	items := make([]map[string]any, len(raw))
 	for i, item := range raw {
-		require.IsType(t, map[string]interface{}{}, item, "data[%d] should be an object", i)
-		items[i] = item.(map[string]interface{})
+		require.IsType(t, map[string]any{}, item, "data[%d] should be an object", i)
+		items[i] = item.(map[string]any)
 	}
 
 	return items
@@ -236,11 +236,11 @@ func assertListResponse(t *testing.T, response map[string]interface{}) []map[str
 
 // assertPaginationLinks checks prev and next links in a paginated response.
 // Pass nil for prev/next to assert they are absent, or a string to assert the exact value.
-func assertPaginationLinks(t *testing.T, response map[string]interface{}, expectedPrev, expectedNext interface{}) {
+func assertPaginationLinks(t *testing.T, response map[string]any, expectedPrev, expectedNext any) {
 	t.Helper()
 
-	require.IsType(t, map[string]interface{}{}, response["links"])
-	links := response["links"].(map[string]interface{})
+	require.IsType(t, map[string]any{}, response["links"])
+	links := response["links"].(map[string]any)
 
 	assert.Equal(t, expectedPrev, links["prev"])
 	assert.Equal(t, expectedNext, links["next"])
