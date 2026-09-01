@@ -41,8 +41,8 @@ func ValidateStruct(validateStruct any) []ValidationError {
 	var validationErrors []ValidationError
 
 	if err := validate.Struct(validateStruct); err != nil {
-		var ve validator.ValidationErrors
-		if ok := errors.As(err, &ve); !ok {
+		ve, ok := errors.AsType[validator.ValidationErrors](err)
+		if !ok {
 			return nil
 		}
 

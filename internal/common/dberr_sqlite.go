@@ -10,8 +10,8 @@ import (
 )
 
 func duplicateFieldSQLite(err error) *string {
-	var sqliteErr sqlite3.Error
-	if !errors.As(err, &sqliteErr) {
+	sqliteErr, ok := errors.AsType[sqlite3.Error](err)
+	if !ok {
 		return nil
 	}
 
