@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -44,28 +45,34 @@ func expectedSignature(secret string, payload []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+// The synctest bubble gives the test a fake clock, so the server delay
+// and the timeout cost no real time and elapsed is exact instead of
+// bracketed between margins.
 func TestPostTimesOut(t *testing.T) {
-	original := dispatchTimeout
-	dispatchTimeout = 200 * time.Millisecond
-	defer func() { dispatchTimeout = original }()
+	synctest.Test(t, func(t *testing.T) {
+		original := dispatchTimeout
+		dispatchTimeout = 200 * time.Millisecond
+		defer func() { dispatchTimeout = original }()
 
-	const serverDelay = 600 * time.Millisecond
+		const serverDelay = 600 * time.Millisecond
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		time.Sleep(serverDelay)
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
+		srv := httptest.NewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			time.Sleep(serverDelay)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer srv.Close()
 
-	start := time.Now()
-	post(srv.URL, []byte(`{"event":"test","subject":"/software"}`), "")
-	elapsed := time.Since(start)
+		originalClient := httpClient
+		httpClient = srv.Client()
+		defer func() { httpClient = originalClient }()
 
-	require.Less(t, elapsed, serverDelay-100*time.Millisecond,
-		"post should time out before the %s server sleep; took %s", serverDelay, elapsed)
+		start := time.Now()
+		post(srv.URL, []byte(`{"event":"test","subject":"/software"}`), "")
+		elapsed := time.Since(start)
 
-	assert.GreaterOrEqual(t, elapsed, dispatchTimeout-50*time.Millisecond,
-		"post should have waited at least the timeout duration")
+		assert.Equal(t, dispatchTimeout, elapsed,
+			"post should give up exactly at the dispatch timeout")
+	})
 }
 
 // TestDispatchWebhooks_PerWebhookSignature verifies that each webhook subscriber
