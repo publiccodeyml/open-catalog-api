@@ -551,7 +551,7 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,
 			return common.Error(fiber.StatusConflict, errMsg, detail)
 		}
 
-		return common.Error(fiber.StatusInternalServerError, errMsg, err.Error())
+		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
 	sort.Slice(publisher.CodeHosting, func(a int, b int) bool {
@@ -604,7 +604,16 @@ func (c *Catalog) PostCatalogSoftware(ctx *fiber.Ctx) error {
 	}
 
 	if err := c.db.Create(software).Error; err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, err.Error())
+		if field := common.DuplicateField(err); field != nil {
+			detail := alreadyExists
+			if *field != "" {
+				detail = *field + " " + alreadyExists
+			}
+
+			return common.Error(fiber.StatusConflict, errMsg, detail)
+		}
+
+		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
 	return ctx.JSON(software)

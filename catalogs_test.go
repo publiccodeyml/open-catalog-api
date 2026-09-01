@@ -472,6 +472,19 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "POST catalog software with an already existing URL",
+			query:       "POST /v1/catalogs/" + italiaID + "/software",
+			body:        `{"url": "https://1-a.example.org/code/repo", "publiccodeYml": "-"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+
+			expectedCode:        409,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Software","detail":"url already exists","status":409}`,
+		},
+		{
 			description: "POST catalog software - catalog not found",
 			query:       "POST /v1/catalogs/nonexistent/software",
 			body:        `{"url": "https://example.org/x", "publiccodeYml": "-"}`,

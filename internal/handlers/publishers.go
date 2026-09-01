@@ -237,7 +237,7 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funle
 			return common.Error(fiber.StatusConflict, errMsg, detail)
 		}
 
-		return common.Error(fiber.StatusInternalServerError, errMsg, err.Error())
+		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
 	// Sort codeHosting to always have a consistent output.

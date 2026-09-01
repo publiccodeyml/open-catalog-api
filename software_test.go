@@ -447,6 +447,32 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "POST software with an already existing URL",
+			query:       "POST /v1/software",
+			body:        `{"publiccodeYml": "-", "url": "https://1-a.example.org/code/repo"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+
+			expectedCode:        409,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Software","detail":"url already exists","status":409}`,
+		},
+		{
+			description: "POST software with an already existing URL as an alias",
+			query:       "POST /v1/software",
+			body:        `{"publiccodeYml": "-", "url": "https://software.example.org", "aliases": ["https://1-b.example.org/code/repo"]}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+
+			expectedCode:        409,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Software","detail":"url already exists","status":409}`,
+		},
+		{
 			description: "POST software with analysis field is rejected",
 			query:       "POST /v1/software",
 			body:        `{"publiccodeYml": "-", "url": "https://analysis.example.org", "analysis": {"badges": {"v": 1, "score": 90}}}`,
