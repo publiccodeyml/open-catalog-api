@@ -71,40 +71,10 @@ func catalogScope(catalog *models.Catalog) func(*gorm.DB) *gorm.DB {
 
 // GetCatalogs gets the list of all catalogs.
 func (c *Catalog) GetCatalogs(ctx *fiber.Ctx) error {
-	var catalogs []models.Catalog
-
-	stmt, err := general.Clauses(ctx, c.db.Preload("Sources"), "")
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Catalogs", general.QueryErrorDetail(err))
-	}
-
-	if all := ctx.QueryBool("all", false); !all {
-		stmt = stmt.Scopes(models.Active)
-	}
-
-	paginator, err := general.NewPaginator(ctx)
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Catalogs", general.QueryErrorDetail(err))
-	}
-
-	result, cursor, err := paginator.Paginate(stmt, &catalogs)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Catalogs",
-			"wrong cursor format in page[after] or page[before]",
-		)
-	}
-
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Catalogs",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &catalogs, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return list[models.Catalog](ctx, c.db.Preload("Sources"), listOptions{
+		title:      "can't get Catalogs",
+		activeOnly: true,
+	})
 }
 
 // GetCatalog gets the catalog with the given id.
@@ -353,42 +323,12 @@ func (c *Catalog) GetCatalogPublishers(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, "can't get Publishers", fiber.ErrInternalServerError.Message)
 	}
 
-	var publishers []models.Publisher
-
 	stmt := c.db.Preload("CodeHosting").Scopes(catalogScope(catalog))
 
-	stmt, err = general.Clauses(ctx, stmt, "")
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Publishers", general.QueryErrorDetail(err))
-	}
-
-	if all := ctx.QueryBool("all", false); !all {
-		stmt = stmt.Scopes(models.Active)
-	}
-
-	paginator, err := general.NewPaginator(ctx)
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Publishers", general.QueryErrorDetail(err))
-	}
-
-	result, cursor, err := paginator.Paginate(stmt, &publishers)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Publishers",
-			"wrong cursor format in page[after] or page[before]",
-		)
-	}
-
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Publishers",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &publishers, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return list[models.Publisher](ctx, stmt, listOptions{
+		title:      "can't get Publishers",
+		activeOnly: true,
+	})
 }
 
 // PostCatalogPublisher creates a publisher belonging to the given catalog.

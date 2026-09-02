@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
-	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 )
@@ -34,46 +33,10 @@ func NewPublisher(db *gorm.DB) *Publisher {
 
 // GetPublishers gets the list of all publishers and returns any error encountered.
 func (p *Publisher) GetPublishers(ctx *fiber.Ctx) error {
-	var publishers []models.Publisher
-
-	stmt := p.db.Preload("CodeHosting")
-
-	stmt, err := general.Clauses(ctx, stmt, "")
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Publishers",
-			general.QueryErrorDetail(err),
-		)
-	}
-
-	if all := ctx.QueryBool("all", false); !all {
-		stmt = stmt.Scopes(models.Active)
-	}
-
-	paginator, err := general.NewPaginator(ctx)
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Publishers", general.QueryErrorDetail(err))
-	}
-
-	result, cursor, err := paginator.Paginate(stmt, &publishers)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Publishers",
-			"wrong cursor format in page[after] or page[before]",
-		)
-	}
-
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Publisher",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &publishers, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return list[models.Publisher](ctx, p.db.Preload("CodeHosting"), listOptions{
+		title:      "can't get Publishers",
+		activeOnly: true,
+	})
 }
 
 // GetPublisher gets the publisher with the given ID and returns any error encountered.
