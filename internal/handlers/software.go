@@ -188,7 +188,7 @@ func (p *Software) PostSoftware(ctx *fiber.Ctx) error {
 }
 
 // PatchSoftware updates the software with the given ID.
-func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop
+func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop,funlen // keep patch transaction inline
 	const errMsg = "can't update Software"
 
 	software := models.Software{}
@@ -213,13 +213,16 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop
 		return common.Error(patchErr.Code, errMsg, patchErr.Error())
 	}
 
-	// ApplyPatch already refuses an operation on these paths. Putting them
-	// back anyway keeps the save and the response correct should a future
-	// operation kind or an alias slip past that check: the primary key feeds
-	// the WHERE, so a changed one makes gorm update no row at all.
+	// Restore server-owned fields as defense in depth after the path guard.
 	updatedSoftware.ID = software.ID
 	updatedSoftware.CreatedAt = software.CreatedAt
 	updatedSoftware.CatalogID = software.CatalogID
+
+	if contentType == common.ContentTypeJSONPatch {
+		if err := validatePatchedSoftware(updatedSoftware, errMsg); err != nil {
+			return err
+		}
+	}
 
 	updatedSoftware.URL.URL = common.NormalizeURL(updatedSoftware.URL.URL)
 
