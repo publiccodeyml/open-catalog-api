@@ -1304,7 +1304,9 @@ func TestSoftwareEndpoints(t *testing.T) {
 		// GET /software/:id/webhooks
 		{
 			query: "GET /v1/software/c5dec6fa-8a01-4881-9e7d-132770d4214d/webhooks",
-
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
@@ -1328,7 +1330,9 @@ func TestSoftwareEndpoints(t *testing.T) {
 		{
 			description: "GET webhooks for non existing software",
 			query:       "GET /v1/software/NO_SUCH_SOFTWARE/webhooks",
-
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
 			validateFunc: func(t *testing.T, response map[string]any) {
@@ -1339,7 +1343,9 @@ func TestSoftwareEndpoints(t *testing.T) {
 		{
 			description: "GET webhooks for software without webhooks",
 			query:       "GET /v1/software/e7576e7f-9dcf-4979-b9e9-d8cdcad3b60e/webhooks",
-
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
@@ -1351,7 +1357,9 @@ func TestSoftwareEndpoints(t *testing.T) {
 		{
 			description: "GET with page[size] query param",
 			query:       "GET /v1/software/9f135268-a37e-4ead-96ec-e4a24bb9344a/webhooks?page[size]=1",
-
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {

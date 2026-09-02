@@ -900,7 +900,9 @@ func TestPublishersEndpoints(t *testing.T) {
 		// GET /publishers/:id/webhooks
 		{
 			query: "GET /v1/publishers/47807e0c-0613-4aea-9917-5455cc6eddad/webhooks",
-
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
@@ -924,7 +926,9 @@ func TestPublishersEndpoints(t *testing.T) {
 		{
 			description: "GET webhooks for non existing publisher",
 			query:       "GET /v1/publishers/NO_SUCH_publishers/webhooks",
-
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
 			validateFunc: func(t *testing.T, response map[string]any) {
@@ -935,7 +939,9 @@ func TestPublishersEndpoints(t *testing.T) {
 		{
 			description: "GET webhooks for publisher without webhooks",
 			query:       "GET /v1/publishers/b97446f8-fe06-472c-9b26-c40150cac77f/webhooks",
-
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
@@ -947,7 +953,9 @@ func TestPublishersEndpoints(t *testing.T) {
 		{
 			description: "GET with page[size] query param",
 			query:       "GET /v1/publishers/d6ddc11a-ff85-4f0f-bb87-df38b2a9b394/webhooks?page[size]=1",
-
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode:        200,
 			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {

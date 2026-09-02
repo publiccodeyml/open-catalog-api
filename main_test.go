@@ -362,3 +362,35 @@ func TestRateLimiterBuckets(t *testing.T) {
 		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "2001:db8::1"))
 	})
 }
+
+func TestRequiresAuth(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		method   string
+		path     string
+		required bool
+	}{
+		{name: "write", method: http.MethodPost, path: "/v1/software", required: true},
+		{name: "public software read", method: http.MethodGet, path: "/v1/software", required: false},
+		{name: "public publisher read", method: http.MethodGet, path: "/v1/publishers/id", required: false},
+		{name: "all software webhooks", method: http.MethodGet, path: "/v1/software/webhooks", required: true},
+		{name: "one software webhooks", method: http.MethodGet, path: "/v1/software/id/webhooks", required: true},
+		{name: "all publisher webhooks", method: http.MethodGet, path: "/v1/publishers/webhooks", required: true},
+		{name: "one publisher webhooks", method: http.MethodGet, path: "/v1/publishers/id/webhooks", required: true},
+		{name: "webhook by id", method: http.MethodGet, path: "/v1/webhooks/id", required: true},
+		{name: "trailing slash", method: http.MethodGet, path: "/v1/webhooks/id/", required: true},
+		{name: "webhook collection without route", method: http.MethodGet, path: "/v1/webhooks", required: false},
+		{name: "unrelated nested resource", method: http.MethodGet, path: "/v1/software/id/logs", required: false},
+		{name: "different API version", method: http.MethodGet, path: "/v2/webhooks/id", required: false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, test.required, requiresAuth(test.method, test.path))
+		})
+	}
+}

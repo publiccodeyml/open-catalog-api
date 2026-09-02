@@ -44,14 +44,20 @@ func TestWebhooksEndpoints(t *testing.T) {
 		},
 		// GET /webhooks/:id
 		{
-			query:               "GET /v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",
+			query: "GET /v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode:        200,
 			expectedBody:        `{"id":"007bc84a-7e2d-43a0-b7e1-a256d4114aa7","url":"https://1-b.example.org/receiver","format":"default","createdAt":"2017-05-01T00:00:00Z","updatedAt":"2017-05-01T00:00:00Z"}`,
 			expectedContentType: "application/json",
 		},
 		{
-			description:  "Non-existent webhook",
-			query:        "GET /v1/webhooks/eea19c82-0449-11ed-bd84-d8bbc146d165",
+			description: "Non-existent webhook",
+			query:       "GET /v1/webhooks/eea19c82-0449-11ed-bd84-d8bbc146d165",
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
 			expectedCode: 404,
 			expectedBody: `{"title":"can't get Webhook","detail":"Webhook was not found","status":404}`,
 
@@ -244,6 +250,46 @@ func TestWebhooksEndpoints(t *testing.T) {
 	}
 
 	runTestCases(t, tests)
+}
+
+func TestWebhookReadsRequireAuthenticationAndBypassCache(t *testing.T) {
+	loadFixtures(t)
+
+	paths := []string{
+		"/v1/software/webhooks",
+		"/v1/software/c5dec6fa-8a01-4881-9e7d-132770d4214d/webhooks",
+		"/v1/publishers/webhooks",
+		"/v1/publishers/47807e0c-0613-4aea-9917-5455cc6eddad/webhooks",
+		"/v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",
+	}
+
+	for _, path := range paths {
+		request, err := newTestRequest(http.MethodGet, path, nil)
+		require.NoError(t, err)
+		request.Header.Set("Authorization", goodToken)
+
+		response, err := app.Test(request, -1)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, response.StatusCode, path)
+		require.NoError(t, response.Body.Close())
+
+		request, err = newTestRequest(http.MethodGet, path, nil)
+		require.NoError(t, err)
+
+		response, err = app.Test(request, -1)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusUnauthorized, response.StatusCode, path)
+		require.NoError(t, response.Body.Close())
+	}
+
+	request, err := newTestRequest(http.MethodGet, "/v1/software", nil)
+	require.NoError(t, err)
+
+	response, err := app.Test(request, -1)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, response.Body.Close()) })
+
+	assert.Equal(t, http.StatusOK, response.StatusCode)
 }
 
 func patchWebhook(t *testing.T, id, body string) *http.Response {

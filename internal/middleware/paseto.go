@@ -22,14 +22,15 @@ func NewRandomPasetoKey() *common.Base64Key {
 	return (*common.Base64Key)(key)
 }
 
-func NewPasetoMiddleware(envs common.Environment) fiber.Handler {
+func NewPasetoMiddleware(
+	envs common.Environment,
+	requiresAuth func(method, path string) bool,
+) fiber.Handler {
 	return pasetoware.New(pasetoware.Config{
 		TokenPrefix:  "Bearer",
 		SymmetricKey: envs.PasetoKey[:],
 		Next: func(ctx *fiber.Ctx) bool {
-			// Skip this authentication middleware on GET requests,
-			// GETs are public.
-			return ctx.Method() == fiber.MethodGet
+			return !requiresAuth(ctx.Method(), ctx.Path())
 		},
 		Validate: func(data []byte) (any, error) {
 			var payload paseto.JSONToken

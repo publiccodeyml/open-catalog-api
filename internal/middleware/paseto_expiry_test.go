@@ -73,7 +73,7 @@ func TestPasetoMiddlewareValidatesTemporalClaims(t *testing.T) {
 			require.NoError(t, err)
 
 			app := fiber.New()
-			app.Use(NewPasetoMiddleware(common.Environment{PasetoKey: &key}))
+			app.Use(NewPasetoMiddleware(common.Environment{PasetoKey: &key}, func(string, string) bool { return true }))
 			app.Post("/", func(ctx *fiber.Ctx) error {
 				return ctx.SendStatus(fiber.StatusNoContent)
 			})

@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path"
+	"strings"
 	"syscall"
 	"time"
 
@@ -135,19 +137,6 @@ func Setup() (*fiber.App, *webhooks.Debouncer) {
 		}))
 	}
 
-	app.Use(cache.New(cache.Config{
-		Next: func(ctx *fiber.Ctx) bool {
-			// Don't cache /status
-			return ctx.Route().Path == "/v1/status"
-		},
-		Methods:      []string{fiber.MethodGet, fiber.MethodHead},
-		CacheControl: true,
-		Expiration:   10 * time.Second,
-		KeyGenerator: func(ctx *fiber.Ctx) string {
-			return ctx.Path() + string(ctx.Context().QueryArgs().QueryString())
-		},
-	}))
-
 	if common.EnvironmentConfig.PasetoKey == nil {
 		log.Printf("PASETO_KEY not set, API will run in read-only mode")
 
@@ -158,11 +147,53 @@ func Setup() (*fiber.App, *webhooks.Debouncer) {
 	prometheus.RegisterAt(app, "/metrics")
 	app.Use(prometheus.Middleware)
 
-	app.Use(middleware.NewPasetoMiddleware(common.EnvironmentConfig))
+	app.Use(middleware.NewPasetoMiddleware(common.EnvironmentConfig, requiresAuth))
+
+	app.Use(newResponseCache())
 
 	setupHandlers(app, gormDB)
 
 	return app, debouncer
+}
+
+// requiresAuth reports whether a request must carry a valid token. Reads
+// are public except for webhook configuration, whose GET operations are
+// marked as authenticated in the OpenAPI contract.
+func requiresAuth(method, requestPath string) bool {
+	if method != fiber.MethodGet {
+		return true
+	}
+
+	normalizedPath := "/" + strings.Trim(requestPath, "/")
+	for _, pattern := range [...]string{
+		"/v1/webhooks/*",
+		"/v1/software/webhooks",
+		"/v1/software/*/webhooks",
+		"/v1/publishers/webhooks",
+		"/v1/publishers/*/webhooks",
+	} {
+		if matched, _ := path.Match(pattern, normalizedPath); matched {
+			return true
+		}
+	}
+
+	return false
+}
+
+func newResponseCache() fiber.Handler {
+	return cache.New(cache.Config{
+		Next: func(ctx *fiber.Ctx) bool {
+			// Don't cache health checks or authenticated resources.
+			return ctx.Path() == "/v1/status" ||
+				requiresAuth(ctx.Method(), ctx.Path())
+		},
+		Methods:      []string{fiber.MethodGet, fiber.MethodHead},
+		CacheControl: true,
+		Expiration:   10 * time.Second,
+		KeyGenerator: func(ctx *fiber.Ctx) string {
+			return ctx.Path() + string(ctx.Context().QueryArgs().QueryString())
+		},
+	})
 }
 
 func setupHandlers(app *fiber.App, gormDB *gorm.DB) { //nolint:funlen
