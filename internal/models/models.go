@@ -99,6 +99,7 @@ type Publisher struct {
 	Email         *string       `json:"email,omitempty"`
 	Description   string        `json:"description" gorm:"uniqueIndex;not null"`
 	CodeHosting   []CodeHosting `json:"codeHosting" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+	Logs          []Log         `json:"-" gorm:"polymorphic:Entity;"`
 	Active        *bool         `json:"active" gorm:"default:true;not null"`
 	AlternativeID *string       `json:"alternativeId,omitempty" gorm:"uniqueIndex"`
 	CreatedAt     time.Time     `json:"createdAt" gorm:"index"`
