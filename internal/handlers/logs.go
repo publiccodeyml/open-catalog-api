@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
-	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 )
@@ -38,41 +37,11 @@ func NewLog(db *gorm.DB) *Log {
 
 // GetLogs gets the list of all logs and returns any error encountered.
 func (p *Log) GetLogs(ctx *fiber.Ctx) error {
-	var logs []models.Log
-
-	stmt, err := general.Clauses(ctx, p.db, "message")
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Logs",
-			general.QueryErrorDetail(err),
-		)
-	}
-
-	// Logs are returned in descending order, last first
-	paginator, err := general.NewPaginatorWithConfig(ctx, &paginator.Config{Order: paginator.DESC})
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Logs", general.QueryErrorDetail(err))
-	}
-
-	result, cursor, err := paginator.Paginate(stmt, &logs)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Logs",
-			"wrong cursor format in page[after] or page[before]",
-		)
-	}
-
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Logs",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &logs, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return list[models.Log](ctx, p.db, listOptions{
+		title:       "can't get Logs",
+		searchField: "message",
+		order:       paginator.DESC,
+	})
 }
 
 // GetLog gets the log with the given ID and returns any error encountered.
@@ -244,8 +213,6 @@ func (p *Log) PostSoftwareLog(ctx *fiber.Ctx) error {
 // getEntityLogs gets the logs associated to the entity with the ID in the request path.
 // entity must be a pointer, it is filled in with the row loaded from the database.
 func (p *Log) getEntityLogs(ctx *fiber.Ctx, entity models.Model, entityName string) error {
-	var logs []models.Log
-
 	errMsg := "can't get " + entityName
 
 	if err := p.db.First(entity, "id = ?", ctx.Params("id")).Error; err != nil {
@@ -264,30 +231,11 @@ func (p *Log) getEntityLogs(ctx *fiber.Ctx, entity models.Model, entityName stri
 		Where(map[string]any{"entity_type": entity.TableName()}).
 		Where("entity_id = ?", entity.UUID())
 
-	// Logs are returned in descending order, last first
-	paginator, err := general.NewPaginatorWithConfig(ctx, &paginator.Config{Order: paginator.DESC})
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Logs", general.QueryErrorDetail(err))
-	}
-
-	result, cursor, err := paginator.Paginate(stmt, &logs)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			errMsg,
-			"wrong cursor format in page[after] or page[before]",
-		)
-	}
-
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			errMsg,
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &logs, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return list[models.Log](ctx, stmt, listOptions{
+		title:       "can't get Logs",
+		order:       paginator.DESC,
+		skipClauses: true,
+	})
 }
 
 // postEntityLog creates a new log associated to the entity with the ID in the request path.

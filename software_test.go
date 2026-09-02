@@ -1186,6 +1186,17 @@ func TestSoftwareEndpoints(t *testing.T) {
 				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDEwLTAxLTE1VDIzOjU5OjU5WiIsIjEyZjMwZDllLTA0MmUtMTFlZC04ZGRjLWQ4YmJjMTQ2ZDE2NSJd&page[size]=2")
 			},
 		},
+		{
+			description: `GET logs with invalid "page[after]" query param`,
+			query:       "GET /v1/software/c353756e-8597-4e46-a99b-7da2e141603b/logs?page[after]=NOT_A_VALID_CURSOR",
+
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, `can't get Logs`, response["title"])
+				assert.Equal(t, "wrong cursor format in page[after] or page[before]", response["detail"])
+			},
+		},
 
 		// POST /software/:id/logs
 		{

@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
-	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 )
@@ -30,46 +29,10 @@ func NewBundle(db *gorm.DB) *Bundle {
 }
 
 func (b *Bundle) GetBundles(ctx *fiber.Ctx) error {
-	var bundles []models.Bundle
-
-	stmt, err := general.Clauses(ctx, b.db, "")
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Bundles",
-			err.Error(),
-		)
-	}
-
-	if all := ctx.QueryBool("all", false); !all {
-		stmt = stmt.Scopes(models.Active)
-	}
-
-	stmt = stmt.Preload("Software")
-
-	paginator, err := general.NewPaginator(ctx)
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Bundles", err.Error())
-	}
-
-	result, cursor, err := paginator.Paginate(stmt, &bundles)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Bundles",
-			"wrong cursor format in page[after] or page[before]",
-		)
-	}
-
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Bundles",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &bundles, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return list[models.Bundle](ctx, b.db.Preload("Software"), listOptions{
+		title:      "can't get Bundles",
+		activeOnly: true,
+	})
 }
 
 func (b *Bundle) GetBundle(ctx *fiber.Ctx) error {

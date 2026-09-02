@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
-	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 )
@@ -49,43 +48,17 @@ func (p *Webhook[T]) GetWebhook(ctx *fiber.Ctx) error {
 // GetResourceWebhooks gets the webhooks associated to resources
 // (fe. Software, Publishers) and returns any error encountered.
 func (p *Webhook[T]) GetResourceWebhooks(ctx *fiber.Ctx) error {
-	var webhooks []models.Webhook
-
 	var resource T
 
 	stmt := p.db.Where(map[string]any{"entity_type": resource.TableName()})
 
-	paginator, err := general.NewPaginator(ctx)
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Webhooks", general.QueryErrorDetail(err))
-	}
-
-	result, cursor, err := paginator.Paginate(stmt, &webhooks)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Webhooks",
-			"wrong cursor format in page[after] or page[before]",
-		)
-	}
-
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Webhooks",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &webhooks, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return list[models.Webhook](ctx, stmt, listOptions{title: "can't get Webhooks", skipClauses: true})
 }
 
 // GetSingleResourceWebhooks gets the webhooks associated to a resource
 // (fe. a specific Software or Publisher) with the given ID and returns any
 // error encountered.
 func (p *Webhook[T]) GetSingleResourceWebhooks(ctx *fiber.Ctx) error {
-	var webhooks []models.Webhook
-
 	var resource T
 
 	if err := p.db.First(&resource, "id = ?", ctx.Params("id")).Error; err != nil {
@@ -104,29 +77,7 @@ func (p *Webhook[T]) GetSingleResourceWebhooks(ctx *fiber.Ctx) error {
 		Where(map[string]any{"entity_type": resource.TableName()}).
 		Where("entity_id = ?", resource.UUID())
 
-	paginator, err := general.NewPaginator(ctx)
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Webhooks", general.QueryErrorDetail(err))
-	}
-
-	result, cursor, err := paginator.Paginate(stmt, &webhooks)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Webhooks",
-			"wrong cursor format in page[after] or page[before]",
-		)
-	}
-
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Webhooks",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &webhooks, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return list[models.Webhook](ctx, stmt, listOptions{title: "can't get Webhooks", skipClauses: true})
 }
 
 // PostResourceWebhook creates a new webhook associated to resources
