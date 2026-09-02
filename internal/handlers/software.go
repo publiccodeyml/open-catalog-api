@@ -118,23 +118,14 @@ func (p *Software) PostSoftware(ctx *fiber.Ctx) error {
 	}
 
 	if err := p.db.Create(&software).Error; err != nil {
-		if field := common.DuplicateField(err); field != nil {
-			detail := alreadyExists
-			if *field != "" {
-				detail = *field + " " + alreadyExists
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(&software)
 }
 
 // PatchSoftware updates the software with the given ID.
-func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop,funlen // keep patch transaction inline
+func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop // keep patch transaction inline
 	const errMsg = "can't update Software"
 
 	software := models.Software{}
@@ -209,17 +200,7 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop,funlen 
 
 		return nil
 	}); err != nil {
-		if field := common.DuplicateField(err); field != nil {
-			detail := "already exists"
-			if *field != "" {
-				detail = *field + " already exists"
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		//nolint:wrapcheck // default to not wrap other errors, the handler will take care of this
-		return err
+		return writeError(err, errMsg)
 	}
 
 	// Sort the aliases to always have a consistent output

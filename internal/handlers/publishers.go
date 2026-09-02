@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
 	"slices"
 	"sort"
@@ -92,20 +91,7 @@ func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
 
 		return tran.Create(&publisher).Error
 	}); err != nil {
-		if idConflict, ok := errors.AsType[idConflictError](err); ok {
-			return common.Error(fiber.StatusConflict, errMsg, idConflict.Error())
-		}
-
-		if field := common.DuplicateField(err); field != nil {
-			detail := alreadyExists
-			if *field != "" {
-				detail = *field + " " + alreadyExists
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(&publisher)
@@ -113,7 +99,7 @@ func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
 
 // PatchPublisher updates the publisher with the given ID.
 // Supports both JSON Merge Patch (default) and JSON Patch (application/json-patch+json).
-func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funlen
+func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop
 	const errMsg = "can't update Publisher"
 
 	// Preload will load all the associated CodeHosting. We'll manually handle that later.
@@ -161,7 +147,7 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funle
 		expectedURLs = append(expectedURLs, common.NormalizeURL(ch.URL))
 	}
 
-	if err := p.db.Transaction(func(tran *gorm.DB) error { //nolint:dupl
+	if err := p.db.Transaction(func(tran *gorm.DB) error {
 		if updatedPublisher.AlternativeID != nil &&
 			(publisher.AlternativeID == nil || *updatedPublisher.AlternativeID != *publisher.AlternativeID) {
 			if err := checkAlternativeIDConflict(tran, *updatedPublisher.AlternativeID); err != nil {
@@ -191,20 +177,7 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funle
 
 		return nil
 	}); err != nil {
-		if idConflict, ok := errors.AsType[idConflictError](err); ok {
-			return common.Error(fiber.StatusConflict, errMsg, idConflict.Error())
-		}
-
-		if field := common.DuplicateField(err); field != nil {
-			detail := alreadyExists
-			if *field != "" {
-				detail = *field + " " + alreadyExists
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return writeError(err, errMsg)
 	}
 
 	// Sort codeHosting to always have a consistent output.
