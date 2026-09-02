@@ -138,3 +138,23 @@ func findOne[T any](gormdb *gorm.DB, id string, opts findOptions) (*T, error) {
 
 	return &item, nil
 }
+
+// writeError maps the error of a create or update to Problem JSON: 409
+// when a unique constraint or the alternativeId check failed, 500
+// otherwise. The raw database error never reaches the client.
+func writeError(err error, title string) error {
+	if idConflict, ok := errors.AsType[idConflictError](err); ok {
+		return common.Error(fiber.StatusConflict, title, idConflict.Error())
+	}
+
+	if field := common.DuplicateField(err); field != nil {
+		detail := alreadyExists
+		if *field != "" {
+			detail = *field + " " + alreadyExists
+		}
+
+		return common.Error(fiber.StatusConflict, title, detail)
+	}
+
+	return common.InternalServerError(title)
+}

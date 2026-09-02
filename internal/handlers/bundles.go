@@ -77,7 +77,7 @@ func (b *Bundle) PostBundle(ctx *fiber.Ctx) error {
 
 	// Omit("Software.*") links the existing rows without upserting them.
 	if err := b.db.Omit("Software.*").Create(bundle).Error; err != nil {
-		return bundleSaveError(errMsg, err)
+		return writeError(err, errMsg)
 	}
 
 	bundle.SoftwareIDs = request.SoftwareIDs
@@ -129,7 +129,7 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 			Association("Software").Replace(software)
 	})
 	if err != nil {
-		return bundleSaveError(errMsg, err)
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(&updatedBundle)
@@ -175,18 +175,5 @@ func softwareLookupError(errMsg string, err error) error {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
 	}
 
-	return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
-}
-
-func bundleSaveError(errMsg string, err error) error {
-	if field := common.DuplicateField(err); field != nil {
-		detail := alreadyExists
-		if *field != "" {
-			detail = *field + " " + alreadyExists
-		}
-
-		return common.Error(fiber.StatusConflict, errMsg, detail)
-	}
-
-	return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+	return common.InternalServerError(errMsg)
 }

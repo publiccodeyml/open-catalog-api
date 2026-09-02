@@ -136,16 +136,7 @@ func (c *Catalog) PostCatalog(ctx *fiber.Ctx) error {
 	}
 
 	if err := c.db.Create(catalog).Error; err != nil {
-		if field := common.DuplicateField(err); field != nil {
-			detail := alreadyExists
-			if *field != "" {
-				detail = *field + " " + alreadyExists
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(catalog)
@@ -234,16 +225,7 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop,funlen
 
 		return nil
 	}); err != nil {
-		if field := common.DuplicateField(err); field != nil {
-			detail := alreadyExists
-			if *field != "" {
-				detail = *field + " " + alreadyExists
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(&updatedCatalog)
@@ -333,7 +315,7 @@ func (c *Catalog) GetCatalogPublishers(ctx *fiber.Ctx) error {
 
 // PostCatalogPublisher creates a publisher belonging to the given catalog.
 // The catalog is resolved from the URL; any catalogId in the body is ignored.
-func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop
+func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error {
 	const errMsg = "can't create Publisher"
 
 	catalog, err := resolveCatalog(c.db, ctx.Params("id"))
@@ -383,27 +365,14 @@ func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop
 
 		return tran.Create(&publisher).Error
 	}); err != nil {
-		if idConflict, ok := errors.AsType[idConflictError](err); ok {
-			return common.Error(fiber.StatusConflict, errMsg, idConflict.Error())
-		}
-
-		if field := common.DuplicateField(err); field != nil {
-			detail := alreadyExists
-			if *field != "" {
-				detail = *field + " " + alreadyExists
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(publisher)
 }
 
 // PatchCatalogPublisher updates a publisher that belongs to the given catalog.
-func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funlen,gocognit
+func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funlen
 	const errMsg = "can't update Publisher"
 
 	catalog, err := resolveCatalog(c.db, ctx.Params("id"))
@@ -465,7 +434,7 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,
 		expectedURLs = append(expectedURLs, common.NormalizeURL(ch.URL))
 	}
 
-	if err := c.db.Transaction(func(tran *gorm.DB) error { //nolint:dupl
+	if err := c.db.Transaction(func(tran *gorm.DB) error {
 		if updatedPublisher.AlternativeID != nil &&
 			(publisher.AlternativeID == nil || *updatedPublisher.AlternativeID != *publisher.AlternativeID) {
 			if err := checkAlternativeIDConflict(tran, *updatedPublisher.AlternativeID); err != nil {
@@ -492,20 +461,7 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,
 
 		return nil
 	}); err != nil {
-		if idConflict, ok := errors.AsType[idConflictError](err); ok {
-			return common.Error(fiber.StatusConflict, errMsg, idConflict.Error())
-		}
-
-		if field := common.DuplicateField(err); field != nil {
-			detail := alreadyExists
-			if *field != "" {
-				detail = *field + " " + alreadyExists
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return writeError(err, errMsg)
 	}
 
 	sort.Slice(publisher.CodeHosting, func(a int, b int) bool {
@@ -558,16 +514,7 @@ func (c *Catalog) PostCatalogSoftware(ctx *fiber.Ctx) error {
 	}
 
 	if err := c.db.Create(software).Error; err != nil {
-		if field := common.DuplicateField(err); field != nil {
-			detail := alreadyExists
-			if *field != "" {
-				detail = *field + " " + alreadyExists
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(software)
@@ -668,17 +615,7 @@ func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error { //nolint:funlen,c
 
 		return nil
 	}); err != nil {
-		if field := common.DuplicateField(err); field != nil {
-			detail := alreadyExists
-			if *field != "" {
-				detail = *field + " " + alreadyExists
-			}
-
-			return common.Error(fiber.StatusConflict, errMsg, detail)
-		}
-
-		//nolint:wrapcheck
-		return err
+		return writeError(err, errMsg)
 	}
 
 	sort.Slice(updatedSoftware.Aliases, func(a int, b int) bool {

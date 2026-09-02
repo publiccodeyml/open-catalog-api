@@ -166,3 +166,29 @@ func TestFindOne(t *testing.T) {
 	assert.Equal(t, fiber.StatusNotFound, problemStatus(t, err))
 	assert.Equal(t, "Item was not found", err.(common.ProblemJSONError).Detail)
 }
+
+func TestWriteError(t *testing.T) {
+	db := newCrudDB(t)
+	seedCrudItems(t, db)
+
+	err := writeError(idConflictError("one"), "can't create Item")
+	problem, ok := errors.AsType[common.ProblemJSONError](err)
+	require.True(t, ok)
+	assert.Equal(t, fiber.StatusConflict, problem.Status)
+	assert.Equal(t, "Publisher with id 'one' already exists", problem.Detail)
+
+	dup := db.Create(&crudItem{ID: "one", Message: "again"}).Error
+	require.Error(t, dup)
+
+	err = writeError(dup, "can't create Item")
+	problem, ok = errors.AsType[common.ProblemJSONError](err)
+	require.True(t, ok)
+	assert.Equal(t, fiber.StatusConflict, problem.Status)
+	assert.Contains(t, problem.Detail, alreadyExists)
+
+	err = writeError(errors.New("boom"), "can't create Item")
+	problem, ok = errors.AsType[common.ProblemJSONError](err)
+	require.True(t, ok)
+	assert.Equal(t, fiber.StatusInternalServerError, problem.Status)
+	assert.Equal(t, fiber.ErrInternalServerError.Message, problem.Detail)
+}
