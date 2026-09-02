@@ -64,10 +64,6 @@ func buildLink(base map[string]string, key string, cursor *string) *string {
 	return &s
 }
 
-func NewPaginator(ctx *fiber.Ctx) (*paginator.Paginator, error) {
-	return NewPaginatorWithConfig(ctx, DefaultConfig)
-}
-
 func NewPaginatorWithConfig(ctx *fiber.Ctx, config *paginator.Config) (*paginator.Paginator, error) {
 	mergedConf := *DefaultConfig
 

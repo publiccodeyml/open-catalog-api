@@ -689,8 +689,6 @@ func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error { //nolint:funlen,c
 }
 
 // GetCatalogSoftware lists software belonging to the given catalog.
-//
-//nolint:cyclop // keeping request handling inline is clearer here
 func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
@@ -703,58 +701,25 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, "can't get Software", fiber.ErrInternalServerError.Message)
 	}
 
-	var software []models.Software
-
-	stmt := c.db.Preload("URL").Preload("Aliases").Scopes(catalogScope(catalog))
-
-	stmt, err = general.Clauses(ctx, stmt, "")
+	stmt, err := general.Clauses(ctx, c.db.Preload("URL").Preload("Aliases").Scopes(catalogScope(catalog)), "")
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
 
-	if urlFilter := common.NormalizeURL(ctx.Query("url", "")); urlFilter != "" {
-		var softwareURL models.SoftwareURL
-
-		if e := c.db.First(&softwareURL, "url = ?", urlFilter).Error; e != nil {
-			if errors.Is(e, gorm.ErrRecordNotFound) {
-				return ctx.JSON(fiber.Map{"data": []any{}, "links": general.PaginationLinks{}})
-			}
-
-			return common.Error(
-				fiber.StatusInternalServerError, "can't get Software", fiber.ErrInternalServerError.Message,
-			)
-		}
-
-		stmt = stmt.Where("id = ?", softwareURL.SoftwareID)
-	}
-
-	if all := ctx.QueryBool("all", false); !all {
-		stmt = stmt.Scopes(models.Active)
-	}
-
-	paginator, err := general.NewPaginator(ctx)
+	stmt, found, err := softwareURLFilter(ctx, c.db, stmt, "can't get Software")
 	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
+		return err
 	}
 
-	result, cursor, err := paginator.Paginate(stmt, &software)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Software",
-			"wrong cursor format in page[after] or page[before]",
-		)
+	if !found {
+		return ctx.JSON(fiber.Map{"data": []any{}, "links": general.PaginationLinks{}})
 	}
 
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Software",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &software, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return list[models.Software](ctx, stmt, listOptions{
+		title:       "can't get Software",
+		activeOnly:  true,
+		skipClauses: true,
+	})
 }
 
 // buildSources converts SourceInput slice to CatalogSource models.
