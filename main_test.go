@@ -17,13 +17,12 @@ import (
 
 	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/gofiber/fiber/v2"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 const UUID_REGEXP = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
