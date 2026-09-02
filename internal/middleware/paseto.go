@@ -37,6 +37,10 @@ func NewPasetoMiddleware(envs common.Environment) fiber.Handler {
 				return nil, fmt.Errorf("can't unmarshal PASETO token: %w", err)
 			}
 
+			if err := payload.Validate(); err != nil {
+				return nil, fmt.Errorf("can't validate PASETO token: %w", err)
+			}
+
 			return payload, nil
 		},
 		ErrorHandler: func(ctx *fiber.Ctx, _ error) error {
