@@ -166,6 +166,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer) {
 }
 
 func setupHandlers(app *fiber.App, gormDB *gorm.DB) { //nolint:funlen
+	bundleHandler := handlers.NewBundle(gormDB)
 	catalogHandler := handlers.NewCatalog(gormDB)
 	publisherHandler := handlers.NewPublisher(gormDB)
 	softwareHandler := handlers.NewSoftware(gormDB)
@@ -176,6 +177,12 @@ func setupHandlers(app *fiber.App, gormDB *gorm.DB) { //nolint:funlen
 
 	//nolint:varnamelen
 	v1 := app.Group("/v1")
+
+	v1.Get("/bundles", bundleHandler.GetBundles)
+	v1.Post("/bundles", bundleHandler.PostBundle)
+	v1.Get("/bundles/:id", bundleHandler.GetBundle)
+	v1.Patch("/bundles/:id", bundleHandler.PatchBundle)
+	v1.Delete("/bundles/:id", bundleHandler.DeleteBundle)
 
 	v1.Get("/catalogs", catalogHandler.GetCatalogs)
 	v1.Post("/catalogs", catalogHandler.PostCatalog)

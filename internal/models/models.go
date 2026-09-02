@@ -15,8 +15,34 @@ type Model interface {
 }
 
 type Bundle struct {
-	ID   string `gorm:"primaryKey"`
-	Name string
+	ID          string     `json:"id" gorm:"primaryKey"`
+	Name        string     `json:"name" gorm:"uniqueIndex;not null"`
+	Description *string    `json:"description,omitempty"`
+	Active      *bool      `json:"active" gorm:"default:true;not null"`
+	Software    []Software `json:"-" gorm:"many2many:bundles_software;constraint:OnDelete:CASCADE"`
+	SoftwareIDs []string   `json:"softwareIds" gorm:"-"`
+	CreatedAt   time.Time  `json:"createdAt" gorm:"index"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+}
+
+// AfterFind mirrors the preloaded association into SoftwareIDs, so the
+// API keeps exposing a plain array of ids while rows live in the join
+// table.
+func (b *Bundle) AfterFind(*gorm.DB) error {
+	b.SoftwareIDs = make([]string, 0, len(b.Software))
+	for _, software := range b.Software {
+		b.SoftwareIDs = append(b.SoftwareIDs, software.ID)
+	}
+
+	return nil
+}
+
+func (*Bundle) TableName() string {
+	return "bundles"
+}
+
+func (b *Bundle) UUID() string {
+	return b.ID
 }
 
 type Log struct {
@@ -116,6 +142,7 @@ type Software struct {
 	Active        *bool               `json:"active" gorm:"default:true;not null"`
 	Vitality      *string             `json:"vitality"`
 	Analysis      common.AnalysisData `json:"-" gorm:"type:jsonb"`
+	Bundles       []Bundle            `json:"-" gorm:"many2many:bundles_software"`
 	CreatedAt     time.Time           `json:"createdAt" gorm:"index"`
 	UpdatedAt     time.Time           `json:"updatedAt"`
 }

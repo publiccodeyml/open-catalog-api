@@ -278,7 +278,7 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop
 
 // DeleteSoftware deletes the software with the given ID.
 func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
-	result := p.db.Select("Aliases").Delete(&models.Software{ID: ctx.Params("id")})
+	result := p.db.Select("Aliases", "Bundles").Delete(&models.Software{ID: ctx.Params("id")})
 
 	if result.Error != nil {
 		return common.Error(fiber.StatusInternalServerError, "can't delete Software", "db error")
