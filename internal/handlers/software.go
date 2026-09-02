@@ -40,89 +40,35 @@ func NewSoftware(db *gorm.DB) *Software {
 }
 
 // GetAllSoftware gets the list of all software and returns any error encountered.
-func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error { //nolint:cyclop // mostly error handling ifs
-	var software []models.Software
-
+func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error {
 	// Preload will load all the associated aliases, which include
-	// also the canonical url. We'll manually handle that later.
-	stmt := p.db.Preload("Aliases")
-
-	stmt, err := general.Clauses(ctx, stmt, "")
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Software",
-			general.QueryErrorDetail(err),
-		)
-	}
-
-	// Return just software with a certain URL if the 'url' query filter
-	// is used.
-	if url := common.NormalizeURL(ctx.Query("url", "")); url != "" {
-		var softwareURL models.SoftwareURL
-
-		if err = p.db.First(&softwareURL, "url = ?", url).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ctx.JSON(fiber.Map{"data": []any{}, "links": general.PaginationLinks{}})
-			}
-
-			return common.Error(
-				fiber.StatusInternalServerError,
-				"can't get Software",
-				fiber.ErrInternalServerError.Message,
-			)
-		}
-
-		stmt = stmt.Where("id = ?", softwareURL.SoftwareID)
-	}
-
-	if all := ctx.QueryBool("all", false); !all {
-		stmt = stmt.Scopes(models.Active)
-	}
-
-	paginator, err := general.NewPaginator(ctx)
+	// also the canonical url. detachCanonicalURL separates them later.
+	stmt, err := general.Clauses(ctx, p.db.Preload("Aliases"), "")
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
 
-	result, cursor, err := paginator.Paginate(stmt, &software)
+	stmt, found, err := softwareURLFilter(ctx, p.db, stmt, "can't get Software")
 	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Software",
-			"wrong cursor format in page[after] or page[before]",
-		)
+		return err
 	}
 
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Software",
-			fiber.ErrInternalServerError.Message,
-		)
+	if !found {
+		return ctx.JSON(fiber.Map{"data": []any{}, "links": general.PaginationLinks{}})
 	}
 
-	// Remove the canonical URL from the aliases, because it need to be its own
-	// field. It was loaded previously together with the other aliases in Preload(),
-	// because of limitation in gorm.
-	for swIdx := range software {
-		swr := &software[swIdx]
-
-		for aliasIdx := range swr.Aliases {
-			alias := &swr.Aliases[aliasIdx]
-
-			if alias.ID == swr.SoftwareURLID {
-				swr.URL = *alias
-
-				swr.Aliases[aliasIdx] = swr.Aliases[len(swr.Aliases)-1]
-				swr.Aliases = swr.Aliases[:len(swr.Aliases)-1]
-
-				break
-			}
-		}
+	software, cursor, err := paginate[models.Software](ctx, stmt, listOptions{
+		title:       "can't get Software",
+		activeOnly:  true,
+		skipClauses: true,
+	})
+	if err != nil {
+		return err
 	}
 
-	return ctx.JSON(fiber.Map{"data": &software, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	detachCanonicalURL(software)
+
+	return listJSON(ctx, software, cursor)
 }
 
 // GetSoftware gets the software with the given ID and returns any error encountered.
@@ -472,4 +418,49 @@ func injectTouchedAnalysis(
 	maps.Copy(result, injected)
 
 	return result, nil
+}
+
+// softwareURLFilter narrows stmt to the software owning the ?url query
+// parameter. found is false when no software has that url, so the caller
+// answers with an empty list instead of running the query. title is the
+// Problem JSON title of the 500 the caller would have written itself.
+func softwareURLFilter(ctx *fiber.Ctx, gormdb, stmt *gorm.DB, title string) (*gorm.DB, bool, error) {
+	url := common.NormalizeURL(ctx.Query("url", ""))
+	if url == "" {
+		return stmt, true, nil
+	}
+
+	var softwareURL models.SoftwareURL
+
+	if err := gormdb.First(&softwareURL, "url = ?", url).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return stmt, false, nil
+		}
+
+		return nil, false, common.InternalServerError(title)
+	}
+
+	return stmt.Where("id = ?", softwareURL.SoftwareID), true, nil
+}
+
+// detachCanonicalURL moves the canonical url out of Aliases into URL.
+// Preload("Aliases") loads it together with the other aliases because
+// of a limitation in gorm, and the API exposes it as its own field.
+func detachCanonicalURL(software []models.Software) {
+	for swIdx := range software {
+		swr := &software[swIdx]
+
+		for aliasIdx := range swr.Aliases {
+			alias := &swr.Aliases[aliasIdx]
+
+			if alias.ID == swr.SoftwareURLID {
+				swr.URL = *alias
+
+				swr.Aliases[aliasIdx] = swr.Aliases[len(swr.Aliases)-1]
+				swr.Aliases = swr.Aliases[:len(swr.Aliases)-1]
+
+				break
+			}
+		}
+	}
 }

@@ -21,8 +21,10 @@ type listOptions struct {
 	order paginator.Order
 	// activeOnly applies models.Active unless ?all=true is given.
 	activeOnly bool
-	// skipClauses leaves ?filter, ?from, ?to and ?search untouched, for
-	// the lists that never supported them (webhooks, per resource logs).
+	// skipClauses leaves ?filter, ?from, ?to and ?search untouched,
+	// either because the list never supported them (webhooks, per
+	// resource logs) or because the handler applied them itself before
+	// a short circuit (the software lists).
 	skipClauses bool
 }
 

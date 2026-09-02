@@ -159,6 +159,17 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "GET software with unknown url and an invalid from param still validates from",
+			query:       "GET /v1/software?url=https://example.org/unknown&from=not-a-date",
+
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, `can't get Software`, response["title"])
+				assert.Equal(t, "invalid date time format (RFC 3339 needed)", response["detail"])
+			},
+		},
+		{
 			description: "GET with url filter excludes inactive software",
 			query:       "GET /v1/software?url=https://31-a.example.org/code/repo",
 
