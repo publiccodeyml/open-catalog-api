@@ -340,14 +340,12 @@ func syncAliases( //nolint:cyclop // mostly error handling ifs
 func (p *Software) GetSoftwareAnalysis(ctx *fiber.Ctx) error {
 	const errMsg = "can't get Software analysis"
 
-	software := models.Software{}
-
-	if err := p.db.First(&software, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
-		}
-
-		return common.InternalServerError(errMsg)
+	software, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{
+		title: errMsg,
+		name:  "Software",
+	})
+	if err != nil {
+		return err
 	}
 
 	if software.Analysis == nil {
@@ -362,15 +360,15 @@ func (p *Software) GetSoftwareAnalysis(ctx *fiber.Ctx) error {
 func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Software analysis"
 
-	software := models.Software{}
-
-	if err := p.db.First(&software, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
-		}
-
-		return common.InternalServerError(errMsg)
+	found, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{
+		title: errMsg,
+		name:  "Software",
+	})
+	if err != nil {
+		return err
 	}
+
+	software := *found
 
 	var incoming common.AnalysisData
 	if err := json.Unmarshal(ctx.Body(), &incoming); err != nil {

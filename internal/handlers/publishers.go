@@ -33,7 +33,7 @@ func NewPublisher(db *gorm.DB) *Publisher {
 
 // GetPublishers gets the list of all publishers and returns any error encountered.
 func (p *Publisher) GetPublishers(ctx *fiber.Ctx) error {
-	return list[models.Publisher](ctx, p.db.Preload("CodeHosting"), listOptions{
+	return list[models.Publisher](ctx, p.db.Preload(codeHostingAssociation), listOptions{
 		title:      "can't get Publishers",
 		activeOnly: true,
 	})
@@ -41,22 +41,17 @@ func (p *Publisher) GetPublishers(ctx *fiber.Ctx) error {
 
 // GetPublisher gets the publisher with the given ID and returns any error encountered.
 func (p *Publisher) GetPublisher(ctx *fiber.Ctx) error {
-	publisher := models.Publisher{}
-	id := ctx.Params("id")
-
-	if err := p.db.Preload("CodeHosting").First(&publisher, "id = ? or alternative_id = ?", id, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't get Publisher", "Publisher was not found")
-		}
-
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Publisher",
-			fiber.ErrInternalServerError.Message,
-		)
+	publisher, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
+		title:           "can't get Publisher",
+		name:            publisherEntityName,
+		byAlternativeID: true,
+		preloads:        []string{codeHostingAssociation},
+	})
+	if err != nil {
+		return err
 	}
 
-	return ctx.JSON(&publisher)
+	return ctx.JSON(publisher)
 }
 
 // PostPublisher creates a new publisher.
@@ -121,18 +116,18 @@ func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
 func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funlen
 	const errMsg = "can't update Publisher"
 
-	publisher := models.Publisher{}
-	id := ctx.Params("id")
-
 	// Preload will load all the associated CodeHosting. We'll manually handle that later.
-	if err := p.db.Preload("CodeHosting").First(&publisher, "id = ? or alternative_id = ?", id, id).
-		Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Publisher was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
+		title:           errMsg,
+		name:            publisherEntityName,
+		byAlternativeID: true,
+		preloads:        []string{codeHostingAssociation},
+	})
+	if err != nil {
+		return err
 	}
+
+	publisher := *found
 
 	contentType := ctx.Get(fiber.HeaderContentType)
 	if contentType != common.ContentTypeJSONPatch {
@@ -222,18 +217,18 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funle
 
 // DeletePublisher deletes the publisher with the given ID.
 func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
-	id := ctx.Params("id")
-
-	publisher := models.Publisher{}
-	if err := p.db.First(&publisher, "id = ? or alternative_id = ?", id, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't delete Publisher", "Publisher was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, "can't delete Publisher", "db error")
+	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
+		title:           "can't delete Publisher",
+		name:            publisherEntityName,
+		byAlternativeID: true,
+	})
+	if err != nil {
+		return err
 	}
 
-	result := p.db.Select("CodeHosting").Delete(&publisher)
+	publisher := *found
+
+	result := p.db.Select(codeHostingAssociation).Delete(&publisher)
 
 	if result.Error != nil {
 		return common.Error(fiber.StatusInternalServerError, "can't delete Publisher", "db error")
