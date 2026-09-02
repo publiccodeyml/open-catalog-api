@@ -323,7 +323,7 @@ func (c *Catalog) GetCatalogPublishers(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, "can't get Publishers", fiber.ErrInternalServerError.Message)
 	}
 
-	stmt := c.db.Preload("CodeHosting").Scopes(catalogScope(catalog))
+	stmt := c.db.Preload(codeHostingAssociation).Scopes(catalogScope(catalog))
 
 	return list[models.Publisher](ctx, stmt, listOptions{
 		title:      "can't get Publishers",
@@ -415,17 +415,17 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
-	publisher := models.Publisher{}
-	publisherID := ctx.Params("publisherId")
-
-	if err := c.db.Preload("CodeHosting").
-		First(&publisher, "id = ? or alternative_id = ?", publisherID, publisherID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Publisher was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+	found, err := findOne[models.Publisher](c.db, ctx.Params("publisherId"), findOptions{
+		title:           errMsg,
+		name:            publisherEntityName,
+		byAlternativeID: true,
+		preloads:        []string{codeHostingAssociation},
+	})
+	if err != nil {
+		return err
 	}
+
+	publisher := *found
 
 	// Verify the publisher belongs to the resolved catalog.
 	if isRoot(catalog) {

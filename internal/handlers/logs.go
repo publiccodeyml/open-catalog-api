@@ -46,21 +46,12 @@ func (p *Log) GetLogs(ctx *fiber.Ctx) error {
 
 // GetLog gets the log with the given ID and returns any error encountered.
 func (p *Log) GetLog(ctx *fiber.Ctx) error {
-	log := models.Log{}
-
-	if err := p.db.First(&log, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't get Log", "Log was not found")
-		}
-
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Log",
-			fiber.ErrInternalServerError.Message,
-		)
+	log, err := findOne[models.Log](p.db, ctx.Params("id"), findOptions{title: "can't get Log", name: "Log"})
+	if err != nil {
+		return err
 	}
 
-	return ctx.JSON(&log)
+	return ctx.JSON(log)
 }
 
 // PostLog creates a new log.
@@ -86,14 +77,9 @@ func (p *Log) PostLog(ctx *fiber.Ctx) error {
 func (p *Log) PatchLog(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Log"
 
-	log := models.Log{}
-
-	if err := p.db.First(&log, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Log was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+	log, err := findOne[models.Log](p.db, ctx.Params("id"), findOptions{title: errMsg, name: "Log"})
+	if err != nil {
+		return err
 	}
 
 	contentType := ctx.Get(fiber.HeaderContentType)
@@ -103,7 +89,7 @@ func (p *Log) PatchLog(ctx *fiber.Ctx) error {
 		}
 	}
 
-	updatedLog, patchErr := common.ApplyPatch(&log, contentType, ctx.Body())
+	updatedLog, patchErr := common.ApplyPatch(log, contentType, ctx.Body())
 	if patchErr != nil {
 		return common.Error(patchErr.Code, errMsg, patchErr.Error())
 	}
@@ -197,12 +183,12 @@ func (p *Log) PostCatalogLog(ctx *fiber.Ctx) error {
 
 // GetPublisherLogs gets the logs associated to a Publisher with the given ID and returns any error encountered.
 func (p *Log) GetPublisherLogs(ctx *fiber.Ctx) error {
-	return p.getEntityLogs(ctx, &models.Publisher{}, "Publisher")
+	return p.getEntityLogs(ctx, &models.Publisher{}, publisherEntityName)
 }
 
 // PostPublisherLog creates a new log associated to a Publisher with the given ID and returns any error encountered.
 func (p *Log) PostPublisherLog(ctx *fiber.Ctx) error {
-	return p.postEntityLog(ctx, &models.Publisher{}, "Publisher")
+	return p.postEntityLog(ctx, &models.Publisher{}, publisherEntityName)
 }
 
 // PostSoftwareLog creates a new log associated to a Software with the given ID and returns any error encountered.

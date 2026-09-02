@@ -20,6 +20,11 @@ type BundleInterface interface {
 
 var errSoftwareNotFound = errors.New("one or more softwareIds do not exist")
 
+const (
+	bundleEntityName    = "Bundle"
+	softwareAssociation = "Software"
+)
+
 type Bundle struct {
 	db *gorm.DB
 }
@@ -29,28 +34,23 @@ func NewBundle(db *gorm.DB) *Bundle {
 }
 
 func (b *Bundle) GetBundles(ctx *fiber.Ctx) error {
-	return list[models.Bundle](ctx, b.db.Preload("Software"), listOptions{
+	return list[models.Bundle](ctx, b.db.Preload(softwareAssociation), listOptions{
 		title:      "can't get Bundles",
 		activeOnly: true,
 	})
 }
 
 func (b *Bundle) GetBundle(ctx *fiber.Ctx) error {
-	bundle := models.Bundle{}
-
-	if err := b.db.Preload("Software").First(&bundle, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't get Bundle", "Bundle was not found")
-		}
-
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Bundle",
-			fiber.ErrInternalServerError.Message,
-		)
+	bundle, err := findOne[models.Bundle](b.db, ctx.Params("id"), findOptions{
+		title:    "can't get Bundle",
+		name:     bundleEntityName,
+		preloads: []string{softwareAssociation},
+	})
+	if err != nil {
+		return err
 	}
 
-	return ctx.JSON(&bundle)
+	return ctx.JSON(bundle)
 }
 
 func (b *Bundle) PostBundle(ctx *fiber.Ctx) error {
@@ -88,14 +88,13 @@ func (b *Bundle) PostBundle(ctx *fiber.Ctx) error {
 func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Bundle"
 
-	bundle := models.Bundle{}
-
-	if err := b.db.Preload("Software").First(&bundle, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Bundle was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+	bundle, err := findOne[models.Bundle](b.db, ctx.Params("id"), findOptions{
+		title:    errMsg,
+		name:     bundleEntityName,
+		preloads: []string{softwareAssociation},
+	})
+	if err != nil {
+		return err
 	}
 
 	contentType := ctx.Get(fiber.HeaderContentType)
@@ -105,7 +104,7 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 		}
 	}
 
-	updatedBundle, patchErr := common.ApplyPatch(&bundle, contentType, ctx.Body())
+	updatedBundle, patchErr := common.ApplyPatch(bundle, contentType, ctx.Body())
 	if patchErr != nil {
 		return common.Error(patchErr.Code, errMsg, patchErr.Error())
 	}
@@ -137,19 +136,19 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 }
 
 func (b *Bundle) DeleteBundle(ctx *fiber.Ctx) error {
-	bundle := models.Bundle{}
+	const errMsg = "can't delete Bundle"
 
-	if err := b.db.First(&bundle, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't delete Bundle", "Bundle was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, "can't delete Bundle", fiber.ErrInternalServerError.Message)
+	bundle, err := findOne[models.Bundle](b.db, ctx.Params("id"), findOptions{
+		title: errMsg,
+		name:  bundleEntityName,
+	})
+	if err != nil {
+		return err
 	}
 
 	// Select("Software") also removes the bundles_software join rows.
-	if err := b.db.Select("Software").Delete(&bundle).Error; err != nil {
-		return common.Error(fiber.StatusInternalServerError, "can't delete Bundle", fiber.ErrInternalServerError.Message)
+	if err := b.db.Select(softwareAssociation).Delete(bundle).Error; err != nil {
+		return common.InternalServerError(errMsg)
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)

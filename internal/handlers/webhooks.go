@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"errors"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
@@ -28,21 +26,15 @@ func webhookFormatOrDefault(format string) string {
 
 // GetWebhook gets the webhook with the given ID and returns any error encountered.
 func (p *Webhook[T]) GetWebhook(ctx *fiber.Ctx) error {
-	webhook := models.Webhook{}
-
-	if err := p.db.First(&webhook, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't get Webhook", "Webhook was not found")
-		}
-
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Webhook",
-			fiber.ErrInternalServerError.Message,
-		)
+	webhook, err := findOne[models.Webhook](p.db, ctx.Params("id"), findOptions{
+		title: "can't get Webhook",
+		name:  "Webhook",
+	})
+	if err != nil {
+		return err
 	}
 
-	return ctx.JSON(&webhook)
+	return ctx.JSON(webhook)
 }
 
 // GetResourceWebhooks gets the webhooks associated to resources
@@ -59,19 +51,15 @@ func (p *Webhook[T]) GetResourceWebhooks(ctx *fiber.Ctx) error {
 // (fe. a specific Software or Publisher) with the given ID and returns any
 // error encountered.
 func (p *Webhook[T]) GetSingleResourceWebhooks(ctx *fiber.Ctx) error {
-	var resource T
-
-	if err := p.db.First(&resource, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't find resource", "resource was not found")
-		}
-
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Webhooks",
-			fiber.ErrInternalServerError.Message,
-		)
+	found, err := findOne[T](p.db, ctx.Params("id"), findOptions{
+		title: "can't find resource",
+		name:  "resource",
+	})
+	if err != nil {
+		return err
 	}
+
+	resource := *found
 
 	stmt := p.db.
 		Where(map[string]any{"entity_type": resource.TableName()}).
@@ -116,19 +104,15 @@ func (p *Webhook[T]) PostSingleResourceWebhook(ctx *fiber.Ctx) error {
 
 	webhookReq := new(common.Webhook)
 
-	var resource T
-
-	if err := p.db.First(&resource, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't find resource", "resource was not found")
-		}
-
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Webhooks",
-			fiber.ErrInternalServerError.Message,
-		)
+	found, err := findOne[T](p.db, ctx.Params("id"), findOptions{
+		title: "can't find resource",
+		name:  "resource",
+	})
+	if err != nil {
+		return err
 	}
+
+	resource := *found
 
 	if err := common.ValidateRequestEntity(ctx, webhookReq, errMsg); err != nil {
 		return err //nolint:wrapcheck
@@ -160,19 +144,15 @@ func (p *Webhook[T]) PatchWebhook(ctx *fiber.Ctx) error {
 		return err //nolint:wrapcheck
 	}
 
-	webhook := models.Webhook{}
-
-	if err := p.db.First(&webhook, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Webhook was not found")
-		}
-
-		return common.Error(
-			fiber.StatusInternalServerError,
-			errMsg,
-			fiber.ErrInternalServerError.Message,
-		)
+	found, err := findOne[models.Webhook](p.db, ctx.Params("id"), findOptions{
+		title: errMsg,
+		name:  "Webhook",
+	})
+	if err != nil {
+		return err
 	}
+
+	webhook := *found
 
 	webhook.URL = common.NormalizeURL(webhookReq.URL)
 

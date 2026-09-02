@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
@@ -92,4 +94,47 @@ func list[T any](ctx *fiber.Ctx, stmt *gorm.DB, opts listOptions) error {
 	}
 
 	return listJSON(ctx, items, cursor)
+}
+
+const (
+	publisherEntityName    = "Publisher"
+	codeHostingAssociation = "CodeHosting"
+)
+
+// findOptions drives findOne.
+type findOptions struct {
+	// title is the Problem JSON title on failure, e.g. "can't get Publisher".
+	title string
+	// name is the resource name in the 404 detail: "<name> was not found".
+	name string
+	// byAlternativeID also matches the alternative_id column.
+	byAlternativeID bool
+	preloads        []string
+}
+
+// findOne loads the T with the given id. On a miss it returns a 404
+// Problem JSON error, on any other database failure a 500 one, so a
+// handler returns the error as it is.
+func findOne[T any](gormdb *gorm.DB, id string, opts findOptions) (*T, error) {
+	conds := []any{"id = ?", id}
+	if opts.byAlternativeID {
+		conds = []any{"id = ? OR alternative_id = ?", id, id}
+	}
+
+	var item T
+
+	stmt := gormdb
+	for _, preload := range opts.preloads {
+		stmt = stmt.Preload(preload)
+	}
+
+	if err := stmt.First(&item, conds...).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.Error(fiber.StatusNotFound, opts.title, opts.name+" was not found")
+		}
+
+		return nil, common.InternalServerError(opts.title)
+	}
+
+	return &item, nil
 }

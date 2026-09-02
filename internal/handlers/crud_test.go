@@ -145,3 +145,24 @@ func TestListWritesEnvelope(t *testing.T) {
 	assert.Len(t, body.Data, 2)
 	assert.NotNil(t, body.Links["next"])
 }
+
+func TestFindOne(t *testing.T) {
+	db := newCrudDB(t)
+	seedCrudItems(t, db)
+
+	item, err := findOne[crudItem](db, "one", findOptions{title: "can't get Item", name: "Item"})
+	require.NoError(t, err)
+	assert.Equal(t, "first", item.Message)
+
+	_, err = findOne[crudItem](db, "alt-two", findOptions{title: "can't get Item", name: "Item"})
+	assert.Equal(t, fiber.StatusNotFound, problemStatus(t, err))
+
+	item, err = findOne[crudItem](db, "alt-two", findOptions{title: "can't get Item", name: "Item", byAlternativeID: true})
+	require.NoError(t, err)
+	assert.Equal(t, "two", item.ID)
+
+	_, err = findOne[crudItem](db, "missing", findOptions{title: "can't get Item", name: "Item", byAlternativeID: true})
+	require.Error(t, err)
+	assert.Equal(t, fiber.StatusNotFound, problemStatus(t, err))
+	assert.Equal(t, "Item was not found", err.(common.ProblemJSONError).Detail)
+}
