@@ -239,6 +239,8 @@ func setupHandlers(app *fiber.App, gormDB *gorm.DB) { //nolint:funlen
 	v1.Post("/publishers", publisherHandler.PostPublisher)
 	v1.Patch("/publishers/:id", publisherHandler.PatchPublisher)
 	v1.Delete("/publishers/:id", publisherHandler.DeletePublisher)
+	v1.Get("/publishers/:id/logs", logHandler.GetPublisherLogs)
+	v1.Post("/publishers/:id/logs", logHandler.PostPublisherLog)
 
 	v1.Get("/software/webhooks", softwareWebhookHandler.GetResourceWebhooks)
 	v1.Post("/software/webhooks", softwareWebhookHandler.PostResourceWebhook)

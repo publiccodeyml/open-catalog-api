@@ -1211,3 +1211,171 @@ func addPublishersForPaginationCapTest(t *testing.T) {
 		_, _ = db.Exec("DELETE FROM publishers WHERE description LIKE "+placeholder(1), descriptionPrefix+"%")
 	})
 }
+
+func TestPublishersLogsEndpoints(t *testing.T) {
+	tests := []TestCase{
+		// GET /publishers/:id/logs
+		{
+			query: "GET /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				data := assertListResponse(t, response)
+
+				assert.Equal(t, 1, len(data))
+
+				assertPaginationLinks(t, response, nil, nil)
+
+				log := data[0]
+
+				assert.NotEmpty(t, log["message"])
+				assertUUID(t, log["id"])
+				assertRFC3339(t, log["createdAt"])
+				assertRFC3339(t, log["updatedAt"])
+				assert.Equal(t, "/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde", log["entity"])
+				assertOnlyKeys(t, log, "id", "createdAt", "updatedAt", "message", "entity")
+			},
+		},
+		{
+			description: "GET logs for non existing publisher",
+			query:       "GET /v1/publishers/NO_SUCH_PUBLISHER/logs",
+
+			expectedCode:        404,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, `can't get Publisher`, response["title"])
+				assert.Equal(t, "Publisher was not found", response["detail"])
+			},
+		},
+		{
+			description: "GET with page[size] query param",
+			query:       "GET /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs?page[size]=1",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				data := assertListResponse(t, response)
+
+				assert.Equal(t, 1, len(data))
+			},
+		},
+
+		// POST /publishers/:id/logs
+		{
+			description: "POST logs for non existing publisher",
+			query:       "POST /v1/publishers/NO_SUCH_PUBLISHER/logs",
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+
+			expectedCode:        404,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, `can't create Log`, response["title"])
+				assert.Equal(t, "Publisher was not found", response["detail"])
+			},
+		},
+		{
+			query: "POST /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs",
+			body:  `{"message": "New publisher log from test suite"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, "New publisher log from test suite", response["message"])
+
+				assertUUID(t, response["id"])
+				assertTimestamps(t, response)
+
+				assert.Equal(t, "/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde", response["entity"])
+			},
+		},
+		{
+			description: "POST publisher log - wrong token",
+			query:       "POST /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs",
+			body:        `{"message": "new log"}`,
+			headers: map[string][]string{
+				"Authorization": {badToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        401,
+			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedContentType: "application/problem+json",
+		},
+		{
+			description: "POST log with invalid JSON",
+			query:       "POST /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs",
+			body:        `INVALID_JSON`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, `can't create Log`, response["title"])
+				assert.Equal(t, "invalid or malformed JSON", response["detail"])
+			},
+		},
+		{
+			description: "POST with JSON with extra fields",
+			query:       "POST /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs",
+			body:        `{"message": "new log", "EXTRA_FIELD": "extra field not in schema"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Log","detail":"unknown field in JSON input","status":422}`,
+		},
+		{
+			description: "POST log with validation errors",
+			query:       "POST /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs",
+			body:        `{"message": ""}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, `can't create Log`, response["title"])
+				assert.Equal(t, "invalid format: message is required", response["detail"])
+
+				assert.IsType(t, []interface{}{}, response["validationErrors"])
+
+				validationErrors := response["validationErrors"].([]interface{})
+				assert.Equal(t, 1, len(validationErrors))
+
+				firstValidationError := validationErrors[0].(map[string]interface{})
+
+				for key := range firstValidationError {
+					assert.Contains(t, []string{"field", "rule", "value"}, key)
+				}
+			},
+		},
+		{
+			description: "POST log with empty body",
+			query:       "POST /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs",
+			body:        "",
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				assert.Equal(t, `can't create Log`, response["title"])
+				assert.Equal(t, "invalid or malformed JSON", response["detail"])
+			},
+		},
+	}
+
+	runTestCases(t, tests)
+}

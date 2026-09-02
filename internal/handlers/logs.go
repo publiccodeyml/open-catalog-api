@@ -23,6 +23,9 @@ type LogInterface interface {
 	PostSoftwareLog(ctx *fiber.Ctx) error
 
 	PostCatalogLog(ctx *fiber.Ctx) error
+
+	GetPublisherLogs(ctx *fiber.Ctx) error
+	PostPublisherLog(ctx *fiber.Ctx) error
 }
 
 type Log struct {
@@ -158,50 +161,7 @@ func (p *Log) DeleteLog(ctx *fiber.Ctx) error {
 
 // GetSoftwareLogs gets the logs associated to a Software with the given ID and returns any error encountered.
 func (p *Log) GetSoftwareLogs(ctx *fiber.Ctx) error {
-	var logs []models.Log
-
-	software := models.Software{}
-
-	if err := p.db.First(&software, "id = ?", ctx.Params("id")).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't get Software", "Software was not found")
-		}
-
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Software",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	stmt := p.db.
-		Where(map[string]any{"entity_type": models.Software{}.TableName()}).
-		Where("entity_id = ?", software.ID)
-
-	// Logs are returned in descending order, last first
-	paginator, err := general.NewPaginatorWithConfig(ctx, &paginator.Config{Order: paginator.DESC})
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Logs", err.Error())
-	}
-
-	result, cursor, err := paginator.Paginate(stmt, &logs)
-	if err != nil {
-		return common.Error(
-			fiber.StatusUnprocessableEntity,
-			"can't get Software",
-			"wrong cursor format in page[after] or page[before]",
-		)
-	}
-
-	if result.Error != nil {
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Software",
-			fiber.ErrInternalServerError.Message,
-		)
-	}
-
-	return ctx.JSON(fiber.Map{"data": &logs, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+	return p.getEntityLogs(ctx, &models.Software{}, "Software")
 }
 
 // PostCatalogLog creates a new log associated to a Catalog with the given ID and returns any error encountered.
@@ -248,21 +208,85 @@ func (p *Log) PostCatalogLog(ctx *fiber.Ctx) error {
 	return ctx.JSON(&log)
 }
 
+// GetPublisherLogs gets the logs associated to a Publisher with the given ID and returns any error encountered.
+func (p *Log) GetPublisherLogs(ctx *fiber.Ctx) error {
+	return p.getEntityLogs(ctx, &models.Publisher{}, "Publisher")
+}
+
+// PostPublisherLog creates a new log associated to a Publisher with the given ID and returns any error encountered.
+func (p *Log) PostPublisherLog(ctx *fiber.Ctx) error {
+	return p.postEntityLog(ctx, &models.Publisher{}, "Publisher")
+}
+
 // PostSoftwareLog creates a new log associated to a Software with the given ID and returns any error encountered.
 func (p *Log) PostSoftwareLog(ctx *fiber.Ctx) error {
-	const errMsg = "can't create Log"
+	return p.postEntityLog(ctx, &models.Software{}, "Software")
+}
 
-	logReq := new(common.Log)
+// getEntityLogs gets the logs associated to the entity with the ID in the request path.
+// entity must be a pointer, it is filled in with the row loaded from the database.
+func (p *Log) getEntityLogs(ctx *fiber.Ctx, entity models.Model, entityName string) error {
+	var logs []models.Log
 
-	software := models.Software{}
-	if err := p.db.First(&software, "id = ?", ctx.Params("id")).Error; err != nil {
+	errMsg := "can't get " + entityName
+
+	if err := p.db.First(entity, "id = ?", ctx.Params("id")).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't create Log", "Software was not found")
+			return common.Error(fiber.StatusNotFound, errMsg, entityName+" was not found")
 		}
 
 		return common.Error(
 			fiber.StatusInternalServerError,
-			"can't get Software",
+			errMsg,
+			fiber.ErrInternalServerError.Message,
+		)
+	}
+
+	stmt := p.db.
+		Where(map[string]any{"entity_type": entity.TableName()}).
+		Where("entity_id = ?", entity.UUID())
+
+	// Logs are returned in descending order, last first
+	paginator, err := general.NewPaginatorWithConfig(ctx, &paginator.Config{Order: paginator.DESC})
+	if err != nil {
+		return common.Error(fiber.StatusUnprocessableEntity, "can't get Logs", err.Error())
+	}
+
+	result, cursor, err := paginator.Paginate(stmt, &logs)
+	if err != nil {
+		return common.Error(
+			fiber.StatusUnprocessableEntity,
+			errMsg,
+			"wrong cursor format in page[after] or page[before]",
+		)
+	}
+
+	if result.Error != nil {
+		return common.Error(
+			fiber.StatusInternalServerError,
+			errMsg,
+			fiber.ErrInternalServerError.Message,
+		)
+	}
+
+	return ctx.JSON(fiber.Map{"data": &logs, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
+}
+
+// postEntityLog creates a new log associated to the entity with the ID in the request path.
+// entity must be a pointer, it is filled in with the row loaded from the database.
+func (p *Log) postEntityLog(ctx *fiber.Ctx, entity models.Model, entityName string) error {
+	const errMsg = "can't create Log"
+
+	logReq := new(common.Log)
+
+	if err := p.db.First(entity, "id = ?", ctx.Params("id")).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.Error(fiber.StatusNotFound, errMsg, entityName+" was not found")
+		}
+
+		return common.Error(
+			fiber.StatusInternalServerError,
+			"can't get "+entityName,
 			fiber.ErrInternalServerError.Message,
 		)
 	}
@@ -271,12 +295,13 @@ func (p *Log) PostSoftwareLog(ctx *fiber.Ctx) error {
 		return err //nolint:wrapcheck
 	}
 
-	table := models.Software{}.TableName()
+	entityID := entity.UUID()
+	table := entity.TableName()
 
 	log := models.Log{
 		ID:         utils.UUIDv4(),
 		Message:    logReq.Message,
-		EntityID:   &software.ID,
+		EntityID:   &entityID,
 		EntityType: &table,
 	}
 
