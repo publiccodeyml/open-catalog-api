@@ -74,6 +74,10 @@ func validatePatchedCatalog(catalog models.Catalog, title string) error {
 	return validatePatchedEntity(request, title)
 }
 
+func validatePatchedLog(log models.Log, title string) error {
+	return validatePatchedEntity(common.Log{Message: log.Message}, title)
+}
+
 func validatePatchedEntity(request any, title string) error {
 	validationErrors := common.ValidateStruct(request)
 	if len(validationErrors) == 0 {

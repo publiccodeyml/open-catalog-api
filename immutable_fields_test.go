@@ -14,8 +14,10 @@ import (
 const (
 	unusedID      = "00000000-dead-beef-0000-000000000001"
 	forgedCreated = "1999-01-01T00:00:00Z"
+	fixtureLogID  = "4f95b0d0-042e-11ed-8253-d8bbc146d165"
 
 	softwarePath        = "/v1/software/"
+	logPath             = "/v1/logs/"
 	publisherPath       = "/v1/publishers/"
 	catalogPath         = "/v1/catalogs/"
 	catalogSoftwarePath = catalogPath + italiaID + "/software/"
@@ -260,6 +262,11 @@ func TestJSONPatchValidatesPatchedEntity(t *testing.T) {
 			`{"op": "replace", "path": "/name", "value": "patched"},
 			 {"op": "replace", "path": "/sources/0/url", "value": "not-a-url"}`,
 			"catalogs", "name", italiaID, "Italian Catalog",
+		},
+		{
+			"log message", logPath + fixtureLogID,
+			`{"op": "replace", "path": "/message", "value": "x"}`,
+			"logs", "message", fixtureLogID, "A log message",
 		},
 	}
 

@@ -117,12 +117,6 @@ func (p *Log) PostLog(ctx *fiber.Ctx) error {
 func (p *Log) PatchLog(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Log"
 
-	logReq := new(common.Log)
-
-	if err := common.ValidateRequestEntity(ctx, logReq, errMsg); err != nil {
-		return err //nolint:wrapcheck
-	}
-
 	log := models.Log{}
 
 	if err := p.db.First(&log, "id = ?", ctx.Params("id")).Error; err != nil {
@@ -133,13 +127,37 @@ func (p *Log) PatchLog(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
-	log.Message = logReq.Message
+	contentType := ctx.Get(fiber.HeaderContentType)
+	if contentType != common.ContentTypeJSONPatch {
+		if err := common.ValidateRequestEntity(ctx, &common.Log{}, errMsg); err != nil {
+			return err //nolint:wrapcheck
+		}
+	}
 
-	if err := p.db.Updates(&log).Error; err != nil {
+	updatedLog, patchErr := common.ApplyPatch(&log, contentType, ctx.Body())
+	if patchErr != nil {
+		return common.Error(patchErr.Code, errMsg, patchErr.Error())
+	}
+
+	// Identity, timestamps and the entity association are immutable via this
+	// endpoint, and ApplyPatch drops the json:"-" fields, so restore them.
+	updatedLog.ID = log.ID
+	updatedLog.CreatedAt = log.CreatedAt
+	updatedLog.DeletedAt = log.DeletedAt
+	updatedLog.EntityID = log.EntityID
+	updatedLog.EntityType = log.EntityType
+
+	if contentType == common.ContentTypeJSONPatch {
+		if err := validatePatchedLog(updatedLog, errMsg); err != nil {
+			return err
+		}
+	}
+
+	if err := p.db.Updates(&updatedLog).Error; err != nil {
 		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
 	}
 
-	return ctx.JSON(&log)
+	return ctx.JSON(&updatedLog)
 }
 
 // DeleteLog deletes the log with the given ID.

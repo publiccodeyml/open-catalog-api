@@ -467,4 +467,54 @@ func TestLogsDBChecks(t *testing.T) {
 
 		assert.Equal(t, message, dbValue(t, "logs", "message", "id", logID))
 	})
+
+	t.Run("PATCH log via JSON Patch persists changes to DB", func(t *testing.T) {
+		loadFixtures(t)
+
+		const (
+			logID   = "4f95b0d0-042e-11ed-8253-d8bbc146d165"
+			message = "Updated log message via JSON Patch"
+		)
+
+		body := `[{"op":"replace","path":"/message","value":"` + message + `"}]`
+
+		req, err := newTestRequest("PATCH", "/v1/logs/"+logID, strings.NewReader(body))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json-patch+json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 200, res.StatusCode)
+
+		assert.Equal(t, message, dbValue(t, "logs", "message", "id", logID))
+	})
+
+	t.Run("PATCH log preserves the entity association", func(t *testing.T) {
+		loadFixtures(t)
+
+		const (
+			logID      = "2dfb2bc2-042d-11ed-9338-d8bbc146d165"
+			entityID   = "c353756e-8597-4e46-a99b-7da2e141603b"
+			entityType = "software"
+			message    = "Updated log message keeping its entity"
+		)
+
+		req, err := newTestRequest("PATCH", "/v1/logs/"+logID, strings.NewReader(`{"message":"`+message+`"}`))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 200, res.StatusCode)
+
+		assert.Equal(t, message, dbValue(t, "logs", "message", "id", logID))
+		assert.Equal(t, entityID, dbValue(t, "logs", "entity_id", "id", logID))
+		assert.Equal(t, entityType, dbValue(t, "logs", "entity_type", "id", logID))
+	})
 }
