@@ -96,6 +96,8 @@ func migrateModels(database *gorm.DB) error {
 		&models.CodeHosting{},
 		&models.Software{},
 		&models.SoftwareURL{},
+		// After Software: the bundles_software join table references it.
+		&models.Bundle{},
 		&models.Webhook{},
 	} {
 		if err := database.AutoMigrate(model); err != nil {

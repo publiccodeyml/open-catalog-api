@@ -9,6 +9,7 @@ import (
 // pgConstraintToAPI maps PostgreSQL unique index names to API field names.
 // GORM generates these as idx_<table>_<column> for uniqueIndex fields.
 var pgConstraintToAPI = map[string]string{ //nolint:gochecknoglobals
+	"idx_bundles_name":                "name",
 	"idx_publishers_description":      "description",
 	"idx_publishers_alternative_id":   "alternativeId",
 	"idx_publishers_code_hosting_url": "codeHosting.url",
@@ -19,6 +20,7 @@ var pgConstraintToAPI = map[string]string{ //nolint:gochecknoglobals
 // SQLite unique constraint errors always have the format:
 // "UNIQUE constraint failed: table.column".
 var sqliteColToAPI = map[string]string{ //nolint:gochecknoglobals
+	"bundles.name":                "name",
 	"publishers.description":      "description",
 	"publishers.alternative_id":   "alternativeId",
 	"publishers_code_hosting.url": "codeHosting.url",

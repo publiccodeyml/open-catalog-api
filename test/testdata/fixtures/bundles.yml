@@ -1,0 +1,17 @@
+---
+- id: e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b
+  name: Bundle for municipalities
+  description: Recommended software for municipalities
+  active: true
+  created_at: '2024-01-01T00:00:00+00:00'
+  updated_at: '2024-01-01T00:00:00+00:00'
+- id: f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c
+  name: Bundle for schools
+  active: true
+  created_at: '2024-06-01T00:00:00+00:00'
+  updated_at: '2024-06-01T00:00:00+00:00'
+- id: a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d
+  name: Inactive bundle
+  active: false
+  created_at: '2024-09-01T00:00:00+00:00'
+  updated_at: '2024-09-01T00:00:00+00:00'
