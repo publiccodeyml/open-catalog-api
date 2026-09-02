@@ -183,8 +183,17 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funle
 		return common.Error(patchErr.Code, errMsg, patchErr.Error())
 	}
 
-	// Prevent patches from changing the ID.
+	// ApplyPatch refuses operations on these fields. Restore them as defense in
+	// depth so a future operation kind cannot change persistence semantics.
 	updatedPublisher.ID = publisher.ID
+	updatedPublisher.CatalogID = publisher.CatalogID
+	updatedPublisher.CreatedAt = publisher.CreatedAt
+
+	if contentType == common.ContentTypeJSONPatch {
+		if err := validatePatchedPublisher(updatedPublisher, errMsg); err != nil {
+			return err
+		}
+	}
 
 	updatedPublisher.Email = common.NormalizeEmail(updatedPublisher.Email)
 

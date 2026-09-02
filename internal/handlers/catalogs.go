@@ -217,6 +217,12 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop,funlen
 	updatedCatalog.ID = catalog.ID
 	updatedCatalog.CreatedAt = catalog.CreatedAt
 
+	if contentType == common.ContentTypeJSONPatch {
+		if err := validatePatchedCatalog(updatedCatalog, errMsg); err != nil {
+			return err
+		}
+	}
+
 	if isRoot(&catalog) {
 		if updatedCatalog.AlternativeID == nil || *updatedCatalog.AlternativeID != rootCatalogID {
 			return common.Error(fiber.StatusUnprocessableEntity, errMsg,
@@ -504,6 +510,13 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,
 
 	updatedPublisher.ID = publisher.ID
 	updatedPublisher.CatalogID = publisher.CatalogID
+	updatedPublisher.CreatedAt = publisher.CreatedAt
+
+	if contentType == common.ContentTypeJSONPatch {
+		if err := validatePatchedPublisher(updatedPublisher, errMsg); err != nil {
+			return err
+		}
+	}
 
 	updatedPublisher.Email = common.NormalizeEmail(updatedPublisher.Email)
 
@@ -671,6 +684,12 @@ func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error { //nolint:funlen,c
 	updatedSoftware.ID = software.ID
 	updatedSoftware.CreatedAt = software.CreatedAt
 	updatedSoftware.CatalogID = software.CatalogID
+
+	if contentType == common.ContentTypeJSONPatch {
+		if err := validatePatchedSoftware(updatedSoftware, errMsg); err != nil {
+			return err
+		}
+	}
 
 	updatedSoftware.URL.URL = common.NormalizeURL(updatedSoftware.URL.URL)
 

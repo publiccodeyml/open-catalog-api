@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 )
@@ -126,5 +127,8 @@ func isProtectedPath(path string) bool {
 		return true
 	}
 
-	return false
+	parts := strings.Split(path, "/")
+
+	return len(parts) == 4 && parts[1] == "codeHosting" && parts[2] != "" &&
+		(parts[3] == "createdAt" || parts[3] == "updatedAt")
 }

@@ -25,6 +25,8 @@ Releases before 1.0.0 are documented only in the
 
 - A JSON Patch replacing the `id` of a software answered `200` but did
   not save the software.
+- A JSON Patch could store a malformed URL or email. The patched entity
+  now goes through the same validation as a `POST`.
 
 ### Security
 

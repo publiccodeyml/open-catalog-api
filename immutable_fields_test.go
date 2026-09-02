@@ -35,6 +35,7 @@ func patchJSON(t *testing.T, path, body string) (int, []byte) {
 
 	res, err := app.Test(req, -1)
 	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
 
 	out, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
@@ -152,6 +153,18 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 			"can't update Publisher", "publishers", "description", "Publisher description 1",
 		},
 		{
+			"publisher nested createdAt", publisherPath, italiaPublisherID,
+			`{"op": "replace", "path": "/codeHosting/0/createdAt", "value": "` + forgedCreated + `"},
+			 {"op": "replace", "path": "/description", "value": "patched"}`,
+			"can't update Publisher", "publishers", "description", "Publisher description 1",
+		},
+		{
+			"publisher nested updatedAt", publisherPath, italiaPublisherID,
+			`{"op": "replace", "path": "/codeHosting/0/updatedAt", "value": "` + forgedCreated + `"},
+			 {"op": "replace", "path": "/description", "value": "patched"}`,
+			"can't update Publisher", "publishers", "description", "Publisher description 1",
+		},
+		{
 			"catalog publisher id", catalogPubPath, italiaPublisherID,
 			`{"op": "replace", "path": "/id", "value": "` + unusedID + `"},
 			 {"op": "replace", "path": "/description", "value": "patched"}`,
@@ -200,6 +213,65 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 
 			assert.Equal(t, test.want, dbValue(t, test.table, test.column, "id", test.id))
 			assert.Equal(t, 0, dbCount(t, test.table, "id", unusedID))
+		})
+	}
+}
+
+// TestJSONPatchValidatesPatchedEntity proves that RFC 6902 patches cannot
+// bypass the field validation normally applied to merge-patch request DTOs.
+// Each patch includes a valid change as well, which must remain uncommitted
+// when another operation leaves the entity invalid.
+func TestJSONPatchValidatesPatchedEntity(t *testing.T) {
+	tests := []struct {
+		description string
+		path        string
+		ops         string
+		table       string
+		column      string
+		id          string
+		want        string
+	}{
+		{
+			"software URL", softwarePath + italiaSoftwareID,
+			`{"op": "replace", "path": "/publiccodeYml", "value": "patched"},
+			 {"op": "replace", "path": "/url", "value": "not-a-url"}`,
+			"software", "publiccode_yml", italiaSoftwareID, "-",
+		},
+		{
+			"catalog software alias", catalogSoftwarePath + italiaSoftwareID,
+			`{"op": "replace", "path": "/publiccodeYml", "value": "patched"},
+			 {"op": "add", "path": "/aliases/-", "value": "not-a-url"}`,
+			"software", "publiccode_yml", italiaSoftwareID, "-",
+		},
+		{
+			"publisher email", publisherPath + italiaPublisherID,
+			`{"op": "replace", "path": "/description", "value": "patched"},
+			 {"op": "replace", "path": "/email", "value": "not-an-email"}`,
+			"publishers", "description", italiaPublisherID, "Publisher description 1",
+		},
+		{
+			"catalog publisher code hosting URL", catalogPubPath + italiaPublisherID,
+			`{"op": "replace", "path": "/description", "value": "patched"},
+			 {"op": "replace", "path": "/codeHosting/0/url", "value": "not-a-url"}`,
+			"publishers", "description", italiaPublisherID, "Publisher description 1",
+		},
+		{
+			"catalog source URL", catalogPath + italiaID,
+			`{"op": "replace", "path": "/name", "value": "patched"},
+			 {"op": "replace", "path": "/sources/0/url", "value": "not-a-url"}`,
+			"catalogs", "name", italiaID, "Italian Catalog",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			loadFixtures(t)
+
+			code, body := patchJSON(t, test.path, "["+test.ops+"]")
+
+			assert.Equal(t, http.StatusUnprocessableEntity, code, "body: %s", body)
+			assert.Contains(t, string(body), `"validationErrors"`)
+			assert.Equal(t, test.want, dbValue(t, test.table, test.column, "id", test.id))
 		})
 	}
 }
