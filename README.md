@@ -101,6 +101,13 @@ You can configure the API with environment variables:
   `WEBHOOK_DEBOUNCE_MS` is 0.
   Default: `10000`.
 
+* `EVENT_RETENTION_DAYS` (optional): how many days the audit trail is
+  kept. Every create, update and delete of a catalog entity is an
+  event recording the entity, the kind of change, who made it and
+  when, readable at `GET /v1/events`. Older events are deleted at
+  startup and once a day. Set to `0` to keep them forever.
+  Default: `365`.
+
 ## Contributing
 
 This project exists also thanks to your contributions! Here is a list of people
