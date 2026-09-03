@@ -57,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- The released container image runs as an unprivileged user instead of
+  root.
 - A JSON Patch could set `createdAt` on a software or a catalog, moving
   it in the listings and breaking the pagination cursors near it.
 - The database image used for local development is pinned by digest,
