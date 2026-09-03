@@ -21,8 +21,9 @@ func duplicateFieldSQLite(err error) *string {
 	}
 
 	msg := sqliteErr.Error()
-	if _, tableCol, ok := strings.Cut(msg, "UNIQUE constraint failed: "); ok {
-		field := sqliteColToAPI[tableCol]
+	if _, tableCols, ok := strings.Cut(msg, "UNIQUE constraint failed: "); ok {
+		firstCol, _, _ := strings.Cut(tableCols, ",")
+		field := sqliteColToAPI[firstCol]
 
 		return &field
 	}

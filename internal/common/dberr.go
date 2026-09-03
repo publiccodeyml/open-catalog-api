@@ -6,25 +6,35 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+const (
+	fieldAlternativeID = "alternativeId"
+	fieldURL           = "url"
+)
+
 // pgConstraintToAPI maps PostgreSQL unique index names to API field names.
 // GORM generates these as idx_<table>_<column> for uniqueIndex fields.
 var pgConstraintToAPI = map[string]string{ //nolint:gochecknoglobals
 	"idx_bundles_name":                "name",
+	"idx_catalogs_alternative_id":     fieldAlternativeID,
 	"idx_publishers_description":      "description",
-	"idx_publishers_alternative_id":   "alternativeId",
+	"idx_publishers_alternative_id":   fieldAlternativeID,
 	"idx_publishers_code_hosting_url": "codeHosting.url",
-	"idx_software_urls_url":           "url",
+	"idx_software_urls_url":           fieldURL,
+	"idx_webhook_url":                 fieldURL,
 }
 
 // sqliteColToAPI maps SQLite "table.column" identifiers to API field names.
 // SQLite unique constraint errors always have the format:
-// "UNIQUE constraint failed: table.column".
+// "UNIQUE constraint failed: table.column". A composite index lists its
+// columns one after the other, and the first one names the field.
 var sqliteColToAPI = map[string]string{ //nolint:gochecknoglobals
 	"bundles.name":                "name",
+	"catalogs.alternative_id":     fieldAlternativeID,
 	"publishers.description":      "description",
-	"publishers.alternative_id":   "alternativeId",
+	"publishers.alternative_id":   fieldAlternativeID,
 	"publishers_code_hosting.url": "codeHosting.url",
-	"software_urls.url":           "url",
+	"software_urls.url":           fieldURL,
+	"webhooks.url":                fieldURL,
 }
 
 // DuplicateField reports whether err is a unique constraint violation.
