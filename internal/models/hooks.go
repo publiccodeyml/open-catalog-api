@@ -16,96 +16,38 @@ const eventChanBuffer = 1024
 var EventChan = make(chan Event, eventChanBuffer) //nolint:gochecknoglobals
 
 func (p Publisher) AfterCreate(trx *gorm.DB) error {
-	event := Event{
-		ID:         utils.UUIDv4(),
-		Type:       common.EventTypeCreate,
-		EntityType: p.TableName(),
-		EntityID:   p.UUID(),
-	}
-
-	if err := trx.Create(&event).Error; err != nil {
-		return err
-	}
-
-	sendNonBlock(event)
-
-	return nil
+	return emit(trx, common.EventTypeCreate, p)
 }
 
 func (s Software) AfterCreate(trx *gorm.DB) error {
-	event := Event{
-		ID:         utils.UUIDv4(),
-		Type:       common.EventTypeCreate,
-		EntityType: s.TableName(),
-		EntityID:   s.UUID(),
-	}
-
-	if err := trx.Create(&event).Error; err != nil {
-		return err
-	}
-
-	sendNonBlock(event)
-
-	return nil
+	return emit(trx, common.EventTypeCreate, s)
 }
 
 func (p Publisher) AfterUpdate(trx *gorm.DB) error {
-	event := Event{
-		ID:         utils.UUIDv4(),
-		Type:       common.EventTypeUpdate,
-		EntityType: p.TableName(),
-		EntityID:   p.UUID(),
-	}
-
-	if err := trx.Create(&event).Error; err != nil {
-		return err
-	}
-
-	sendNonBlock(event)
-
-	return nil
+	return emit(trx, common.EventTypeUpdate, p)
 }
 
 func (s Software) AfterUpdate(trx *gorm.DB) error {
-	event := Event{
-		ID:         utils.UUIDv4(),
-		Type:       common.EventTypeUpdate,
-		EntityType: s.TableName(),
-		EntityID:   s.UUID(),
-	}
-
-	if err := trx.Create(&event).Error; err != nil {
-		return err
-	}
-
-	sendNonBlock(event)
-
-	return nil
+	return emit(trx, common.EventTypeUpdate, s)
 }
 
 func (p Publisher) AfterDelete(trx *gorm.DB) error {
-	event := Event{
-		ID:         utils.UUIDv4(),
-		Type:       common.EventTypeDelete,
-		EntityType: p.TableName(),
-		EntityID:   p.UUID(),
-	}
-
-	if err := trx.Create(&event).Error; err != nil {
-		return err
-	}
-
-	sendNonBlock(event)
-
-	return nil
+	return emit(trx, common.EventTypeDelete, p)
 }
 
 func (s Software) AfterDelete(trx *gorm.DB) error {
+	return emit(trx, common.EventTypeDelete, s)
+}
+
+// emit records an event of the given type for model and hands it to the
+// live dispatch. It runs inside the caller's transaction, so a failed
+// insert rolls the write back.
+func emit(trx *gorm.DB, eventType string, model Model) error {
 	event := Event{
 		ID:         utils.UUIDv4(),
-		Type:       common.EventTypeDelete,
-		EntityType: s.TableName(),
-		EntityID:   s.UUID(),
+		Type:       eventType,
+		EntityType: model.TableName(),
+		EntityID:   model.UUID(),
 	}
 
 	if err := trx.Create(&event).Error; err != nil {
