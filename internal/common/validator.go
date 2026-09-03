@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -116,7 +117,14 @@ func validateWebhookURL(fl validator.FieldLevel) bool {
 	return true
 }
 
-func ValidateStruct(validateStruct any) []ValidationError {
+// requestValidator is built once: a Validate instance caches the parsed
+// tags of every struct it sees and is safe for concurrent use, so a new
+// one per request parsed the same tags again on every call.
+//
+//nolint:gochecknoglobals // one shared instance is the point
+var requestValidator = sync.OnceValue(newRequestValidator)
+
+func newRequestValidator() *validator.Validate {
 	validate := validator.New()
 	// https://github.com/go-playground/validator/issues/258#issuecomment-257281334
 	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -127,9 +135,13 @@ func ValidateStruct(validateStruct any) []ValidationError {
 	_ = validate.RegisterValidation("webhook_url", validateWebhookURL)
 	validate.RegisterStructValidation(validateGitHubWebhook, Webhook{})
 
+	return validate
+}
+
+func ValidateStruct(validateStruct any) []ValidationError {
 	var validationErrors []ValidationError
 
-	if err := validate.Struct(validateStruct); err != nil {
+	if err := requestValidator().Struct(validateStruct); err != nil {
 		ve, ok := errors.AsType[validator.ValidationErrors](err)
 		if !ok {
 			return nil
