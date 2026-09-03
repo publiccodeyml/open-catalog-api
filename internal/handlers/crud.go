@@ -213,6 +213,14 @@ func applyPatch[T any](ctx *fiber.Ctx, current *T, opts patchOptions[T]) (T, err
 	return updated, nil
 }
 
+// deleteEntityLogs soft deletes the logs attached to entity, for the
+// handlers deleting the entity itself.
+func deleteEntityLogs(tran *gorm.DB, entity models.Model) error {
+	return tran.
+		Where("entity_type = ? AND entity_id = ?", entity.TableName(), entity.UUID()).
+		Delete(&models.Log{}).Error
+}
+
 // updateColumns writes the listed columns of entity and only those. A plain
 // struct update skips a nil pointer, so a merge patch nulling an optional
 // field would answer 200 and leave the old value in the row. Naming the

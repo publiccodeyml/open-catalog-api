@@ -81,6 +81,10 @@ func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
 	publisher := *found
 
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
+		if err := deleteEntityLogs(tran, publisher); err != nil {
+			return err
+		}
+
 		return tran.Select(codeHostingAssociation).Delete(&publisher).Error
 	}); err != nil {
 		return common.Error(fiber.StatusInternalServerError, "can't delete Publisher", "db error")

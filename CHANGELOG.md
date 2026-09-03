@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `409` for a duplicate catalog `alternativeId` now names the field.
 - An error the API did not classify answered `404` with the raw error
   text. It is now a `500` with a generic detail.
+- Deleting a publisher or software did not delete its logs.
 
 ### Security
 

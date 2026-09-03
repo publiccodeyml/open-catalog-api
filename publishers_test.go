@@ -1203,6 +1203,23 @@ func TestPublishersDeleteDBChecks(t *testing.T) {
 
 		assert.Equal(t, 0, dbCount(t, "publishers_code_hosting", "publisher_id", publisherID))
 	})
+
+	t.Run("DELETE publisher soft deletes its logs", func(t *testing.T) {
+		loadFixtures(t)
+
+		const logID = "53650508-042e-11ed-9b84-d8bbc146d165"
+
+		req, err := newTestRequest("DELETE", "/v1/publishers/"+italiaPublisherID, nil)
+		require.NoError(t, err)
+		req.Header = map[string][]string{"Authorization": {goodToken}}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 204, res.StatusCode)
+
+		assert.False(t, dbNull(t, "logs", "deleted_at", "id", logID))
+		assert.Equal(t, 1, dbCount(t, "events", "entity_id", italiaPublisherID))
+	})
 }
 
 func addPublishersForPaginationCapTest(t *testing.T) {
