@@ -17,7 +17,9 @@ import (
 type listOptions struct {
 	// title is the Problem JSON title on failure, e.g. "can't get Publishers".
 	title string
-	// searchField is the column matched by ?filter. Empty disables ?filter.
+	// filterField is the column matched by ?filter. Empty disables ?filter.
+	filterField string
+	// searchField is the column searched by ?search. Empty disables ?search.
 	searchField string
 	// order overrides the ASC default of the cursor paginator.
 	order paginator.Order
@@ -39,7 +41,7 @@ func paginate[T any](ctx *fiber.Ctx, stmt *gorm.DB, opts listOptions) ([]T, pagi
 	if !opts.skipClauses {
 		var err error
 
-		stmt, err = general.Clauses(ctx, stmt, opts.searchField)
+		stmt, err = general.Clauses(ctx, stmt, opts.filterField, opts.searchField)
 		if err != nil {
 			return nil, paginator.Cursor{}, common.Error(
 				fiber.StatusUnprocessableEntity,
