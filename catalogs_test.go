@@ -909,6 +909,40 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 		assert.Equal(t, "gitlab", dbValue(t, "catalog_sources", "driver", "catalog_id", italiaID))
 	})
 
+	t.Run("PATCH returns the sources sorted by url", func(t *testing.T) {
+		loadFixtures(t)
+
+		body := `{"sources":[{"url":"https://c.example.org/one"},{"url":"https://a.example.org/two"},{"url":"https://b.example.org/three"}]}`
+		req, err := newTestRequest("PATCH", "/v1/catalogs/"+italiaID, strings.NewReader(body))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		require.Equal(t, 200, res.StatusCode)
+
+		var response struct {
+			Sources []struct {
+				URL string `json:"url"`
+			} `json:"sources"`
+		}
+		require.NoError(t, json.NewDecoder(res.Body).Decode(&response))
+
+		urls := make([]string, 0, len(response.Sources))
+		for _, source := range response.Sources {
+			urls = append(urls, source.URL)
+		}
+
+		assert.Equal(t, []string{
+			"https://a.example.org/two",
+			"https://b.example.org/three",
+			"https://c.example.org/one",
+		}, urls)
+	})
+
 	t.Run("PATCH persists args as JSON", func(t *testing.T) {
 		loadFixtures(t)
 
