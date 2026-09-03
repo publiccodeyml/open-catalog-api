@@ -170,15 +170,17 @@ type patchOptions[T any] struct {
 	// key) from current into updated. ApplyPatch already refuses an
 	// operation on them, this keeps the save correct should one slip past.
 	restore func(updated, current *T)
-	// validate checks the entity a JSON Patch produced. That path reaches
-	// the entity fields directly, so the request DTO never sees it.
+	// validate checks the entity the patch produced. A JSON Patch reaches
+	// the entity fields directly, and a merge patch can null a field the
+	// entity requires: the DTO decodes null and absent alike, to a nil
+	// pointer, so only the outcome tells them apart.
 	validate func(T, string) error
 }
 
 // applyPatch runs the PATCH sequence shared by every resource: validate a
 // merge patch body, apply the patch, restore the server owned fields and
-// validate the outcome of a JSON Patch. Errors are Problem JSON errors,
-// ready to be returned from a handler as they are.
+// validate the outcome. Errors are Problem JSON errors, ready to be
+// returned from a handler as they are.
 func applyPatch[T any](ctx *fiber.Ctx, current *T, opts patchOptions[T]) (T, error) { //nolint:ireturn
 	var zero T
 
@@ -196,10 +198,8 @@ func applyPatch[T any](ctx *fiber.Ctx, current *T, opts patchOptions[T]) (T, err
 
 	opts.restore(&updated, current)
 
-	if contentType == common.ContentTypeJSONPatch {
-		if err := opts.validate(updated, opts.title); err != nil {
-			return zero, err
-		}
+	if err := opts.validate(updated, opts.title); err != nil {
+		return zero, err
 	}
 
 	return updated, nil

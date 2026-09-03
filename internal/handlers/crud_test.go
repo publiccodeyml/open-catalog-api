@@ -239,6 +239,11 @@ func TestApplyPatchMergePatch(t *testing.T) {
 
 	_, err = applyPatch(newPatchCtx(t, fiber.MIMEApplicationJSON, `{"message":"x"}`), &current, opts)
 	assert.Equal(t, fiber.StatusUnprocessableEntity, problemStatus(t, err))
+	assert.NotEqual(t, "message too short", err.(common.ProblemJSONError).Detail)
+
+	_, err = applyPatch(newPatchCtx(t, fiber.MIMEApplicationJSON, `{"message":null}`), &current, opts)
+	assert.Equal(t, fiber.StatusUnprocessableEntity, problemStatus(t, err))
+	assert.Equal(t, "message too short", err.(common.ProblemJSONError).Detail)
 
 	_, err = applyPatch(newPatchCtx(t, fiber.MIMEApplicationJSON, `{"message":`), &current, opts)
 	assert.Equal(t, fiber.StatusBadRequest, problemStatus(t, err))
