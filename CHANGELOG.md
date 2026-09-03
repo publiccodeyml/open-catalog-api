@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `catalogId` are refused with `422`, as they already were in a JSON
   merge patch. `test` operations on those fields are still allowed.
 - Every `500` carries the same generic detail. A few answered `db error`.
+- The events model no longer has a `deleted_at` column. An existing
+  database keeps the column, unused.
 
 ### Fixed
 

@@ -11,13 +11,11 @@ import (
 )
 
 // PurgeEvents deletes the events created more than olderThan ago and
-// returns how many rows went away. The delete is Unscoped: an entry past
-// the retention window leaves the audit trail for good, a soft delete
-// would keep the row in the table.
+// returns how many rows went away.
 func PurgeEvents(gormdb *gorm.DB, olderThan time.Duration) (int64, error) {
 	cutoff := time.Now().Add(-olderThan)
 
-	result := gormdb.Unscoped().Where("created_at < ?", cutoff).Delete(&models.Event{})
+	result := gormdb.Where("created_at < ?", cutoff).Delete(&models.Event{})
 	if result.Error != nil {
 		return 0, fmt.Errorf("can't purge the events older than %s: %w", olderThan, result.Error)
 	}

@@ -39,14 +39,14 @@ func createEvent(t *testing.T, gormdb *gorm.DB, age time.Duration) string {
 	return event.ID
 }
 
-// countEvents counts unscoped, so a soft deleted row still counts and a
-// purge passes only when the row is gone.
+// countEvents counts the event rows matching where, all of them when
+// where is empty.
 func countEvents(t *testing.T, gormdb *gorm.DB, where string, args ...any) int64 {
 	t.Helper()
 
 	var count int64
 
-	query := gormdb.Unscoped().Model(&models.Event{})
+	query := gormdb.Model(&models.Event{})
 	if where != "" {
 		query = query.Where(where, args...)
 	}
@@ -77,20 +77,6 @@ func TestPurgeEvents(t *testing.T) {
 	assert.True(t, eventExists(t, gormdb, recent))
 	assert.True(t, eventExists(t, gormdb, within))
 	assert.False(t, eventExists(t, gormdb, expired))
-}
-
-func TestPurgeEventsDeletesTheSoftDeletedRows(t *testing.T) {
-	gormdb := newEventDatabase(t)
-
-	expired := createEvent(t, gormdb, 40*day)
-	require.NoError(t, gormdb.Delete(&models.Event{}, "id = ?", expired).Error)
-	require.Equal(t, int64(1), countEvents(t, gormdb, ""))
-
-	purged, err := PurgeEvents(gormdb, 30*day)
-	require.NoError(t, err)
-
-	assert.Equal(t, int64(1), purged)
-	assert.Equal(t, int64(0), countEvents(t, gormdb, ""))
 }
 
 func TestStartEventPurgeDeletesOnStartup(t *testing.T) {

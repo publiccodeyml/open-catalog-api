@@ -226,13 +226,13 @@ func (w Webhook) UUID() string {
 
 // Event is one entry of the audit trail. Actor is the subject of the
 // token that authenticated the write, empty when the token carries none.
+// An event is never soft deleted: the retention purge removes the row.
 type Event struct {
-	ID         string         `json:"id" gorm:"primaryKey"`
-	Type       string         `json:"type"`
-	EntityType string         `json:"entityType"`
-	EntityID   string         `json:"entityId"`
-	Actor      string         `json:"actor,omitempty"`
-	CreatedAt  time.Time      `json:"createdAt"`
-	UpdatedAt  time.Time      `json:"updatedAt"`
-	DeletedAt  gorm.DeletedAt `json:"-" gorm:"index"`
+	ID         string    `json:"id" gorm:"primaryKey"`
+	Type       string    `json:"type"`
+	EntityType string    `json:"entityType"`
+	EntityID   string    `json:"entityId"`
+	Actor      string    `json:"actor,omitempty"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
