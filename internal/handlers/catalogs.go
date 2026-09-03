@@ -413,7 +413,7 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, "can't get Software", fiber.ErrInternalServerError.Message)
 	}
 
-	stmt, err := general.Clauses(ctx, c.db.Preload("Aliases").Scopes(catalogScope(catalog)), "")
+	stmt, err := general.Clauses(ctx, c.db.Preload("Aliases").Scopes(catalogScope(catalog)), "", "")
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}

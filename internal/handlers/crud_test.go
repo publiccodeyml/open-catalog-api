@@ -101,16 +101,32 @@ func TestPaginateOrder(t *testing.T) {
 	assert.Equal(t, "three", items[0].ID)
 }
 
-func TestPaginateSearchField(t *testing.T) {
+func TestPaginateFilterField(t *testing.T) {
 	db := newCrudDB(t)
 	seedCrudItems(t, db)
 
-	items, _, err := paginate[crudItem](newCrudCtx(t, "filter=second"), db, listOptions{title: "t", searchField: "message"})
+	items, _, err := paginate[crudItem](newCrudCtx(t, "filter=second"), db, listOptions{title: "t", filterField: "message"})
 	require.NoError(t, err)
 	require.Len(t, items, 1)
 	assert.Equal(t, "two", items[0].ID)
 
 	items, _, err = paginate[crudItem](newCrudCtx(t, "filter=second"), db, listOptions{title: "t", skipClauses: true})
+	require.NoError(t, err)
+	assert.Len(t, items, 3)
+}
+
+func TestPaginateSearchField(t *testing.T) {
+	db := newCrudDB(t)
+	seedCrudItems(t, db)
+
+	items, _, err := paginate[crudItem](newCrudCtx(t, "search=SEC"), db, listOptions{title: "t", searchField: "message"})
+	require.NoError(t, err)
+	require.Len(t, items, 1)
+	assert.Equal(t, "two", items[0].ID)
+
+	// Without a search column the parameter is ignored, not sent to the
+	// database as a reference to a column the table does not have.
+	items, _, err = paginate[crudItem](newCrudCtx(t, "search=SEC"), db, listOptions{title: "t"})
 	require.NoError(t, err)
 	assert.Len(t, items, 3)
 }

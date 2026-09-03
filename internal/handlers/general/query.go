@@ -32,14 +32,19 @@ func QueryErrorDetail(err error) string {
 	}
 }
 
-func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, searchFieldName string) (*gorm.DB, error) {
+// Clauses applies the ?filter, ?from, ?to and ?search query parameters
+// to stmt. filterField is the column ?filter matches exactly and
+// searchField the column ?search matches as a case insensitive
+// substring. An empty column name leaves its parameter unread: the
+// lists without such a column must not pass it on to the database.
+func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string) (*gorm.DB, error) {
 	ret := stmt
 
-	if searchFieldName != "" {
+	if filterField != "" {
 		filter := ctx.Query("filter", "")
 
 		if filter != "" {
-			ret = ret.Where(map[string]any{searchFieldName: filter})
+			ret = ret.Where(map[string]any{filterField: filter})
 		}
 	}
 
@@ -61,8 +66,10 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, searchFieldName string) (*gorm.DB, e
 		ret = ret.Where("created_at < ?", at)
 	}
 
-	if search := ctx.Query("search", ""); search != "" {
-		ret = ret.Where("LOWER(message) LIKE ?", "%"+utils.ToLower(search)+"%")
+	if searchField != "" {
+		if search := ctx.Query("search", ""); search != "" {
+			ret = ret.Where("LOWER("+searchField+") LIKE ?", "%"+utils.ToLower(search)+"%")
+		}
 	}
 
 	return ret, nil

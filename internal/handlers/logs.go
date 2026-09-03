@@ -23,6 +23,7 @@ func NewLog(db *gorm.DB) *Log {
 func (p *Log) GetLogs(ctx *fiber.Ctx) error {
 	return list[models.Log](ctx, p.db, listOptions{
 		title:       "can't get Logs",
+		filterField: "message",
 		searchField: "message",
 		order:       paginator.DESC,
 	})

@@ -31,7 +31,7 @@ func NewSoftware(db *gorm.DB) *Software {
 
 // GetAllSoftware gets the list of all software and returns any error encountered.
 func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error {
-	stmt, err := general.Clauses(ctx, p.db.Preload("Aliases"), "")
+	stmt, err := general.Clauses(ctx, p.db.Preload("Aliases"), "", "")
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
