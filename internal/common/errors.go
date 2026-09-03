@@ -2,6 +2,7 @@ package common
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -42,11 +43,20 @@ func CustomErrorHandler(ctx *fiber.Ctx, err error) error {
 
 	if problemJSON == nil {
 		//nolint:errorlint
-		switch e := err.(type) {
+		switch typed := err.(type) {
 		case ProblemJSONError:
-			problemJSON = &e
+			problemJSON = &typed
 		default:
-			problemJSON = &ProblemJSONError{Status: fiber.StatusNotFound, Title: fiber.ErrNotFound.Message, Detail: e.Error()}
+			// Nothing classified this error, so it is a failure of the
+			// server, and its text can carry the schema or the failing
+			// statement: it goes to the log, the client gets a generic 500.
+			log.Printf("unhandled error on %s %s: %s", ctx.Method(), ctx.Path(), typed)
+
+			problemJSON = &ProblemJSONError{
+				Status: fiber.StatusInternalServerError,
+				Title:  fiber.ErrInternalServerError.Message,
+				Detail: fiber.ErrInternalServerError.Message,
+			}
 		}
 	}
 
