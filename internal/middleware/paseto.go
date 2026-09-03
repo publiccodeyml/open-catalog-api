@@ -44,6 +44,16 @@ func NewPasetoMiddleware(
 
 			return payload, nil
 		},
+		SuccessHandler: func(ctx *fiber.Ctx) error {
+			// The token is the only place the identity of the caller comes
+			// from, and the model hooks recording an event read it off the
+			// request context.
+			if payload, ok := ctx.Locals(pasetoware.DefaultContextKey).(paseto.JSONToken); ok {
+				ctx.SetUserContext(common.WithActor(ctx.UserContext(), payload.Subject))
+			}
+
+			return ctx.Next()
+		},
 		ErrorHandler: func(ctx *fiber.Ctx, _ error) error {
 			return common.CustomErrorHandler(ctx, common.ErrAuthentication)
 		},

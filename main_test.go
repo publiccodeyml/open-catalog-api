@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/o1egl/paseto"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/database"
 	"github.com/stretchr/testify/assert"
@@ -113,6 +115,24 @@ func newTestRequest(method, url string, body io.Reader) (*http.Request, error) {
 	req.Host = "localhost"
 
 	return req, nil
+}
+
+// bearerWithSubject mints a token signed with the test PASETO key and
+// returns it ready for the Authorization header, so a test can choose the
+// subject the API records as the actor of a write.
+func bearerWithSubject(t *testing.T, subject string) string {
+	t.Helper()
+
+	key, err := base64.StdEncoding.DecodeString(os.Getenv("PASETO_KEY"))
+	require.NoError(t, err)
+
+	token, err := paseto.NewV2().Encrypt(key, paseto.JSONToken{
+		Subject:  subject,
+		IssuedAt: time.Now().UTC().Add(-time.Minute),
+	}, nil)
+	require.NoError(t, err)
+
+	return "Bearer " + token
 }
 
 func loadFixtures(t *testing.T) {

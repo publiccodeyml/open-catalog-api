@@ -47,7 +47,7 @@ func (p *Publisher) GetPublisher(ctx *fiber.Ctx) error {
 
 // PostPublisher creates a new publisher.
 func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
-	return createPublisher(ctx, p.db, nil)
+	return createPublisher(ctx, writeDB(ctx, p.db), nil)
 }
 
 // PatchPublisher updates the publisher with the given ID.
@@ -64,7 +64,7 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	return updatePublisher(ctx, p.db, *found)
+	return updatePublisher(ctx, writeDB(ctx, p.db), *found)
 }
 
 // DeletePublisher deletes the publisher with the given ID.
@@ -80,7 +80,7 @@ func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
 
 	publisher := *found
 
-	if err := models.Transaction(p.db, func(tran *gorm.DB) error {
+	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
 		return tran.Select(codeHostingAssociation).Delete(&publisher).Error
 	}); err != nil {
 		return common.Error(fiber.StatusInternalServerError, "can't delete Publisher", "db error")

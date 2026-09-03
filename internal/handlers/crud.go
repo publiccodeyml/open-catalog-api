@@ -101,6 +101,12 @@ const (
 	codeHostingAssociation = "CodeHosting"
 )
 
+// writeDB is how the actor reaches the hooks that record an event: the
+// statement context is the only context they get to look at.
+func writeDB(ctx *fiber.Ctx, gormdb *gorm.DB) *gorm.DB {
+	return gormdb.WithContext(ctx.UserContext())
+}
+
 // findOptions drives findOne.
 type findOptions struct {
 	// title is the Problem JSON title on failure, e.g. "can't get Publisher".

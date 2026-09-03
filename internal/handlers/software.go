@@ -67,7 +67,7 @@ func (p *Software) GetSoftware(ctx *fiber.Ctx) error {
 
 // PostSoftware creates a new software.
 func (p *Software) PostSoftware(ctx *fiber.Ctx) error {
-	return createSoftware(ctx, p.db, nil)
+	return createSoftware(ctx, writeDB(ctx, p.db), nil)
 }
 
 // PatchSoftware updates the software with the given ID.
@@ -84,14 +84,14 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
-	return updateSoftware(ctx, p.db, software)
+	return updateSoftware(ctx, writeDB(ctx, p.db), software)
 }
 
 // DeleteSoftware deletes the software with the given ID.
 func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
 	var rowsAffected int64
 
-	if err := models.Transaction(p.db, func(tran *gorm.DB) error {
+	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
 		result := tran.Select("Aliases", "Bundles").Delete(&models.Software{ID: ctx.Params("id")})
 		rowsAffected = result.RowsAffected
 

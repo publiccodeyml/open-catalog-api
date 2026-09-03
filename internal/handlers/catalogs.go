@@ -320,7 +320,7 @@ func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
-	return createPublisher(ctx, c.db, catalogOwnerID(catalog))
+	return createPublisher(ctx, writeDB(ctx, c.db), catalogOwnerID(catalog))
 }
 
 // PatchCatalogPublisher updates a publisher that belongs to the given catalog.
@@ -350,7 +350,7 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusNotFound, errMsg, "Publisher was not found")
 	}
 
-	return updatePublisher(ctx, c.db, *found)
+	return updatePublisher(ctx, writeDB(ctx, c.db), *found)
 }
 
 // PostCatalogSoftware creates software belonging to the given catalog.
@@ -367,7 +367,7 @@ func (c *Catalog) PostCatalogSoftware(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
-	return createSoftware(ctx, c.db, catalogOwnerID(catalog))
+	return createSoftware(ctx, writeDB(ctx, c.db), catalogOwnerID(catalog))
 }
 
 // PatchCatalogSoftware updates software that belongs to the given catalog.
@@ -397,7 +397,7 @@ func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
 	}
 
-	return updateSoftware(ctx, c.db, software)
+	return updateSoftware(ctx, writeDB(ctx, c.db), software)
 }
 
 // GetCatalogSoftware lists software belonging to the given catalog.
