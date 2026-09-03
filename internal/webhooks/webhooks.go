@@ -293,7 +293,7 @@ func post(url string, body []byte, headers map[string]string) {
 		return
 	}
 
-	req.Header.Set("User-Agent", "DevelopersItaliaAPI-Webhook/1.0")
+	req.Header.Set("User-Agent", "open-catalog-api-webhook/1.0 (+https://github.com/publiccodeyml/open-catalog-api)")
 	req.Header.Set("Content-Type", "application/json")
 
 	for name, value := range headers {
