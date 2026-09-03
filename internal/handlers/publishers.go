@@ -87,7 +87,7 @@ func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
 
 		return tran.Select(codeHostingAssociation).Delete(&publisher).Error
 	}); err != nil {
-		return common.Error(fiber.StatusInternalServerError, "can't delete Publisher", "db error")
+		return common.InternalServerError("can't delete Publisher")
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)

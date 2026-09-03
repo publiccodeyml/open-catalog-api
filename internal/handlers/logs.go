@@ -52,7 +52,7 @@ func (p *Log) PostLog(ctx *fiber.Ctx) error {
 	log := models.Log{ID: utils.UUIDv4(), Message: logReq.Message}
 
 	if err := p.db.Create(&log).Error; err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
+		return common.InternalServerError(errMsg)
 	}
 
 	return ctx.JSON(&log)
@@ -78,7 +78,7 @@ func (p *Log) PatchLog(ctx *fiber.Ctx) error {
 	}
 
 	if err := p.db.Updates(&updatedLog).Error; err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
+		return common.InternalServerError(errMsg)
 	}
 
 	return ctx.JSON(&updatedLog)
@@ -91,7 +91,7 @@ func (p *Log) DeleteLog(ctx *fiber.Ctx) error {
 	result := p.db.Delete(&log, "id = ?", ctx.Params("id"))
 
 	if result.Error != nil {
-		return common.Error(fiber.StatusInternalServerError, "can't delete Log", "db error")
+		return common.InternalServerError("can't delete Log")
 	}
 
 	if result.RowsAffected == 0 {
@@ -112,17 +112,9 @@ func (p *Log) PostCatalogLog(ctx *fiber.Ctx) error {
 
 	logReq := new(common.Log)
 
-	catalog, err := resolveCatalog(p.db, ctx.Params("id"))
+	catalog, err := resolveCatalogOr404(p.db, ctx.Params("id"), errMsg)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't create Log", "Catalog was not found")
-		}
-
-		return common.Error(
-			fiber.StatusInternalServerError,
-			"can't get Catalog",
-			fiber.ErrInternalServerError.Message,
-		)
+		return err
 	}
 
 	if err := common.ValidateRequestEntity(ctx, logReq, errMsg); err != nil {
@@ -144,7 +136,7 @@ func (p *Log) PostCatalogLog(ctx *fiber.Ctx) error {
 	}
 
 	if err := p.db.Create(&log).Error; err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
+		return common.InternalServerError(errMsg)
 	}
 
 	return ctx.JSON(&log)
@@ -227,7 +219,7 @@ func (p *Log) postEntityLog(ctx *fiber.Ctx, entity models.Model, entityName stri
 	}
 
 	if err := p.db.Create(&log).Error; err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
+		return common.InternalServerError(errMsg)
 	}
 
 	return ctx.JSON(&log)

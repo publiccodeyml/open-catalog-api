@@ -110,7 +110,7 @@ func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
 
 		return tran.Select("Aliases", "Bundles").Delete(&software).Error
 	}); err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
+		return common.InternalServerError(errMsg)
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)
