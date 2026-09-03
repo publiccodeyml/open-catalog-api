@@ -16,8 +16,13 @@ description:
       - Helm chart available
     longDescription: |
       **open-catalog-api** is a RESTful API for public software catalogs.
-      It powers developers.italia.it and can be deployed as a standalone
-      instance for any public software catalog.
+      It powers national open source catalogs for public administrations:
+
+      - the Italian [developers.italia.it](https://developers.italia.it)
+      - the Swiss [oss-catalog](https://github.com/swiss/oss-catalog)
+
+      It can be deployed as a standalone instance for any public
+      software catalog.
     shortDescription: |-
       RESTful API for public software catalogs.
 developmentStatus: stable

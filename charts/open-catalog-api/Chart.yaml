@@ -1,6 +1,6 @@
 apiVersion: v2
 name: open-catalog-api
-description: The API of Developers Italia
+description: RESTful API for public administration Open Source catalogs
 
 # A chart can be either an 'application' or a 'library' chart.
 #
@@ -23,4 +23,4 @@ version: v0.6.0
 # It is recommended to use it with quotes.
 appVersion: "v1.3.0"
 
-icon: https://avatars.githubusercontent.com/u/15377824?s=96&v=4
+icon: https://avatars.githubusercontent.com/u/53046106?s=96&v=4
