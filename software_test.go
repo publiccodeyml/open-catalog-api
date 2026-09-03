@@ -1938,6 +1938,26 @@ func TestSoftwareDeleteDBChecks(t *testing.T) {
 		assert.Equal(t, 0, dbCount(t, "software_urls", "software_id", softwareID))
 	})
 
+	t.Run("DELETE software soft deletes its logs", func(t *testing.T) {
+		loadFixtures(t)
+
+		const logID = "2dfb2bc2-042d-11ed-9338-d8bbc146d165"
+
+		req, err := newTestRequest("DELETE", "/v1/software/"+italiaSoftwareID, nil)
+		require.NoError(t, err)
+		req.Header = map[string][]string{"Authorization": {goodToken}}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 204, res.StatusCode)
+
+		assert.False(t, dbNull(t, "logs", "deleted_at", "id", logID))
+		// The fixtures carry three events for this software, the delete
+		// adds one, and the logs going with it add none.
+		assert.Equal(t, 4, dbCount(t, "events", "entity_id", italiaSoftwareID))
+		assert.Equal(t, 0, dbCount(t, "events", "entity_type", "logs"))
+	})
+
 	t.Run("DELETE of a missing software records no event", func(t *testing.T) {
 		loadFixtures(t)
 

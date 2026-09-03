@@ -104,6 +104,10 @@ func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
 	software := *found
 
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
+		if err := deleteEntityLogs(tran, software); err != nil {
+			return err
+		}
+
 		return tran.Select("Aliases", "Bundles").Delete(&software).Error
 	}); err != nil {
 		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
