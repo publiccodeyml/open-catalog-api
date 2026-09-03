@@ -1,7 +1,6 @@
 package database
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -12,6 +11,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 )
 
 const (
@@ -105,14 +105,61 @@ func migrateModels(database *gorm.DB) error {
 		}
 	}
 
-	// Migrate logs only if there is no "entity" column yet, which should mean when the database
-	// is empty.
-	// This is a workaround for https://github.com/go-gorm/gorm/issues/5534 where GORM
-	// fails to migrate an existing generated column on PostgreSQL if it already exists.
-	var entity sql.NullString
-	if database.Raw("SELECT entity FROM logs LIMIT 1").Scan(&entity).Error != nil {
+	return migrateLogs(database)
+}
+
+const entityField = "Entity"
+
+// migrateLogs can't call AutoMigrate on a logs table that already has the
+// generated "entity" column: GORM fails on it on PostgreSQL
+// (https://github.com/go-gorm/gorm/issues/5534). Such a table gets its
+// missing columns and indexes added one at a time instead, so that a change
+// to models.Log still reaches a database created by an earlier version.
+func migrateLogs(database *gorm.DB) error {
+	migrator := database.Migrator()
+
+	if !migrator.HasColumn(&models.Log{}, entityField) {
 		if err := database.AutoMigrate(&models.Log{}); err != nil {
 			return fmt.Errorf("can't migrate model \"Log\": %w", err)
+		}
+
+		return nil
+	}
+
+	statement := &gorm.Statement{DB: database}
+	if err := statement.Parse(&models.Log{}); err != nil {
+		return fmt.Errorf("can't parse model \"Log\": %w", err)
+	}
+
+	if err := addMissingLogColumns(migrator, statement.Schema); err != nil {
+		return err
+	}
+
+	return createMissingLogIndexes(migrator, statement.Schema)
+}
+
+func addMissingLogColumns(migrator gorm.Migrator, logs *schema.Schema) error {
+	for _, field := range logs.Fields {
+		if field.Name == entityField || migrator.HasColumn(&models.Log{}, field.Name) {
+			continue
+		}
+
+		if err := migrator.AddColumn(&models.Log{}, field.Name); err != nil {
+			return fmt.Errorf("can't add column %q to \"logs\": %w", field.DBName, err)
+		}
+	}
+
+	return nil
+}
+
+func createMissingLogIndexes(migrator gorm.Migrator, logs *schema.Schema) error {
+	for _, index := range logs.ParseIndexes() {
+		if migrator.HasIndex(&models.Log{}, index.Name) {
+			continue
+		}
+
+		if err := migrator.CreateIndex(&models.Log{}, index.Name); err != nil {
+			return fmt.Errorf("can't create index %q on \"logs\": %w", index.Name, err)
 		}
 	}
 
