@@ -171,6 +171,88 @@ func TestEventsEndpoints(t *testing.T) {
 
 		// GET /events/:id
 		{
+			description:         "GET events of one entity type",
+			query:               "GET /v1/events?entityType=publishers",
+			headers:             authHeaders,
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+				assert.Len(t, data, 3)
+
+				for _, event := range data {
+					assert.Equal(t, "publishers", event["entityType"])
+				}
+			},
+		},
+		{
+			description:         "GET events of one entity",
+			query:               "GET /v1/events?entityId=c353756e-8597-4e46-a99b-7da2e141603b",
+			headers:             authHeaders,
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+				assert.Len(t, data, 3)
+
+				for _, event := range data {
+					assert.Equal(t, "c353756e-8597-4e46-a99b-7da2e141603b", event["entityId"])
+				}
+			},
+		},
+		{
+			description:         "GET events of one type",
+			query:               "GET /v1/events?type=update",
+			headers:             authHeaders,
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+				assert.Len(t, data, 3)
+
+				for _, event := range data {
+					assert.Equal(t, "update", event["type"])
+				}
+			},
+		},
+		{
+			description:         "GET events of one actor",
+			query:               "GET /v1/events?actor=crawler",
+			headers:             authHeaders,
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+				assert.Len(t, data, 4)
+
+				for _, event := range data {
+					assert.Equal(t, "crawler", event["actor"])
+				}
+			},
+		},
+		{
+			description:         "GET events with two filters",
+			query:               "GET /v1/events?actor=editor&entityType=publishers",
+			headers:             authHeaders,
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+				assert.Len(t, data, 2)
+
+				// The filters survive in the pagination links.
+				assertPaginationLinks(t, response, nil, nil)
+			},
+		},
+		{
+			description:         "GET events with an unknown type",
+			query:               "GET /v1/events?type=rename",
+			headers:             authHeaders,
+			expectedCode:        422,
+			expectedBody:        `{"title":"can't get Events","detail":"type must be one of create, update, delete","status":422}`,
+			expectedContentType: "application/problem+json",
+		},
+		{
 			description:         "GET event without a token",
 			query:               "GET /v1/events/" + eventWithActorID,
 			expectedCode:        401,
