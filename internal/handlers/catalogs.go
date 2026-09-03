@@ -581,7 +581,7 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, "can't get Software", fiber.ErrInternalServerError.Message)
 	}
 
-	stmt, err := general.Clauses(ctx, c.db.Preload("URL").Preload("Aliases").Scopes(catalogScope(catalog)), "")
+	stmt, err := general.Clauses(ctx, c.db.Preload("Aliases").Scopes(catalogScope(catalog)), "")
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
@@ -595,11 +595,7 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 		return ctx.JSON(fiber.Map{"data": []any{}, "links": general.PaginationLinks{}})
 	}
 
-	return list[models.Software](ctx, stmt, listOptions{
-		title:       "can't get Software",
-		activeOnly:  true,
-		skipClauses: true,
-	})
+	return listSoftware(ctx, stmt)
 }
 
 // buildSources converts SourceInput slice to CatalogSource models.

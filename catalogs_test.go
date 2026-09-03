@@ -25,6 +25,31 @@ const (
 	rootPublisherID   = "d6ddc11a-ff85-4f0f-bb87-df38b2a9b394" // catalog_id IS NULL (root)
 )
 
+// assertCanonicalURLs checks that every listed software carries its own
+// canonical url and that the aliases do not repeat it. The url fixtures
+// give software N the canonical https://N-a.example.org/code/repo and,
+// where it has one, the alias https://N-b.example.org/code/repo.
+func assertCanonicalURLs(t *testing.T, data []map[string]any) {
+	t.Helper()
+
+	for _, software := range data {
+		url, isString := software["url"].(string)
+		require.True(t, isString, "software %v has no url", software["id"])
+
+		prefix, _, isCanonical := strings.Cut(url, "-a.example.org")
+		require.True(t, isCanonical, "%q is not the canonical url of its fixture", url)
+
+		aliases, isList := software["aliases"].([]any)
+		require.True(t, isList, "software %v has no aliases list", software["id"])
+
+		assert.NotContains(t, aliases, url)
+
+		for _, alias := range aliases {
+			assert.Equal(t, prefix+"-b.example.org/code/repo", alias)
+		}
+	}
+}
+
 func TestCatalogEndpoints(t *testing.T) {
 	tests := []TestCase{
 		// GET /catalogs
@@ -635,6 +660,8 @@ func TestCatalogEndpoints(t *testing.T) {
 
 				assert.Equal(t, 1, len(data))
 				assert.Equal(t, "c353756e-8597-4e46-a99b-7da2e141603b", data[0]["id"])
+
+				assertCanonicalURLs(t, data)
 			},
 		},
 		{
@@ -647,6 +674,8 @@ func TestCatalogEndpoints(t *testing.T) {
 
 				assert.Equal(t, 1, len(data))
 				assert.Equal(t, italiaSoftwareID, data[0]["id"])
+
+				assertCanonicalURLs(t, data)
 			},
 		},
 		{
@@ -689,8 +718,23 @@ func TestCatalogEndpoints(t *testing.T) {
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
-				// All active software except the 2 assigned to named catalogs
+				// One default page of the 28 active root software
 				assert.Equal(t, 25, len(data))
+
+				assertCanonicalURLs(t, data)
+			},
+		},
+		{
+			description:         "GET root catalog software with all=true returns inactive too",
+			query:               "GET /v1/catalogs/%E2%88%85/software?all=true&page[size]=100",
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+
+				assert.Equal(t, 29, len(data))
+
+				assertCanonicalURLs(t, data)
 			},
 		},
 		{
