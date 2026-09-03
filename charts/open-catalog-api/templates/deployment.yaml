@@ -58,6 +58,9 @@ spec:
                 secretKeyRef:
                   name: {{ default (include "open-catalog-api.fullname" .) .Values.useExistingSecret }}
                   key: pasetoKey
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /livez
