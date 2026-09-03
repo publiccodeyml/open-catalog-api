@@ -216,12 +216,15 @@ type Webhook struct {
 	EntityType string `json:"-" gorm:"index:idx_webhook_url,unique"`
 }
 
+// Event is one entry of the audit trail. Actor is the subject of the
+// token that authenticated the write, empty when the token carries none.
 type Event struct {
-	ID         string `gorm:"primaryKey"`
-	Type       string
-	EntityType string
-	EntityID   string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  gorm.DeletedAt `gorm:"index"`
+	ID         string         `json:"id" gorm:"primaryKey"`
+	Type       string         `json:"type"`
+	EntityType string         `json:"entityType"`
+	EntityID   string         `json:"entityId"`
+	Actor      string         `json:"actor,omitempty"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	UpdatedAt  time.Time      `json:"updatedAt"`
+	DeletedAt  gorm.DeletedAt `json:"-" gorm:"index"`
 }

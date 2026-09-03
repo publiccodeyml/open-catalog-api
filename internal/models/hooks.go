@@ -84,6 +84,10 @@ func emit(trx *gorm.DB, eventType string, model Model) error {
 		EntityID:   model.UUID(),
 	}
 
+	if trx.Statement != nil {
+		event.Actor = common.Actor(trx.Statement.Context)
+	}
+
 	if err := trx.Create(&event).Error; err != nil {
 		return err
 	}
