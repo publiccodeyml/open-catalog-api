@@ -84,13 +84,9 @@ func (c *Catalog) GetCatalogs(ctx *fiber.Ctx) error {
 func (c *Catalog) GetCatalog(ctx *fiber.Ctx) error {
 	id, _ := url.PathUnescape(ctx.Params("id"))
 
-	catalog, err := resolveCatalog(c.db, id, "Sources")
+	catalog, err := resolveCatalogOr404(c.db, id, "can't get Catalog", "Sources")
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't get Catalog", "Catalog was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, "can't get Catalog", fiber.ErrInternalServerError.Message)
+		return err
 	}
 
 	if catalog == nil {
@@ -153,13 +149,9 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 
 	catalogID, _ := url.PathUnescape(ctx.Params("id"))
 
-	resolved, err := resolveCatalog(c.db, catalogID, "Sources")
+	resolved, err := resolveCatalogOr404(c.db, catalogID, errMsg, "Sources")
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return err
 	}
 
 	if resolved == nil {
@@ -231,18 +223,14 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 // Returns 409 if the catalog still has associated publishers or software.
 // On the root (∅) the count of attached resources is taken from rows with
 // catalog_id IS NULL, since root resources are never tied to the row's UUID.
-func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
+func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error {
 	const errMsg = "can't delete Catalog"
 
 	catalogID, _ := url.PathUnescape(ctx.Params("id"))
 
-	resolved, err := resolveCatalog(c.db, catalogID)
+	resolved, err := resolveCatalogOr404(c.db, catalogID, errMsg)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return err
 	}
 
 	if resolved == nil {
@@ -278,7 +266,7 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 
 		return tran.Delete(&catalog).Error
 	}); err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
+		return common.InternalServerError(errMsg)
 	}
 
 	if conflictErr != nil {
@@ -292,13 +280,9 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 func (c *Catalog) GetCatalogPublishers(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	catalog, err := resolveCatalog(c.db, id)
+	catalog, err := resolveCatalogOr404(c.db, id, "can't get Publishers")
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't get Publishers", "Catalog was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, "can't get Publishers", fiber.ErrInternalServerError.Message)
+		return err
 	}
 
 	stmt := c.db.Preload(codeHostingAssociation).Scopes(catalogScope(catalog))
@@ -314,13 +298,9 @@ func (c *Catalog) GetCatalogPublishers(ctx *fiber.Ctx) error {
 func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error {
 	const errMsg = "can't create Publisher"
 
-	catalog, err := resolveCatalog(c.db, ctx.Params("id"))
+	catalog, err := resolveCatalogOr404(c.db, ctx.Params("id"), errMsg)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return err
 	}
 
 	return createPublisher(ctx, writeDB(ctx, c.db), catalogOwnerID(catalog))
@@ -330,13 +310,9 @@ func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error {
 func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Publisher"
 
-	catalog, err := resolveCatalog(c.db, ctx.Params("id"))
+	catalog, err := resolveCatalogOr404(c.db, ctx.Params("id"), errMsg)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return err
 	}
 
 	found, err := findOne[models.Publisher](c.db, ctx.Params("publisherId"), findOptions{
@@ -361,13 +337,9 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error {
 func (c *Catalog) PostCatalogSoftware(ctx *fiber.Ctx) error {
 	const errMsg = "can't create Software"
 
-	catalog, err := resolveCatalog(c.db, ctx.Params("id"))
+	catalog, err := resolveCatalogOr404(c.db, ctx.Params("id"), errMsg)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return err
 	}
 
 	return createSoftware(ctx, writeDB(ctx, c.db), catalogOwnerID(catalog))
@@ -377,13 +349,9 @@ func (c *Catalog) PostCatalogSoftware(ctx *fiber.Ctx) error {
 func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Software"
 
-	catalog, err := resolveCatalog(c.db, ctx.Params("id"))
+	catalog, err := resolveCatalogOr404(c.db, ctx.Params("id"), errMsg)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
+		return err
 	}
 
 	software := models.Software{}
@@ -407,13 +375,9 @@ func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error {
 func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
-	catalog, err := resolveCatalog(c.db, id)
+	catalog, err := resolveCatalogOr404(c.db, id, "can't get Software")
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, "can't get Software", "Catalog was not found")
-		}
-
-		return common.Error(fiber.StatusInternalServerError, "can't get Software", fiber.ErrInternalServerError.Message)
+		return err
 	}
 
 	stmt, err := general.Clauses(ctx, c.db.Preload("Aliases").Scopes(catalogScope(catalog)), "", "")
@@ -574,19 +538,32 @@ func resolveCatalog(gormdb *gorm.DB, rawID string, preloads ...string) (*models.
 	return nil, dbErr
 }
 
+// resolveCatalogOr404 is resolveCatalog for a handler: a catalog that does
+// not exist is a 404 Problem JSON error, any other failure a 500 one, both
+// ready to be returned as they are. A nil catalog with a nil error is the
+// implicit root, as in resolveCatalog.
+func resolveCatalogOr404(gormdb *gorm.DB, rawID, title string, preloads ...string) (*models.Catalog, error) {
+	catalog, err := resolveCatalog(gormdb, rawID, preloads...)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.Error(fiber.StatusNotFound, title, "Catalog was not found")
+		}
+
+		return nil, common.InternalServerError(title)
+	}
+
+	return catalog, nil
+}
+
 // GetCatalogAnalysis returns the analysis data for the catalog with the given id.
 func (c *Catalog) GetCatalogAnalysis(ctx *fiber.Ctx) error {
 	const errMsg = "can't get Catalog analysis"
 
 	id, _ := url.PathUnescape(ctx.Params("id"))
 
-	catalog, err := resolveCatalog(c.db, id)
+	catalog, err := resolveCatalogOr404(c.db, id, errMsg)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
-		}
-
-		return common.InternalServerError(errMsg)
+		return err
 	}
 
 	if catalog == nil {
@@ -607,13 +584,9 @@ func (c *Catalog) PatchCatalogAnalysis(ctx *fiber.Ctx) error {
 
 	id, _ := url.PathUnescape(ctx.Params("id"))
 
-	catalog, err := resolveCatalog(c.db, id)
+	catalog, err := resolveCatalogOr404(c.db, id, errMsg)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
-		}
-
-		return common.InternalServerError(errMsg)
+		return err
 	}
 
 	if catalog == nil {

@@ -152,7 +152,7 @@ func (p *Webhook[T]) DeleteWebhook(ctx *fiber.Ctx) error {
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
 		return tran.Delete(webhook).Error
 	}); err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
+		return common.InternalServerError(errMsg)
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)
