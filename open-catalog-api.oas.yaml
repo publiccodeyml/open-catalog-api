@@ -40,6 +40,10 @@ tags:
     description: Operations on software
   - name: logs
     description: Operations on logs
+  - name: events
+    description: >
+      Operations on events, the audit trail of every create, update and
+      delete, who did it and when
   - name: publishers
     description: Operations on publishers
   - name: monitor
@@ -1040,6 +1044,114 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+  /events:
+    get:
+      summary: List all Events
+      description: >
+        List all Events. The Events are ordered from the most recent
+        to the least recent.
+      tags:
+        - events
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  data:
+                    type: array
+                    description: List of results for the current page
+                    minItems: 0
+                    maxItems: 100
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  links:
+                    $ref: '#/components/schemas/Links'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      operationId: list-events
+      parameters:
+        - schema:
+            type: integer
+            format: int32
+            example: 100
+            minimum: 1
+            maximum: 100
+            default: 25
+          in: query
+          name: 'page[size]'
+          description: Limit the amount of results
+        - schema:
+            type: string
+            maxLength: 255
+            pattern: '.*'
+          in: query
+          name: 'page[before]'
+          description: Only results before this cursor
+          example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
+        - schema:
+            type: string
+            maxLength: 255
+            pattern: '.*'
+          in: query
+          name: 'page[after]'
+          description: Only results after this cursor
+          example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
+        - schema:
+            type: string
+            format: date-time
+            example: '2022-06-07T09:56:23Z'
+          in: query
+          name: from
+          description: Only events after this time (RFC 3339 datetime)
+        - schema:
+            type: string
+            format: date-time
+            example: '2022-06-07T14:56:23Z'
+          in: query
+          name: to
+          description: Only events before this time (RFC 3339 datetime)
+  '/events/{eventId}':
+    parameters:
+      - schema:
+          type: string
+          maxLength: 36
+          pattern: '[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}'
+          example: '12f30d9e-042e-41ed-8ddc-d8bbc146d165'
+        name: eventId
+        in: path
+        description: The ID of the Event
+        required: true
+    get:
+      summary: Get an Event
+      description: Get an Event from its id
+      tags:
+        - events
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      operationId: get-event
   /catalogs:
     get:
       summary: List all Catalogs
@@ -2934,6 +3046,69 @@ components:
         - createdAt
         - updatedAt
         - message
+    Event:
+      title: Event
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          maxLength: 36
+          pattern: '[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}'
+          description: Unique identifier of the Event
+          example: '12f30d9e-042e-41ed-8ddc-d8bbc146d165'
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - create
+            - update
+            - delete
+          description: The kind of change the event records
+          example: 'update'
+          readOnly: true
+        entityType:
+          type: string
+          maxLength: 255
+          pattern: '.*'
+          description: The resource collection the changed entity belongs to
+          example: 'software'
+          readOnly: true
+        entityId:
+          type: string
+          maxLength: 36
+          pattern: '[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}'
+          description: The ID of the changed entity
+          example: '7589be36-f046-45c6-9223-b7de9dbf06cd'
+          readOnly: true
+        actor:
+          type: string
+          maxLength: 255
+          pattern: '.*'
+          description: >
+            The subject of the token that made the change, absent when the
+            token had none.
+          example: 'crawler'
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2022-06-07T14:56:23Z'
+          description: The time the event was created (RFC 3339 datetime)
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2022-06-07T14:56:23Z'
+          description: The time the event was updated (RFC 3339 datetime)
+          readOnly: true
+      required:
+        - id
+        - type
+        - entityType
+        - entityId
+        - createdAt
+        - updatedAt
     Links:
       type: object
       additionalProperties: false

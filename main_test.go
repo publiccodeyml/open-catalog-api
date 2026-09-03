@@ -424,6 +424,8 @@ func TestRequiresAuth(t *testing.T) {
 		{name: "all publisher webhooks", method: http.MethodGet, path: "/v1/publishers/webhooks", required: true},
 		{name: "one publisher webhooks", method: http.MethodGet, path: "/v1/publishers/id/webhooks", required: true},
 		{name: "webhook by id", method: http.MethodGet, path: "/v1/webhooks/id", required: true},
+		{name: "event collection", method: http.MethodGet, path: "/v1/events", required: true},
+		{name: "event by id", method: http.MethodGet, path: "/v1/events/id", required: true},
 		{name: "trailing slash", method: http.MethodGet, path: "/v1/webhooks/id/", required: true},
 		{name: "webhook collection without route", method: http.MethodGet, path: "/v1/webhooks", required: false},
 		{name: "unrelated nested resource", method: http.MethodGet, path: "/v1/software/id/logs", required: false},

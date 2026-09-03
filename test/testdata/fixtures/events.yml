@@ -1,14 +1,63 @@
 ---
+- id: 8e0a1f56-3a70-4b6e-9a2d-1f3b4c5d6e70
+  type: "create"
+  entity_id: 47807e0c-0613-4aea-9917-5455cc6eddad
+  entity_type: publishers
+  actor: crawler
+  created_at: '2015-03-01T00:00:00+00:00'
+  updated_at: '2015-03-01T00:00:00+00:00'
+
+- id: 9b1c2d34-4e5f-4a6b-8c7d-2e3f4a5b6c71
+  type: "update"
+  entity_id: 47807e0c-0613-4aea-9917-5455cc6eddad
+  entity_type: publishers
+  actor: editor
+  created_at: '2016-07-14T00:00:00+00:00'
+  updated_at: '2016-07-14T00:00:00+00:00'
+
+# No actor: the write was authenticated by a token carrying no subject.
 - id: d37d1082-528e-449d-a626-445561368d6b
-  type: "created"
+  type: "create"
   entity_id: c5dec6fa-8a01-4881-9e7d-132770d4214d
   entity_type: software
   created_at: '2017-05-01T00:00:00+00:00'
   updated_at: '2017-05-01T00:00:00+00:00'
 
 - id: 0ab7b216-d819-4a2a-8258-65c7dbe3af4d
-  type: "updated"
+  type: "update"
   entity_id: c5dec6fa-8a01-4881-9e7d-132770d4214d
   entity_type: software
+  actor: crawler
   created_at: '2017-05-02T00:00:00+00:00'
   updated_at: '2017-05-02T00:00:00+00:00'
+
+- id: a2b3c4d5-6e7f-4a8b-9c0d-3e4f5a6b7c72
+  type: "delete"
+  entity_id: d6ddc11a-ff85-4f0f-bb87-df38b2a9b394
+  entity_type: publishers
+  actor: editor
+  created_at: '2018-11-30T00:00:00+00:00'
+  updated_at: '2018-11-30T00:00:00+00:00'
+
+- id: b3c4d5e6-7f80-4b9c-8d1e-4f5a6b7c8d73
+  type: "create"
+  entity_id: c353756e-8597-4e46-a99b-7da2e141603b
+  entity_type: software
+  actor: crawler
+  created_at: '2019-09-15T00:00:00+00:00'
+  updated_at: '2019-09-15T00:00:00+00:00'
+
+- id: c4d5e6f7-8091-4cad-9e2f-5a6b7c8d9e74
+  type: "update"
+  entity_id: c353756e-8597-4e46-a99b-7da2e141603b
+  entity_type: software
+  created_at: '2021-02-20T00:00:00+00:00'
+  updated_at: '2021-02-20T00:00:00+00:00'
+
+- id: d5e6f708-91a2-4bde-8f30-6b7c8d9e0f75
+  type: "delete"
+  entity_id: c353756e-8597-4e46-a99b-7da2e141603b
+  entity_type: software
+  actor: crawler
+  created_at: '2022-08-05T00:00:00+00:00'
+  updated_at: '2022-08-05T00:00:00+00:00'

@@ -157,8 +157,8 @@ func Setup() (*fiber.App, *webhooks.Debouncer) {
 }
 
 // requiresAuth reports whether a request must carry a valid token. Reads
-// are public except for webhook configuration, whose GET operations are
-// marked as authenticated in the OpenAPI contract.
+// are public except for webhook configuration and the audit trail, whose
+// GET operations are marked as authenticated in the OpenAPI contract.
 func requiresAuth(method, requestPath string) bool {
 	if method != fiber.MethodGet {
 		return true
@@ -166,6 +166,8 @@ func requiresAuth(method, requestPath string) bool {
 
 	normalizedPath := "/" + strings.Trim(requestPath, "/")
 	for _, pattern := range [...]string{
+		"/v1/events",
+		"/v1/events/*",
 		"/v1/webhooks/*",
 		"/v1/software/webhooks",
 		"/v1/software/*/webhooks",
@@ -203,6 +205,7 @@ func setupHandlers(app *fiber.App, gormDB *gorm.DB) { //nolint:funlen
 	softwareHandler := handlers.NewSoftware(gormDB)
 	statusHandler := handlers.NewStatus(gormDB)
 	logHandler := handlers.NewLog(gormDB)
+	eventHandler := handlers.NewEvent(gormDB)
 	publisherWebhookHandler := handlers.NewWebhook[models.Publisher](gormDB)
 	softwareWebhookHandler := handlers.NewWebhook[models.Software](gormDB)
 
@@ -261,6 +264,9 @@ func setupHandlers(app *fiber.App, gormDB *gorm.DB) { //nolint:funlen
 	v1.Delete("/logs/:id<guid>", logHandler.DeleteLog)
 	v1.Get("/software/:id/logs", logHandler.GetSoftwareLogs)
 	v1.Post("/software/:id/logs", logHandler.PostSoftwareLog)
+
+	v1.Get("/events", eventHandler.GetEvents)
+	v1.Get("/events/:id", eventHandler.GetEvent)
 
 	v1.Get("/status", statusHandler.GetStatus)
 
