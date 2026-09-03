@@ -97,25 +97,14 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	contentType := ctx.Get(fiber.HeaderContentType)
-	if contentType != common.ContentTypeJSONPatch {
-		if err := common.ValidateRequestEntity(ctx, new(common.BundlePatch), errMsg); err != nil {
-			return err //nolint:wrapcheck
-		}
-	}
-
-	updatedBundle, patchErr := common.ApplyPatch(bundle, contentType, ctx.Body())
-	if patchErr != nil {
-		return common.Error(patchErr.Code, errMsg, patchErr.Error())
-	}
-
-	updatedBundle.ID = bundle.ID
-	updatedBundle.CreatedAt = bundle.CreatedAt
-
-	if contentType == common.ContentTypeJSONPatch {
-		if err := validatePatchedBundle(updatedBundle, errMsg); err != nil {
-			return err
-		}
+	updatedBundle, err := applyPatch(ctx, bundle, patchOptions[models.Bundle]{
+		title:    errMsg,
+		request:  new(common.BundlePatch),
+		restore:  restoreBundle,
+		validate: validatePatchedBundle,
+	})
+	if err != nil {
+		return err
 	}
 
 	software, err := findSoftwareByIDs(b.db, updatedBundle.SoftwareIDs)

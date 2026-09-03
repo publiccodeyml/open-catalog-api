@@ -158,3 +158,49 @@ func writeError(err error, title string) error {
 
 	return common.InternalServerError(title)
 }
+
+// patchOptions drives applyPatch.
+type patchOptions[T any] struct {
+	// title is the Problem JSON title on failure, e.g. "can't update Bundle".
+	title string
+	// request is a fresh request DTO, e.g. new(common.BundlePatch). A merge
+	// patch body is validated against it before being applied.
+	request any
+	// restore copies the server owned fields (id, createdAt, the scoping
+	// key) from current into updated. ApplyPatch already refuses an
+	// operation on them, this keeps the save correct should one slip past.
+	restore func(updated, current *T)
+	// validate checks the entity a JSON Patch produced. That path reaches
+	// the entity fields directly, so the request DTO never sees it.
+	validate func(T, string) error
+}
+
+// applyPatch runs the PATCH sequence shared by every resource: validate a
+// merge patch body, apply the patch, restore the server owned fields and
+// validate the outcome of a JSON Patch. Errors are Problem JSON errors,
+// ready to be returned from a handler as they are.
+func applyPatch[T any](ctx *fiber.Ctx, current *T, opts patchOptions[T]) (T, error) { //nolint:ireturn
+	var zero T
+
+	contentType := ctx.Get(fiber.HeaderContentType)
+	if contentType != common.ContentTypeJSONPatch {
+		if err := common.ValidateRequestEntity(ctx, opts.request, opts.title); err != nil {
+			return zero, err //nolint:wrapcheck
+		}
+	}
+
+	updated, patchErr := common.ApplyPatch(current, contentType, ctx.Body())
+	if patchErr != nil {
+		return zero, common.Error(patchErr.Code, opts.title, patchErr.Error())
+	}
+
+	opts.restore(&updated, current)
+
+	if contentType == common.ContentTypeJSONPatch {
+		if err := opts.validate(updated, opts.title); err != nil {
+			return zero, err
+		}
+	}
+
+	return updated, nil
+}

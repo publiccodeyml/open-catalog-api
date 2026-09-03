@@ -82,30 +82,14 @@ func (p *Log) PatchLog(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	contentType := ctx.Get(fiber.HeaderContentType)
-	if contentType != common.ContentTypeJSONPatch {
-		if err := common.ValidateRequestEntity(ctx, &common.Log{}, errMsg); err != nil {
-			return err //nolint:wrapcheck
-		}
-	}
-
-	updatedLog, patchErr := common.ApplyPatch(log, contentType, ctx.Body())
-	if patchErr != nil {
-		return common.Error(patchErr.Code, errMsg, patchErr.Error())
-	}
-
-	// Identity, timestamps and the entity association are immutable via this
-	// endpoint, and ApplyPatch drops the json:"-" fields, so restore them.
-	updatedLog.ID = log.ID
-	updatedLog.CreatedAt = log.CreatedAt
-	updatedLog.DeletedAt = log.DeletedAt
-	updatedLog.EntityID = log.EntityID
-	updatedLog.EntityType = log.EntityType
-
-	if contentType == common.ContentTypeJSONPatch {
-		if err := validatePatchedLog(updatedLog, errMsg); err != nil {
-			return err
-		}
+	updatedLog, err := applyPatch(ctx, log, patchOptions[models.Log]{
+		title:    errMsg,
+		request:  &common.Log{},
+		restore:  restoreLog,
+		validate: validatePatchedLog,
+	})
+	if err != nil {
+		return err
 	}
 
 	if err := p.db.Updates(&updatedLog).Error; err != nil {

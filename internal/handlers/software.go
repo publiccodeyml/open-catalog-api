@@ -125,7 +125,7 @@ func (p *Software) PostSoftware(ctx *fiber.Ctx) error {
 }
 
 // PatchSoftware updates the software with the given ID.
-func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop // keep patch transaction inline
+func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Software"
 
 	software := models.Software{}
@@ -138,27 +138,14 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error { //nolint:cyclop // keep
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
-	contentType := ctx.Get(fiber.HeaderContentType)
-	if contentType != common.ContentTypeJSONPatch {
-		if err := common.ValidateRequestEntity(ctx, &common.SoftwarePatch{}, errMsg); err != nil {
-			return err //nolint:wrapcheck
-		}
-	}
-
-	updatedSoftware, patchErr := common.ApplyPatch(&software, contentType, ctx.Body())
-	if patchErr != nil {
-		return common.Error(patchErr.Code, errMsg, patchErr.Error())
-	}
-
-	// Restore server-owned fields as defense in depth after the path guard.
-	updatedSoftware.ID = software.ID
-	updatedSoftware.CreatedAt = software.CreatedAt
-	updatedSoftware.CatalogID = software.CatalogID
-
-	if contentType == common.ContentTypeJSONPatch {
-		if err := validatePatchedSoftware(updatedSoftware, errMsg); err != nil {
-			return err
-		}
+	updatedSoftware, err := applyPatch(ctx, &software, patchOptions[models.Software]{
+		title:    errMsg,
+		request:  &common.SoftwarePatch{},
+		restore:  restoreSoftware,
+		validate: validatePatchedSoftware,
+	})
+	if err != nil {
+		return err
 	}
 
 	updatedSoftware.URL.URL = common.NormalizeURL(updatedSoftware.URL.URL)

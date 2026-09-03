@@ -89,6 +89,38 @@ func validatePatchedBundle(bundle models.Bundle, title string) error {
 	return validatePatchedEntity(request, title)
 }
 
+func restoreCatalog(updated, current *models.Catalog) {
+	updated.ID = current.ID
+	updated.CreatedAt = current.CreatedAt
+}
+
+func restorePublisher(updated, current *models.Publisher) {
+	updated.ID = current.ID
+	updated.CatalogID = current.CatalogID
+	updated.CreatedAt = current.CreatedAt
+}
+
+func restoreSoftware(updated, current *models.Software) {
+	updated.ID = current.ID
+	updated.CatalogID = current.CatalogID
+	updated.CreatedAt = current.CreatedAt
+}
+
+// The entity association and DeletedAt are json:"-", so a patch
+// roundtrip drops them.
+func restoreLog(updated, current *models.Log) {
+	updated.ID = current.ID
+	updated.CreatedAt = current.CreatedAt
+	updated.DeletedAt = current.DeletedAt
+	updated.EntityID = current.EntityID
+	updated.EntityType = current.EntityType
+}
+
+func restoreBundle(updated, current *models.Bundle) {
+	updated.ID = current.ID
+	updated.CreatedAt = current.CreatedAt
+}
+
 func validatePatchedEntity(request any, title string) error {
 	validationErrors := common.ValidateStruct(request)
 	if len(validationErrors) == 0 {

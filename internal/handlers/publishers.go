@@ -115,28 +115,14 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop
 
 	publisher := *found
 
-	contentType := ctx.Get(fiber.HeaderContentType)
-	if contentType != common.ContentTypeJSONPatch {
-		if err := common.ValidateRequestEntity(ctx, new(common.PublisherPatch), errMsg); err != nil {
-			return err //nolint:wrapcheck
-		}
-	}
-
-	updatedPublisher, patchErr := common.ApplyPatch(&publisher, contentType, ctx.Body())
-	if patchErr != nil {
-		return common.Error(patchErr.Code, errMsg, patchErr.Error())
-	}
-
-	// ApplyPatch refuses operations on these fields. Restore them as defense in
-	// depth so a future operation kind cannot change persistence semantics.
-	updatedPublisher.ID = publisher.ID
-	updatedPublisher.CatalogID = publisher.CatalogID
-	updatedPublisher.CreatedAt = publisher.CreatedAt
-
-	if contentType == common.ContentTypeJSONPatch {
-		if err := validatePatchedPublisher(updatedPublisher, errMsg); err != nil {
-			return err
-		}
+	updatedPublisher, err := applyPatch(ctx, &publisher, patchOptions[models.Publisher]{
+		title:    errMsg,
+		request:  new(common.PublisherPatch),
+		restore:  restorePublisher,
+		validate: validatePatchedPublisher,
+	})
+	if err != nil {
+		return err
 	}
 
 	updatedPublisher.Email = common.NormalizeEmail(updatedPublisher.Email)
