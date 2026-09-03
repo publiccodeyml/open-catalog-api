@@ -138,7 +138,9 @@ func (c *Catalog) PostCatalog(ctx *fiber.Ctx) error {
 		Sources:             sources,
 	}
 
-	if err := c.db.Create(catalog).Error; err != nil {
+	if err := models.Transaction(writeDB(ctx, c.db), func(tran *gorm.DB) error {
+		return tran.Create(catalog).Error
+	}); err != nil {
 		return writeError(err, errMsg)
 	}
 
@@ -201,7 +203,7 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "sources must not be empty")
 	}
 
-	if err := c.db.Transaction(func(tran *gorm.DB) error {
+	if err := models.Transaction(writeDB(ctx, c.db), func(tran *gorm.DB) error {
 		sources, err := syncSources(tran, catalog, sourcesInput)
 		if err != nil {
 			return err
@@ -251,7 +253,7 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 
 	var conflictErr error
 
-	if err := c.db.Transaction(func(tran *gorm.DB) error {
+	if err := models.Transaction(writeDB(ctx, c.db), func(tran *gorm.DB) error {
 		var publisherCount, softwareCount int64
 
 		pubScope := tran.Model(&models.Publisher{}).Scopes(catalogScope(&catalog))
@@ -274,7 +276,7 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 			return err
 		}
 
-		return tran.Where("id = ?", catalog.ID).Delete(&models.Catalog{}).Error
+		return tran.Delete(&catalog).Error
 	}); err != nil {
 		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
 	}

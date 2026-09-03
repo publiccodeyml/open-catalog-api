@@ -229,4 +229,20 @@ func TestWebhooksDeleteDBChecks(t *testing.T) {
 
 		assert.Equal(t, 0, dbCount(t, "webhooks", "id", webhookID))
 	})
+
+	t.Run("DELETE of a missing webhook records no event", func(t *testing.T) {
+		loadFixtures(t)
+
+		const webhookID = "00000000-dead-beef-0000-0000000000bb"
+
+		req, err := newTestRequest("DELETE", "/v1/webhooks/"+webhookID, nil)
+		require.NoError(t, err)
+		req.Header = map[string][]string{"Authorization": {goodToken}}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 404, res.StatusCode)
+
+		assert.Equal(t, 0, dbCount(t, "events", "entity_id", webhookID))
+	})
 }

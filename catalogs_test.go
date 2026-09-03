@@ -841,6 +841,10 @@ func TestCatalogDeleteDBChecks(t *testing.T) {
 
 		assert.Equal(t, 0, dbCount(t, "catalogs", "id", catalogID))
 		assert.Equal(t, 0, dbCount(t, "catalog_sources", "catalog_id", catalogID))
+
+		// The fixtures carry two delete events, the catalog adds a third.
+		assert.Equal(t, 2, dbCount(t, "events", "entity_id", catalogID))
+		assert.Equal(t, 3, dbCount(t, "events", "type", "delete"))
 	})
 }
 

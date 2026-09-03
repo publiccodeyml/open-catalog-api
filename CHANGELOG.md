@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A `DELETE` of a missing software answered `404` but still recorded a
   delete event and notified the webhooks.
 - The event recorded by an analysis `PATCH` had no actor.
+- Catalogs, bundles and webhooks wrote no event to the audit trail.
 
 ### Security
 
