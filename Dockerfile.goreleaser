@@ -9,4 +9,14 @@ COPY open-catalog-api /usr/local/bin/open-catalog-api
 RUN ln -s /usr/local/bin/open-catalog-api /usr/local/bin/developers-italia-api \
  && ln -s /usr/local/bin/open-catalog-api /usr/local/bin/software-catalog-api
 
+# adduser writes the build day into the password age field of
+# /etc/shadow, which breaks the reproducible build. So undo its change.
+RUN addgroup -S -g 10001 api \
+ && adduser -S -D -H -G api -u 10001 -s /sbin/nologin api \
+ && sed -i 's/^api:!:[0-9]*:/api:!:0:/' /etc/shadow
+
+# Numeric, so a pod with runAsNonRoot and no runAsUser starts: the
+# kubelet refuses a user it cannot verify from a name.
+USER 10001:10001
+
 ENTRYPOINT ["/usr/local/bin/open-catalog-api"]
