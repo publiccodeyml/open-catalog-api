@@ -35,6 +35,8 @@ jobs:
             echo
             echo "This pull request changes Go code without touching any \`*_test.go\` file:"
             echo
+            # The dollar sign is a sed end-of-line anchor, not shell expansion.
+            # shellcheck disable=SC2016
             printf '%s\n' "$code" | sed 's/^/- \`/;s/$/\`/'
             echo
             echo "Add a test, or set the \`no-test-needed\` label when the change"

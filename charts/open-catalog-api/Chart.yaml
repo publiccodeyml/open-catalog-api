@@ -12,15 +12,18 @@ description: RESTful API for public administration Open Source catalogs
 # pipeline. Library charts do not define any templates and therefore cannot be deployed.
 type: application
 
+# autoscaling/v2, used by this chart, is available from Kubernetes 1.23.
+kubeVersion: ">=1.23.0-0"
+
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: v0.6.0
+version: 0.7.0
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
-appVersion: "v1.3.0"
+appVersion: "v1.4.0"
 
 icon: https://avatars.githubusercontent.com/u/53046106?s=96&v=4

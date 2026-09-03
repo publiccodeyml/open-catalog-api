@@ -1,0 +1,57 @@
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'charts/open-catalog-api/**'
+      - '.github/workflows/helm.yml'
+      - 'go.mod'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'charts/open-catalog-api/**'
+      - '.github/workflows/helm.yml'
+      - 'go.mod'
+
+permissions: {}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.21.4
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Lint the chart
+        run: |
+          helm lint --strict charts/open-catalog-api \
+            --set autoscaling.enabled=true \
+            --set autoscaling.targetMemoryUtilizationPercentage=75 \
+            --set ingress.enabled=true \
+            --set maxRequests=100
+      - name: Render and validate the Kubernetes resources
+        run: |
+          kubernetes_versions=(1.23.0 1.34.0)
+          for kubernetes_version in "${kubernetes_versions[@]}"; do
+            manifest="$RUNNER_TEMP/open-catalog-api-$kubernetes_version.yaml"
+            helm template ci charts/open-catalog-api \
+              --kube-version "$kubernetes_version" \
+              --set autoscaling.enabled=true \
+              --set autoscaling.targetMemoryUtilizationPercentage=75 \
+              --set ingress.enabled=true \
+              --set maxRequests=100 \
+              > "$manifest"
+            go run github.com/yannh/kubeconform/cmd/kubeconform@v0.8.0 \
+              -kubernetes-version "$kubernetes_version" \
+              -strict \
+              -summary \
+              "$manifest"
+          done

@@ -50,7 +50,7 @@ jobs:
         run: docker buildx create --name "$BUILDX_BUILDER"
 
       - # Tag with a temporary valid semantic version. This is required by goreleaser.
-        run: git tag v0-main-$(git rev-parse --short HEAD)
+        run: git tag "v0-main-$(git rev-parse --short HEAD)"
 
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
         with:
