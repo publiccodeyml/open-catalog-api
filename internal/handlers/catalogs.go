@@ -19,24 +19,6 @@ import (
 // catalog (resources with catalog_id IS NULL).
 const rootCatalogID = "∅"
 
-type CatalogInterface interface { //nolint:interfacebloat
-	GetCatalogs(ctx *fiber.Ctx) error
-	GetCatalog(ctx *fiber.Ctx) error
-	PostCatalog(ctx *fiber.Ctx) error
-	PatchCatalog(ctx *fiber.Ctx) error
-	DeleteCatalog(ctx *fiber.Ctx) error
-
-	GetCatalogPublishers(ctx *fiber.Ctx) error
-	PostCatalogPublisher(ctx *fiber.Ctx) error
-	PatchCatalogPublisher(ctx *fiber.Ctx) error
-	GetCatalogSoftware(ctx *fiber.Ctx) error
-	PostCatalogSoftware(ctx *fiber.Ctx) error
-	PatchCatalogSoftware(ctx *fiber.Ctx) error
-
-	GetCatalogAnalysis(ctx *fiber.Ctx) error
-	PatchCatalogAnalysis(ctx *fiber.Ctx) error
-}
-
 type Catalog struct {
 	db *gorm.DB
 }

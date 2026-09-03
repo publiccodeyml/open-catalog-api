@@ -10,14 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type BundleInterface interface {
-	GetBundles(ctx *fiber.Ctx) error
-	GetBundle(ctx *fiber.Ctx) error
-	PostBundle(ctx *fiber.Ctx) error
-	PatchBundle(ctx *fiber.Ctx) error
-	DeleteBundle(ctx *fiber.Ctx) error
-}
-
 var errSoftwareNotFound = errors.New("one or more softwareIds do not exist")
 
 const (

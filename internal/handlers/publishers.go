@@ -12,14 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type PublisherInterface interface {
-	GetPublishers(ctx *fiber.Ctx) error
-	GetPublisher(ctx *fiber.Ctx) error
-	PostPublisher(ctx *fiber.Ctx) error
-	PatchPublisher(ctx *fiber.Ctx) error
-	DeletePublisher(ctx *fiber.Ctx) error
-}
-
 const alreadyExists = "already exists"
 
 type Publisher struct {
