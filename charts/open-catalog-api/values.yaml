@@ -116,3 +116,6 @@ serviceMonitor:
 extraVolumes: []
 
 extraVolumeMounts: []
+
+# -- (list) Additional environment variables for the API container, as Kubernetes EnvVar objects, e.g. TRUSTED_PROXIES or EVENT_RETENTION_DAYS.
+extraEnv: []
