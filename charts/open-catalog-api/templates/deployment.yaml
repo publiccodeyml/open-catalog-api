@@ -51,7 +51,7 @@ spec:
                   key: databaseDSN
             {{- if .Values.maxRequests }}
             - name: MAX_REQUESTS
-              value: {{ .Values.maxRequests }}
+              value: {{ .Values.maxRequests | quote }}
             {{- end }}
             - name: PASETO_KEY
               valueFrom:

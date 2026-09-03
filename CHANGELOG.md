@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - A security policy, `SECURITY.md`, saying how to report a vulnerability
   privately and which versions get fixes.
+- CI checks for the Helm chart with `helm lint` and `kubeconform`, and for
+  GitHub Actions workflows with `actionlint`.
 
 ### Changed
 
@@ -20,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Helm chart now renders a valid `autoscaling/v2` HPA and quotes the
+  numeric `MAX_REQUESTS` environment value.
 - A JSON Patch replacing the `id` of a software answered `200` but did
   not save the software.
 - A JSON Patch could store a malformed URL or email. The patched entity
