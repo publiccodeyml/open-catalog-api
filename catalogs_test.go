@@ -173,7 +173,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 			expectedCode:        409,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"can't create Catalog","detail":"already exists","status":409}`,
+			expectedBody:        `{"title":"can't create Catalog","detail":"alternativeId already exists","status":409}`,
 		},
 		{
 			description: "POST catalog missing name",
