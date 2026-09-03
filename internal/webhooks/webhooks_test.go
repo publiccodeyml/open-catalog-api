@@ -1,6 +1,7 @@
 package webhooks
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -259,6 +260,81 @@ func TestDispatchWebhooks_SSRFLoopbackBlocked(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	assert.Equal(t, int64(0), hitCount.Load(), "server must not be hit when dial guard blocks loopback")
+}
+
+// stubLookupHost makes the guard resolve names from answers, so a resolver
+// answering an address a real one never would can be exercised.
+func stubLookupHost(t *testing.T, answers map[string][]string) {
+	t.Helper()
+
+	original := lookupHost
+	lookupHost = func(_ context.Context, host string) ([]string, error) {
+		addrs, ok := answers[host]
+		if !ok {
+			return nil, &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
+		}
+
+		return addrs, nil
+	}
+
+	t.Cleanup(func() { lookupHost = original })
+}
+
+// TestSafeDialContextRefusesForbiddenAnswer checks that a name resolving to a
+// forbidden address is refused before anything is dialed. The listener is a
+// live target at the first answered address, so an unvetted dial would show
+// up as an accepted connection.
+func TestSafeDialContextRefusesForbiddenAnswer(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	defer listener.Close()
+
+	var accepted atomic.Int64
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+
+			accepted.Add(1)
+
+			_ = conn.Close()
+		}
+	}()
+
+	loopback, port, err := net.SplitHostPort(listener.Addr().String())
+	require.NoError(t, err)
+
+	stubLookupHost(t, map[string][]string{"rebind.test": {loopback, "10.0.0.1"}})
+
+	conn, err := safeDialContext(t.Context(), "tcp", net.JoinHostPort("rebind.test", port))
+
+	require.ErrorIs(t, err, errForbiddenAddress)
+	assert.Nil(t, conn)
+	assert.Equal(t, int64(0), accepted.Load(), "the guard must refuse before dialing")
+}
+
+// TestSafeDialContextDialsVettedAddress proves the connection goes to the
+// address the guard vetted and not to the hostname, which a second resolution
+// could answer with a forbidden address. 192.0.2.1 is TEST-NET-1: publicly
+// routable as far as the guard is concerned and unreachable in practice, so
+// the dial can only end on the context deadline.
+func TestSafeDialContextDialsVettedAddress(t *testing.T) {
+	const vetted = "192.0.2.1"
+
+	stubLookupHost(t, map[string][]string{"vetted.test": {vetted}})
+
+	ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
+	defer cancel()
+
+	conn, err := safeDialContext(ctx, "tcp", "vetted.test:443")
+
+	require.Error(t, err)
+	assert.Nil(t, conn)
+	assert.Contains(t, err.Error(), vetted+":443")
 }
 
 // TestIsForbiddenIP is a table-driven unit test for the isForbiddenIP helper.
