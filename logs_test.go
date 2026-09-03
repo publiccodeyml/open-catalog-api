@@ -224,6 +224,30 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: `GET with "from" and "to" query params`,
+			query:       "GET /v1/logs?from=2010-03-01T09:56:23Z&to=2010-06-01T09:56:23Z",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := response["data"].([]any)
+
+				assert.Equal(t, 9, len(data))
+			},
+		},
+		{
+			description: `GET with "to" and "search" query params`,
+			query:       "GET /v1/logs?to=2010-03-01T09:56:23Z&search=bad publiccode.yml",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := response["data"].([]any)
+
+				assert.Equal(t, 0, len(data))
+			},
+		},
+		{
 			description:         "Non-existent log",
 			query:               "GET /v1/logs/eea19c82-0449-11ed-bd84-d8bbc146d165",
 			expectedCode:        404,
