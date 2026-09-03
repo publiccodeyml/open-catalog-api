@@ -160,3 +160,9 @@ func TestValidateCodeHostingURL(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateStructSharesOneValidator(t *testing.T) {
+	t.Parallel()
+
+	assert.Same(t, requestValidator(), requestValidator())
+}
