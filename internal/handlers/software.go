@@ -356,7 +356,7 @@ func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
 	}
 
-	merged, err := database.MergeAnalysis(p.db, &software, patch, "id = ?", software.ID)
+	merged, err := database.MergeAnalysis(writeDB(ctx, p.db), &software, patch, "id = ?", software.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")

@@ -68,6 +68,16 @@ func TestEventActor(t *testing.T) {
 			expectedActor: "editor",
 		},
 		{
+			description:   "PATCH software analysis",
+			method:        http.MethodPatch,
+			path:          softwarePath + swissSoftwareID + "/analysis",
+			body:          `{"actor-test":{"v":1}}`,
+			subject:       "scanner",
+			entityID:      swissSoftwareID,
+			expectedCode:  200,
+			expectedActor: "scanner",
+		},
+		{
 			description:   "PATCH software",
 			method:        http.MethodPatch,
 			path:          softwarePath + swissSoftwareID,
