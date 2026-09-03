@@ -955,6 +955,85 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Log'
+  '/logs/{logId}':
+    parameters:
+      - schema:
+          type: string
+          maxLength: 36
+          pattern: '[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}'
+          example: '12f30d9e-042e-41ed-8ddc-d8bbc146d165'
+        name: logId
+        in: path
+        description: The ID of the Log
+        required: true
+    get:
+      summary: Get a Log
+      description: Get a Log from its id
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Log'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+      operationId: get-log
+    patch:
+      summary: Update a Log
+      description: Update a Log by its id
+      tags:
+        - logs
+      security:
+        - bearerAuth: []
+      operationId: update-log
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/Log'
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/JsonPatchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Log'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      summary: Delete a Log
+      description: Delete a Log by its id
+      tags:
+        - logs
+      security:
+        - bearerAuth: []
+      operationId: delete-log
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /catalogs:
     get:
       summary: List all Catalogs
