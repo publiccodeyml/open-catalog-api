@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   privately and which versions get fixes.
 - CI checks for the Helm chart with `helm lint` and `kubeconform`, and for
   GitHub Actions workflows with `actionlint`.
+- `entityType`, `entityId`, `type` and `actor` filters on `GET /v1/events`.
 
 ### Changed
 

@@ -1120,6 +1120,40 @@ paths:
           in: query
           name: to
           description: Only events before this time (RFC 3339 datetime)
+        - schema:
+            type: string
+            maxLength: 255
+            pattern: '.*'
+            example: 'software'
+          in: query
+          name: entityType
+          description: Only events on this resource collection
+        - schema:
+            type: string
+            maxLength: 36
+            pattern: '[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}'
+            example: '12f30d9e-042e-41ed-8ddc-d8bbc146d165'
+          in: query
+          name: entityId
+          description: Only events on the entity with this id
+        - schema:
+            type: string
+            enum:
+              - create
+              - update
+              - delete
+            example: 'update'
+          in: query
+          name: type
+          description: Only events of this kind
+        - schema:
+            type: string
+            maxLength: 255
+            pattern: '.*'
+            example: 'crawler'
+          in: query
+          name: actor
+          description: Only events made by this actor, the subject of the token used for the change
   '/events/{eventId}':
     parameters:
       - schema:

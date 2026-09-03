@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"slices"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
+	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 )
@@ -16,11 +19,34 @@ func NewEvent(db *gorm.DB) *Event {
 }
 
 // GetEvents gets the list of all events and returns any error encountered.
+// ?entityType, ?entityId, ?type and ?actor each narrow the list to an
+// exact match, so the trail of one entity or one actor can be read on
+// its own.
 func (e *Event) GetEvents(ctx *fiber.Ctx) error {
-	return list[models.Event](ctx, e.db, listOptions{
-		title: "can't get Events",
-		order: paginator.DESC,
-	})
+	const errMsg = "can't get Events"
+
+	stmt := e.db
+
+	for param, column := range map[string]string{
+		"entityType": "entity_type",
+		"entityId":   "entity_id",
+		"actor":      "actor",
+	} {
+		if value := ctx.Query(param); value != "" {
+			stmt = stmt.Where(map[string]any{column: value})
+		}
+	}
+
+	if eventType := ctx.Query("type"); eventType != "" {
+		known := []string{common.EventTypeCreate, common.EventTypeUpdate, common.EventTypeDelete}
+		if !slices.Contains(known, eventType) {
+			return common.Error(fiber.StatusUnprocessableEntity, errMsg, "type must be one of create, update, delete")
+		}
+
+		stmt = stmt.Where(map[string]any{"type": eventType})
+	}
+
+	return list[models.Event](ctx, stmt, listOptions{title: errMsg, order: paginator.DESC})
 }
 
 // GetEvent gets the event with the given ID and returns any error encountered.
