@@ -67,38 +67,7 @@ func (p *Software) GetSoftware(ctx *fiber.Ctx) error {
 
 // PostSoftware creates a new software.
 func (p *Software) PostSoftware(ctx *fiber.Ctx) error {
-	const errMsg = "can't create Software"
-
-	softwareReq := new(common.SoftwarePost)
-
-	if err := common.ValidateRequestEntity(ctx, softwareReq, errMsg); err != nil {
-		return err //nolint:wrapcheck
-	}
-
-	aliases := []models.SoftwareURL{}
-	for _, u := range softwareReq.Aliases {
-		aliases = append(aliases, models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(u)})
-	}
-
-	url := models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(softwareReq.URL)}
-	software := models.Software{
-		ID: utils.UUIDv4(),
-
-		// Manually set the URL and its foreign key because of a limitation in gorm
-		URL:           url,
-		SoftwareURLID: url.ID,
-
-		Aliases:       aliases,
-		PubliccodeYml: softwareReq.PubliccodeYml,
-		Active:        softwareReq.Active,
-		Vitality:      softwareReq.Vitality,
-	}
-
-	if err := p.db.Create(&software).Error; err != nil {
-		return writeError(err, errMsg)
-	}
-
-	return ctx.JSON(&software)
+	return createSoftware(ctx, p.db, nil)
 }
 
 // PatchSoftware updates the software with the given ID.
@@ -114,6 +83,89 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
+
+	return updateSoftware(ctx, p.db, software)
+}
+
+// DeleteSoftware deletes the software with the given ID.
+func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
+	result := p.db.Select("Aliases", "Bundles").Delete(&models.Software{ID: ctx.Params("id")})
+
+	if result.Error != nil {
+		return common.Error(fiber.StatusInternalServerError, "can't delete Software", "db error")
+	}
+
+	if result.RowsAffected == 0 {
+		return common.Error(fiber.StatusNotFound, "can't delete Software", "Software was not found")
+	}
+
+	return ctx.SendStatus(fiber.StatusNoContent)
+}
+
+func loadSoftware(gormdb *gorm.DB, software *models.Software, id string) error {
+	if err := gormdb.First(&software, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errLoadNotFound
+		}
+
+		return errLoad
+	}
+
+	if err := gormdb.
+		Where("software_id = ? AND id <> ?", software.ID, software.SoftwareURLID).Find(&software.Aliases).
+		Error; err != nil {
+		return errLoad
+	}
+
+	if err := gormdb.Where("id = ?", software.SoftwareURLID).First(&software.URL).Error; err != nil {
+		return errLoad
+	}
+
+	return nil
+}
+
+// createSoftware creates a software from the request body. catalogID owns
+// it, nil for the root catalog and for the catalog agnostic endpoint.
+func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
+	const errMsg = "can't create Software"
+
+	softwareReq := new(common.SoftwarePost)
+
+	if err := common.ValidateRequestEntity(ctx, softwareReq, errMsg); err != nil {
+		return err //nolint:wrapcheck
+	}
+
+	aliases := []models.SoftwareURL{}
+	for _, u := range softwareReq.Aliases {
+		aliases = append(aliases, models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(u)})
+	}
+
+	url := models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(softwareReq.URL)}
+	software := &models.Software{
+		ID: utils.UUIDv4(),
+
+		// Manually set the URL and its foreign key because of a limitation in gorm
+		URL:           url,
+		SoftwareURLID: url.ID,
+
+		CatalogID:     catalogID,
+		Aliases:       aliases,
+		PubliccodeYml: softwareReq.PubliccodeYml,
+		Active:        softwareReq.Active,
+		Vitality:      softwareReq.Vitality,
+	}
+
+	if err := gormdb.Create(software).Error; err != nil {
+		return writeError(err, errMsg)
+	}
+
+	return ctx.JSON(software)
+}
+
+// updateSoftware applies the PATCH body to software and saves it, keeping
+// its canonical URL and its aliases in sync.
+func updateSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, software models.Software) error {
+	const errMsg = "can't update Software"
 
 	updatedSoftware, err := applyPatch(ctx, &software, patchOptions[models.Software]{
 		title:    errMsg,
@@ -133,7 +185,7 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 		expectedAliases = append(expectedAliases, common.NormalizeURL(alias.URL))
 	}
 
-	if err := p.db.Transaction(func(tran *gorm.DB) error {
+	if err := gormdb.Transaction(func(tran *gorm.DB) error {
 		//nolint:gocritic // it's fine, we want to append to another slice
 		currentURLs := append(software.Aliases, software.URL)
 
@@ -173,43 +225,6 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 	})
 
 	return ctx.JSON(&updatedSoftware)
-}
-
-// DeleteSoftware deletes the software with the given ID.
-func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
-	result := p.db.Select("Aliases", "Bundles").Delete(&models.Software{ID: ctx.Params("id")})
-
-	if result.Error != nil {
-		return common.Error(fiber.StatusInternalServerError, "can't delete Software", "db error")
-	}
-
-	if result.RowsAffected == 0 {
-		return common.Error(fiber.StatusNotFound, "can't delete Software", "Software was not found")
-	}
-
-	return ctx.SendStatus(fiber.StatusNoContent)
-}
-
-func loadSoftware(gormdb *gorm.DB, software *models.Software, id string) error {
-	if err := gormdb.First(&software, "id = ?", id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errLoadNotFound
-		}
-
-		return errLoad
-	}
-
-	if err := gormdb.
-		Where("software_id = ? AND id <> ?", software.ID, software.SoftwareURLID).Find(&software.Aliases).
-		Error; err != nil {
-		return errLoad
-	}
-
-	if err := gormdb.Where("id = ?", software.SoftwareURLID).First(&software.URL).Error; err != nil {
-		return errLoad
-	}
-
-	return nil
 }
 
 // syncAliases synchs the SoftwareURLs for a `Software` in the database to reflect the

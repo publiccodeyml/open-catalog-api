@@ -47,6 +47,51 @@ func (p *Publisher) GetPublisher(ctx *fiber.Ctx) error {
 
 // PostPublisher creates a new publisher.
 func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
+	return createPublisher(ctx, p.db, nil)
+}
+
+// PatchPublisher updates the publisher with the given ID.
+// Supports both JSON Merge Patch (default) and JSON Patch (application/json-patch+json).
+func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error {
+	// Preload will load all the associated CodeHosting. We'll manually handle that later.
+	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
+		title:           "can't update Publisher",
+		name:            publisherEntityName,
+		byAlternativeID: true,
+		preloads:        []string{codeHostingAssociation},
+	})
+	if err != nil {
+		return err
+	}
+
+	return updatePublisher(ctx, p.db, *found)
+}
+
+// DeletePublisher deletes the publisher with the given ID.
+func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
+	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
+		title:           "can't delete Publisher",
+		name:            publisherEntityName,
+		byAlternativeID: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	publisher := *found
+
+	result := p.db.Select(codeHostingAssociation).Delete(&publisher)
+
+	if result.Error != nil {
+		return common.Error(fiber.StatusInternalServerError, "can't delete Publisher", "db error")
+	}
+
+	return ctx.SendStatus(fiber.StatusNoContent)
+}
+
+// createPublisher creates a publisher from the request body. catalogID owns
+// it, nil for the root catalog and for the catalog agnostic endpoint.
+func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	const errMsg = "can't create Publisher"
 
 	request := new(common.PublisherPost)
@@ -55,12 +100,11 @@ func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
 		return err //nolint:wrapcheck
 	}
 
-	normalizedEmail := common.NormalizeEmail(request.Email)
-
 	publisher := &models.Publisher{
 		ID:            utils.UUIDv4(),
+		CatalogID:     catalogID,
 		Description:   request.Description,
-		Email:         normalizedEmail,
+		Email:         common.NormalizeEmail(request.Email),
 		Active:        request.Active,
 		AlternativeID: request.AlternativeID,
 	}
@@ -74,7 +118,7 @@ func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
 			})
 	}
 
-	if err := p.db.Transaction(func(tran *gorm.DB) error {
+	if err := gormdb.Transaction(func(tran *gorm.DB) error {
 		if request.AlternativeID != nil {
 			if err := checkAlternativeIDConflict(tran, *request.AlternativeID); err != nil {
 				return err
@@ -86,26 +130,13 @@ func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
 		return writeError(err, errMsg)
 	}
 
-	return ctx.JSON(&publisher)
+	return ctx.JSON(publisher)
 }
 
-// PatchPublisher updates the publisher with the given ID.
-// Supports both JSON Merge Patch (default) and JSON Patch (application/json-patch+json).
-func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop
+// updatePublisher applies the PATCH body to publisher and saves it, keeping
+// its CodeHosting in sync.
+func updatePublisher(ctx *fiber.Ctx, gormdb *gorm.DB, publisher models.Publisher) error {
 	const errMsg = "can't update Publisher"
-
-	// Preload will load all the associated CodeHosting. We'll manually handle that later.
-	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
-		title:           errMsg,
-		name:            publisherEntityName,
-		byAlternativeID: true,
-		preloads:        []string{codeHostingAssociation},
-	})
-	if err != nil {
-		return err
-	}
-
-	publisher := *found
 
 	updatedPublisher, err := applyPatch(ctx, &publisher, patchOptions[models.Publisher]{
 		title:    errMsg,
@@ -120,12 +151,11 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop
 	updatedPublisher.Email = common.NormalizeEmail(updatedPublisher.Email)
 
 	expectedURLs := make([]string, 0, len(updatedPublisher.CodeHosting))
-
 	for _, ch := range updatedPublisher.CodeHosting {
 		expectedURLs = append(expectedURLs, common.NormalizeURL(ch.URL))
 	}
 
-	if err := p.db.Transaction(func(tran *gorm.DB) error {
+	if err := gormdb.Transaction(func(tran *gorm.DB) error {
 		if updatedPublisher.AlternativeID != nil &&
 			(publisher.AlternativeID == nil || *updatedPublisher.AlternativeID != *publisher.AlternativeID) {
 			if err := checkAlternativeIDConflict(tran, *updatedPublisher.AlternativeID); err != nil {
@@ -164,28 +194,6 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error { //nolint:cyclop
 	})
 
 	return ctx.JSON(&publisher)
-}
-
-// DeletePublisher deletes the publisher with the given ID.
-func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
-	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
-		title:           "can't delete Publisher",
-		name:            publisherEntityName,
-		byAlternativeID: true,
-	})
-	if err != nil {
-		return err
-	}
-
-	publisher := *found
-
-	result := p.db.Select(codeHostingAssociation).Delete(&publisher)
-
-	if result.Error != nil {
-		return common.Error(fiber.StatusInternalServerError, "can't delete Publisher", "db error")
-	}
-
-	return ctx.SendStatus(fiber.StatusNoContent)
 }
 
 // idConflictError is returned when alternativeId conflicts with an existing publisher's primary key.

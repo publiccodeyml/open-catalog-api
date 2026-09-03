@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/url"
-	"sort"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -49,6 +48,26 @@ func catalogScope(catalog *models.Catalog) func(*gorm.DB) *gorm.DB {
 
 		return db.Where("catalog_id = ?", catalog.ID)
 	}
+}
+
+// catalogOwnerID is the catalog_id a resource created under catalog carries.
+// Resources of the root catalog have none.
+func catalogOwnerID(catalog *models.Catalog) *string {
+	if isRoot(catalog) {
+		return nil
+	}
+
+	return &catalog.ID
+}
+
+// belongsToCatalog reports whether a resource whose catalog_id is catalogID
+// is a resource of catalog. On the root the column is NULL.
+func belongsToCatalog(catalog *models.Catalog, catalogID *string) bool {
+	if isRoot(catalog) {
+		return catalogID == nil
+	}
+
+	return catalogID != nil && *catalogID == catalog.ID
 }
 
 // GetCatalogs gets the list of all catalogs.
@@ -298,52 +317,11 @@ func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
-	request := new(common.PublisherPost)
-
-	if err := common.ValidateRequestEntity(ctx, request, errMsg); err != nil {
-		return err //nolint:wrapcheck
-	}
-
-	var catalogID *string
-	if !isRoot(catalog) {
-		catalogID = &catalog.ID
-	}
-
-	publisher := &models.Publisher{
-		ID:            utils.UUIDv4(),
-		CatalogID:     catalogID,
-		Description:   request.Description,
-		Email:         common.NormalizeEmail(request.Email),
-		Active:        request.Active,
-		AlternativeID: request.AlternativeID,
-	}
-
-	for _, codeHost := range request.CodeHosting {
-		publisher.CodeHosting = append(publisher.CodeHosting,
-			models.CodeHosting{
-				ID:    utils.UUIDv4(),
-				URL:   common.NormalizeURL(codeHost.URL),
-				Group: codeHost.Group,
-			})
-	}
-
-	if err := c.db.Transaction(func(tran *gorm.DB) error {
-		if request.AlternativeID != nil {
-			if err := checkAlternativeIDConflict(tran, *request.AlternativeID); err != nil {
-				return err
-			}
-		}
-
-		return tran.Create(&publisher).Error
-	}); err != nil {
-		return writeError(err, errMsg)
-	}
-
-	return ctx.JSON(publisher)
+	return createPublisher(ctx, c.db, catalogOwnerID(catalog))
 }
 
 // PatchCatalogPublisher updates a publisher that belongs to the given catalog.
-func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,funlen
+func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Publisher"
 
 	catalog, err := resolveCatalog(c.db, ctx.Params("id"))
@@ -365,69 +343,11 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,
 		return err
 	}
 
-	publisher := *found
-
-	// Verify the publisher belongs to the resolved catalog.
-	if isRoot(catalog) {
-		if publisher.CatalogID != nil {
-			return common.Error(fiber.StatusNotFound, errMsg, "Publisher was not found")
-		}
-	} else if publisher.CatalogID == nil || *publisher.CatalogID != catalog.ID {
+	if !belongsToCatalog(catalog, found.CatalogID) {
 		return common.Error(fiber.StatusNotFound, errMsg, "Publisher was not found")
 	}
 
-	updatedPublisher, err := applyPatch(ctx, &publisher, patchOptions[models.Publisher]{
-		title:    errMsg,
-		request:  new(common.PublisherPatch),
-		restore:  restorePublisher,
-		validate: validatePatchedPublisher,
-	})
-	if err != nil {
-		return err
-	}
-
-	updatedPublisher.Email = common.NormalizeEmail(updatedPublisher.Email)
-
-	expectedURLs := make([]string, 0, len(updatedPublisher.CodeHosting))
-	for _, ch := range updatedPublisher.CodeHosting {
-		expectedURLs = append(expectedURLs, common.NormalizeURL(ch.URL))
-	}
-
-	if err := c.db.Transaction(func(tran *gorm.DB) error {
-		if updatedPublisher.AlternativeID != nil &&
-			(publisher.AlternativeID == nil || *updatedPublisher.AlternativeID != *publisher.AlternativeID) {
-			if err := checkAlternativeIDConflict(tran, *updatedPublisher.AlternativeID); err != nil {
-				return err
-			}
-		}
-
-		codeHosting, err := syncCodeHosting(tran, publisher, expectedURLs)
-		if err != nil {
-			return err
-		}
-
-		publisher.Description = updatedPublisher.Description
-		publisher.Email = updatedPublisher.Email
-		publisher.Active = updatedPublisher.Active
-		publisher.AlternativeID = updatedPublisher.AlternativeID
-		publisher.CodeHosting = []models.CodeHosting{}
-
-		if err := tran.Updates(&publisher).Error; err != nil {
-			return err
-		}
-
-		publisher.CodeHosting = codeHosting
-
-		return nil
-	}); err != nil {
-		return writeError(err, errMsg)
-	}
-
-	sort.Slice(publisher.CodeHosting, func(a int, b int) bool {
-		return publisher.CodeHosting[a].URL < publisher.CodeHosting[b].URL
-	})
-
-	return ctx.JSON(&publisher)
+	return updatePublisher(ctx, c.db, *found)
 }
 
 // PostCatalogSoftware creates software belonging to the given catalog.
@@ -444,43 +364,11 @@ func (c *Catalog) PostCatalogSoftware(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
-	softwareReq := new(common.SoftwarePost)
-
-	if err := common.ValidateRequestEntity(ctx, softwareReq, errMsg); err != nil {
-		return err //nolint:wrapcheck
-	}
-
-	var catalogID *string
-	if !isRoot(catalog) {
-		catalogID = &catalog.ID
-	}
-
-	aliases := []models.SoftwareURL{}
-	for _, u := range softwareReq.Aliases {
-		aliases = append(aliases, models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(u)})
-	}
-
-	url := models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(softwareReq.URL)}
-	software := &models.Software{
-		ID:            utils.UUIDv4(),
-		URL:           url,
-		SoftwareURLID: url.ID,
-		CatalogID:     catalogID,
-		Aliases:       aliases,
-		PubliccodeYml: softwareReq.PubliccodeYml,
-		Active:        softwareReq.Active,
-		Vitality:      softwareReq.Vitality,
-	}
-
-	if err := c.db.Create(software).Error; err != nil {
-		return writeError(err, errMsg)
-	}
-
-	return ctx.JSON(software)
+	return createSoftware(ctx, c.db, catalogOwnerID(catalog))
 }
 
 // PatchCatalogSoftware updates software that belongs to the given catalog.
-func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error { //nolint:funlen,cyclop
+func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Software"
 
 	catalog, err := resolveCatalog(c.db, ctx.Params("id"))
@@ -502,70 +390,11 @@ func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error { //nolint:funlen,c
 		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
 	}
 
-	// Verify the software belongs to the resolved catalog.
-	if isRoot(catalog) {
-		if software.CatalogID != nil {
-			return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
-		}
-	} else if software.CatalogID == nil || *software.CatalogID != catalog.ID {
+	if !belongsToCatalog(catalog, software.CatalogID) {
 		return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
 	}
 
-	updatedSoftware, err := applyPatch(ctx, &software, patchOptions[models.Software]{
-		title:    errMsg,
-		request:  &common.SoftwarePatch{},
-		restore:  restoreSoftware,
-		validate: validatePatchedSoftware,
-	})
-	if err != nil {
-		return err
-	}
-
-	updatedSoftware.URL.URL = common.NormalizeURL(updatedSoftware.URL.URL)
-
-	expectedAliases := make([]string, 0, len(updatedSoftware.Aliases))
-	for _, alias := range updatedSoftware.Aliases {
-		expectedAliases = append(expectedAliases, common.NormalizeURL(alias.URL))
-	}
-
-	if err := c.db.Transaction(func(tran *gorm.DB) error {
-		//nolint:gocritic // it's fine, we want to append to another slice
-		currentURLs := append(software.Aliases, software.URL)
-
-		updatedURL, aliases, err := syncAliases(
-			tran,
-			software.ID,
-			currentURLs,
-			updatedSoftware.URL.URL,
-			expectedAliases,
-		)
-		if err != nil {
-			return err
-		}
-
-		updatedSoftware.SoftwareURLID = updatedURL.ID
-		updatedSoftware.URL = *updatedURL
-
-		// Set Aliases to a zero value, so it's not touched by gorm's Update(),
-		// because we handle the alias manually.
-		updatedSoftware.Aliases = []models.SoftwareURL{}
-
-		if err := tran.Updates(&updatedSoftware).Error; err != nil {
-			return err
-		}
-
-		updatedSoftware.Aliases = aliases
-
-		return nil
-	}); err != nil {
-		return writeError(err, errMsg)
-	}
-
-	sort.Slice(updatedSoftware.Aliases, func(a int, b int) bool {
-		return updatedSoftware.Aliases[a].URL < updatedSoftware.Aliases[b].URL
-	})
-
-	return ctx.JSON(&updatedSoftware)
+	return updateSoftware(ctx, c.db, software)
 }
 
 // GetCatalogSoftware lists software belonging to the given catalog.
