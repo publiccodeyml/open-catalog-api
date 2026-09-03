@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   delete event and notified the webhooks.
 - The event recorded by an analysis `PATCH` had no actor.
 - Catalogs, bundles and webhooks wrote no event to the audit trail.
+- A webhook `POST` with the url of an existing one answered `500` instead
+  of `409`.
+- The `409` for a duplicate catalog `alternativeId` now names the field.
 
 ### Security
 

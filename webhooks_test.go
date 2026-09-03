@@ -42,6 +42,30 @@ func TestWebhooksEndpoints(t *testing.T) {
 				assert.Equal(t, "https://example.org/receiver", response["url"])
 			},
 		},
+		{
+			description: "POST webhook with the url of an existing one returns 409",
+			query:       "POST /v1/software/webhooks",
+			body:        `{"url": "https://2-b.example.org/receiver"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        409,
+			expectedBody:        `{"title":"can't create Webhook","detail":"url already exists","status":409}`,
+			expectedContentType: "application/problem+json",
+		},
+		{
+			description: "POST webhook for a software with the url of an existing one returns 409",
+			query:       "POST /v1/software/c5dec6fa-8a01-4881-9e7d-132770d4214d/webhooks",
+			body:        `{"url": "https://1-b.example.org/receiver"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        409,
+			expectedBody:        `{"title":"can't create Webhook","detail":"url already exists","status":409}`,
+			expectedContentType: "application/problem+json",
+		},
 		// GET /webhooks/:id
 		{
 			query: "GET /v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",

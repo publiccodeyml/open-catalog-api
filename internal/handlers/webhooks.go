@@ -93,7 +93,7 @@ func (p *Webhook[T]) PostResourceWebhook(ctx *fiber.Ctx) error {
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
 		return tran.Create(&webhook).Error
 	}); err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(&webhook)
@@ -132,7 +132,7 @@ func (p *Webhook[T]) PostSingleResourceWebhook(ctx *fiber.Ctx) error {
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
 		return tran.Create(&webhook).Error
 	}); err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(&webhook)
