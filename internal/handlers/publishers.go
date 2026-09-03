@@ -80,9 +80,9 @@ func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
 
 	publisher := *found
 
-	result := p.db.Select(codeHostingAssociation).Delete(&publisher)
-
-	if result.Error != nil {
+	if err := models.Transaction(p.db, func(tran *gorm.DB) error {
+		return tran.Select(codeHostingAssociation).Delete(&publisher).Error
+	}); err != nil {
 		return common.Error(fiber.StatusInternalServerError, "can't delete Publisher", "db error")
 	}
 
@@ -118,7 +118,7 @@ func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 			})
 	}
 
-	if err := gormdb.Transaction(func(tran *gorm.DB) error {
+	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
 		if request.AlternativeID != nil {
 			if err := checkAlternativeIDConflict(tran, *request.AlternativeID); err != nil {
 				return err
@@ -155,7 +155,7 @@ func updatePublisher(ctx *fiber.Ctx, gormdb *gorm.DB, publisher models.Publisher
 		expectedURLs = append(expectedURLs, common.NormalizeURL(ch.URL))
 	}
 
-	if err := gormdb.Transaction(func(tran *gorm.DB) error {
+	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
 		if updatedPublisher.AlternativeID != nil &&
 			(publisher.AlternativeID == nil || *updatedPublisher.AlternativeID != *publisher.AlternativeID) {
 			if err := checkAlternativeIDConflict(tran, *updatedPublisher.AlternativeID); err != nil {

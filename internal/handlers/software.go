@@ -89,13 +89,18 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 
 // DeleteSoftware deletes the software with the given ID.
 func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
-	result := p.db.Select("Aliases", "Bundles").Delete(&models.Software{ID: ctx.Params("id")})
+	var rowsAffected int64
 
-	if result.Error != nil {
+	if err := models.Transaction(p.db, func(tran *gorm.DB) error {
+		result := tran.Select("Aliases", "Bundles").Delete(&models.Software{ID: ctx.Params("id")})
+		rowsAffected = result.RowsAffected
+
+		return result.Error
+	}); err != nil {
 		return common.Error(fiber.StatusInternalServerError, "can't delete Software", "db error")
 	}
 
-	if result.RowsAffected == 0 {
+	if rowsAffected == 0 {
 		return common.Error(fiber.StatusNotFound, "can't delete Software", "Software was not found")
 	}
 
@@ -155,7 +160,9 @@ func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 		Vitality:      softwareReq.Vitality,
 	}
 
-	if err := gormdb.Create(software).Error; err != nil {
+	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
+		return tran.Create(software).Error
+	}); err != nil {
 		return writeError(err, errMsg)
 	}
 
@@ -185,7 +192,7 @@ func updateSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, software models.Software) e
 		expectedAliases = append(expectedAliases, common.NormalizeURL(alias.URL))
 	}
 
-	if err := gormdb.Transaction(func(tran *gorm.DB) error {
+	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
 		//nolint:gocritic // it's fine, we want to append to another slice
 		currentURLs := append(software.Aliases, software.URL)
 
