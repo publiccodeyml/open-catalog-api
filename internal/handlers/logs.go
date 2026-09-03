@@ -11,22 +11,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type LogInterface interface {
-	GetLogs(ctx *fiber.Ctx) error
-	GetLog(ctx *fiber.Ctx) error
-	PostLog(ctx *fiber.Ctx) error
-	PatchLog(ctx *fiber.Ctx) error
-	DeleteLog(ctx *fiber.Ctx) error
-
-	GetSoftwareLogs(ctx *fiber.Ctx) error
-	PostSoftwareLog(ctx *fiber.Ctx) error
-
-	PostCatalogLog(ctx *fiber.Ctx) error
-
-	GetPublisherLogs(ctx *fiber.Ctx) error
-	PostPublisherLog(ctx *fiber.Ctx) error
-}
-
 type Log struct {
 	db *gorm.DB
 }

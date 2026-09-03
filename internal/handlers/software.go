@@ -16,16 +16,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type SoftwareInterface interface {
-	GetAllSoftware(ctx *fiber.Ctx) error
-	GetSoftware(ctx *fiber.Ctx) error
-	PostSoftware(ctx *fiber.Ctx) error
-	PatchSoftware(ctx *fiber.Ctx) error
-	DeleteSoftware(ctx *fiber.Ctx) error
-	GetSoftwareAnalysis(ctx *fiber.Ctx) error
-	PatchSoftwareAnalysis(ctx *fiber.Ctx) error
-}
-
 type Software struct {
 	db *gorm.DB
 }
