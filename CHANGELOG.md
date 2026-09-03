@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deleting a publisher or software did not delete its logs.
 - The `filter` parameter of `GET /v1/logs` was missing from the OpenAPI
   spec, and the README named a Go version older than the one required.
+- The sources of a patched catalog were returned in a random order.
 
 ### Security
 
