@@ -1851,6 +1851,69 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 		assert.Contains(t, analysis, "ns-one", "ns-one namespace must survive a subsequent PATCH of a different namespace")
 		assert.Contains(t, analysis, "ns-two", "ns-two namespace must be present after second PATCH")
 	})
+
+	t.Run("concurrent PATCH analysis preserves every namespace", func(t *testing.T) {
+		loadFixtures(t)
+
+		const softwareID = "59803fb7-8eec-4fe5-a354-8926009c364a"
+
+		bodies := []string{
+			`{"scanner-one":{"v":1,"score":90}}`,
+			`{"scanner-two":{"v":2,"grade":"A"}}`,
+		}
+		type patchResult struct {
+			status int
+			err    error
+		}
+
+		start := make(chan struct{})
+		results := make(chan patchResult, len(bodies))
+
+		for _, body := range bodies {
+			go func() {
+				req, err := newTestRequest(
+					"PATCH",
+					"/v1/software/"+softwareID+"/analysis",
+					strings.NewReader(body),
+				)
+				if err != nil {
+					results <- patchResult{err: err}
+
+					return
+				}
+
+				req.Header = map[string][]string{
+					"Authorization": {goodToken},
+					"Content-Type":  {"application/merge-patch+json"},
+				}
+
+				<-start
+
+				res, err := app.Test(req, -1)
+				status := 0
+				if res != nil {
+					status = res.StatusCode
+					_ = res.Body.Close()
+				}
+
+				results <- patchResult{status: status, err: err}
+			}()
+		}
+
+		close(start)
+		for range bodies {
+			result := <-results
+			require.NoError(t, result.err)
+			assert.Equal(t, 200, result.status)
+		}
+
+		raw := dbValue(t, "software", "analysis", "id", softwareID)
+
+		var analysis map[string]any
+		require.NoError(t, json.NewDecoder(strings.NewReader(raw)).Decode(&analysis))
+		assert.Contains(t, analysis, "scanner-one")
+		assert.Contains(t, analysis, "scanner-two")
+	})
 }
 
 func TestSoftwareDeleteDBChecks(t *testing.T) {
