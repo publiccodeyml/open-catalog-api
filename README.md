@@ -89,6 +89,18 @@ You can configure the API with environment variables:
   is then ignored and the client is the peer of the connection.
   Default: empty.
 
+* `WEBHOOK_DEBOUNCE_MS` (optional): delay in milliseconds before a
+  webhook is dispatched after the last write on the same resource and
+  event. Set to 0 to disable debouncing entirely. Debouncing is per
+  replica.
+  Default: `1000`.
+
+* `WEBHOOK_DEBOUNCE_MAX_MS` (optional): hard cap in milliseconds on how
+  long a delivery can be deferred by repeated writes on the same
+  resource and event. Set to 0 to disable the cap. Ignored when
+  `WEBHOOK_DEBOUNCE_MS` is 0.
+  Default: `10000`.
+
 ## Contributing
 
 This project exists also thanks to your contributions! Here is a list of people
