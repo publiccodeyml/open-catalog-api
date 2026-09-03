@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/database"
 	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
@@ -622,14 +623,19 @@ func (c *Catalog) PatchCatalogAnalysis(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "invalid or malformed JSON")
 	}
 
-	// The error here is one of a fixed set of validation messages prefixed
-	// with the namespace the caller sent, so it can be returned as is.
-	merged, err := injectTouchedAnalysis(catalog.Analysis, incoming, time.Now())
+	// Validate and timestamp only the changed namespaces. The returned map
+	// is a database patch, not a copy of the complete analysis document.
+	patch, err := timestampTouchedAnalysis(catalog.Analysis, incoming, time.Now())
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
 	}
 
-	if err := c.db.Model(catalog).Update("analysis", merged).Error; err != nil {
+	merged, err := database.MergeAnalysis(c.db, catalog, patch, "id = ?", catalog.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
+		}
+
 		return common.InternalServerError(errMsg)
 	}
 
