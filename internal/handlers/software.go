@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"maps"
 	"slices"
 	"sort"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/database"
 	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
@@ -349,47 +349,43 @@ func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "invalid or malformed JSON")
 	}
 
-	// The error here is one of a fixed set of validation messages prefixed
-	// with the namespace the caller sent, so it can be returned as is.
-	merged, err := injectTouchedAnalysis(software.Analysis, incoming, time.Now())
+	// Validate and timestamp only the changed namespaces. The returned map
+	// is a database patch, not a copy of the complete analysis document.
+	patch, err := timestampTouchedAnalysis(software.Analysis, incoming, time.Now())
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
 	}
 
-	if err := p.db.Model(&software).Update("analysis", merged).Error; err != nil {
+	merged, err := database.MergeAnalysis(p.db, &software, patch, "id = ?", software.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
+		}
+
 		return common.InternalServerError(errMsg)
 	}
 
 	return ctx.JSON(merged)
 }
 
-// injectTouchedAnalysis validates and injects "t" only into namespaces that
-// were added or changed by the patch. Unchanged namespaces keep their original
-// "t" value.
-func injectTouchedAnalysis(
+// timestampTouchedAnalysis returns the added or changed namespaces with a
+// fresh timestamp. Namespaces absent from updated are deliberately omitted:
+// the database merges this patch atomically with the value it currently has.
+func timestampTouchedAnalysis(
 	original, updated common.AnalysisData,
 	now time.Time,
 ) (common.AnalysisData, error) {
 	touched := make(common.AnalysisData)
 
-	for ns, val := range updated {
-		origVal, exists := original[ns]
-		if !exists || string(origVal) != string(val) {
-			touched[ns] = val
+	for namespace, value := range updated {
+		originalValue, exists := original[namespace]
+		if !exists || string(originalValue) != string(value) {
+			touched[namespace] = value
 		}
 	}
 
-	injected, err := common.WithTimestamps(touched, now)
-	if err != nil {
-		return nil, err //nolint:wrapcheck
-	}
-
-	result := make(common.AnalysisData, len(original)+len(updated))
-	maps.Copy(result, original)
-	maps.Copy(result, updated)
-	maps.Copy(result, injected)
-
-	return result, nil
+	//nolint:wrapcheck // validation errors are safe API messages with their namespace prefix
+	return common.WithTimestamps(touched, now)
 }
 
 // softwareURLFilter narrows stmt to the software owning the ?url query

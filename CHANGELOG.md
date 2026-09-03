@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is now ignored there.
 - The Helm chart now renders a valid `autoscaling/v2` HPA and quotes the
   numeric `MAX_REQUESTS` environment value.
+- Concurrent `PATCH` requests to the `analysis` endpoint of the same software
+  or catalog no longer discard namespaces written by other scanners.
 - A JSON Patch replacing the `id` of a software answered `200` but did
   not save the software.
 - A JSON Patch could store a malformed URL or email. The patched entity
