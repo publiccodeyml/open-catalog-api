@@ -95,7 +95,7 @@ func init() {
 	}
 
 	// Setup the app as it is done in the main function
-	app, _ = Setup()
+	app, _, _ = Setup()
 }
 
 func TestMain(m *testing.M) {
@@ -362,14 +362,18 @@ func TestRateLimiterBuckets(t *testing.T) {
 	t.Setenv("ENVIRONMENT", "production")
 	t.Setenv("MAX_REQUESTS", strconv.Itoa(maxRequests))
 
+	// Outside the test environment the purge would delete the fixture
+	// events while the other tests are loading them.
+	t.Setenv("EVENT_RETENTION_DAYS", "0")
+
 	// An empty variable leaves the already parsed value alone, so the app
 	// trusting nobody has to be built before the one with a trusted proxy.
 	t.Setenv("TRUSTED_PROXIES", "")
-	directApp, _ := Setup()
+	directApp, _, _ := Setup()
 
 	// 0.0.0.0 is the peer address of a request made through app.Test().
 	t.Setenv("TRUSTED_PROXIES", "0.0.0.0/32")
-	proxiedApp, _ := Setup()
+	proxiedApp, _, _ := Setup()
 
 	t.Run("a client varying X-Forwarded-For stays in one bucket", func(t *testing.T) {
 		codes := make([]int, 0, maxRequests+1)

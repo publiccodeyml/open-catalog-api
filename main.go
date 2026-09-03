@@ -29,12 +29,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// The retention window is configured in days, so a shorter cadence
+// would find nothing new to delete.
+const eventPurgeInterval = 24 * time.Hour
+
 func main() {
 	rootCmd := &cobra.Command{
 		Use:          "open-catalog-api",
 		SilenceUsage: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			app, debouncer := Setup()
+			app, debouncer, stopEventPurge := Setup()
 
 			sigCh := make(chan os.Signal, 1)
 			signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -53,6 +57,7 @@ func main() {
 			// in the debouncer's pending window is dispatched before the
 			// process exits.
 			debouncer.Drain()
+			stopEventPurge()
 
 			if err != nil {
 				return fmt.Errorf("listen: %w", err)
@@ -69,7 +74,7 @@ func main() {
 	}
 }
 
-func Setup() (*fiber.App, *webhooks.Debouncer) {
+func Setup() (*fiber.App, *webhooks.Debouncer, func()) {
 	if err := env.Parse(&common.EnvironmentConfig); err != nil {
 		panic(err)
 	}
@@ -78,6 +83,15 @@ func Setup() (*fiber.App, *webhooks.Debouncer) {
 	if err != nil {
 		panic(err)
 	}
+
+	// The fixtures carry events far older than any retention window, so
+	// under the test harness the purge would delete them.
+	eventRetention := time.Duration(common.EnvironmentConfig.EventRetentionDays) * 24 * time.Hour
+	if common.EnvironmentConfig.IsTest() {
+		eventRetention = 0
+	}
+
+	stopEventPurge := database.StartEventPurge(gormDB, eventRetention, eventPurgeInterval)
 
 	// Setup a goroutine acting as a worker for events sent to the
 	// EventChan channel.
@@ -153,7 +167,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer) {
 
 	setupHandlers(app, gormDB)
 
-	return app, debouncer
+	return app, debouncer, stopEventPurge
 }
 
 // requiresAuth reports whether a request must carry a valid token. Reads

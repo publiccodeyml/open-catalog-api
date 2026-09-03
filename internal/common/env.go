@@ -30,6 +30,11 @@ type Environment struct {
 	// webhook can be deferred by repeated resets of the debounce timer.
 	// Set to 0 to disable the cap. Ignored when WebhookDebounceMS is 0.
 	WebhookDebounceMaxMS int `env:"WEBHOOK_DEBOUNCE_MAX_MS" envDefault:"10000"`
+
+	// EventRetentionDays is how many days the audit trail is kept: a
+	// background purge deletes the older events. Set to 0 to keep every
+	// event forever.
+	EventRetentionDays int `env:"EVENT_RETENTION_DAYS" envDefault:"365"`
 }
 
 func (k *Base64Key) UnmarshalText(text []byte) error {
