@@ -110,6 +110,13 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 	}
 
 	updatedBundle.ID = bundle.ID
+	updatedBundle.CreatedAt = bundle.CreatedAt
+
+	if contentType == common.ContentTypeJSONPatch {
+		if err := validatePatchedBundle(updatedBundle, errMsg); err != nil {
+			return err
+		}
+	}
 
 	software, err := findSoftwareByIDs(b.db, updatedBundle.SoftwareIDs)
 	if err != nil {

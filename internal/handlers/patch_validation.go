@@ -78,6 +78,17 @@ func validatePatchedLog(log models.Log, title string) error {
 	return validatePatchedEntity(common.Log{Message: log.Message}, title)
 }
 
+func validatePatchedBundle(bundle models.Bundle, title string) error {
+	request := common.BundlePatch{
+		Name:        &bundle.Name,
+		Description: bundle.Description,
+		Active:      bundle.Active,
+		SoftwareIDs: &bundle.SoftwareIDs,
+	}
+
+	return validatePatchedEntity(request, title)
+}
+
 func validatePatchedEntity(request any, title string) error {
 	validationErrors := common.ValidateStruct(request)
 	if len(validationErrors) == 0 {

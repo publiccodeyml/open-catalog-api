@@ -16,6 +16,8 @@ const (
 	forgedCreated = "1999-01-01T00:00:00Z"
 	fixtureLogID  = "4f95b0d0-042e-11ed-8253-d8bbc146d165"
 
+	fixtureBundleID = "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b"
+
 	softwarePath        = "/v1/software/"
 	logPath             = "/v1/logs/"
 	publisherPath       = "/v1/publishers/"
@@ -262,6 +264,12 @@ func TestJSONPatchValidatesPatchedEntity(t *testing.T) {
 			`{"op": "replace", "path": "/name", "value": "patched"},
 			 {"op": "replace", "path": "/sources/0/url", "value": "not-a-url"}`,
 			"catalogs", "name", italiaID, "Italian Catalog",
+		},
+		{
+			"bundle name", "/v1/bundles/" + fixtureBundleID,
+			`{"op": "replace", "path": "/description", "value": "patched"},
+			 {"op": "replace", "path": "/name", "value": ""}`,
+			"bundles", "name", fixtureBundleID, "Bundle for municipalities",
 		},
 		{
 			"log message", logPath + fixtureLogID,
