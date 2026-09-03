@@ -41,7 +41,7 @@ func setupDB(t *testing.T, webhooks []models.Webhook) *gorm.DB {
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, db.AutoMigrate(&models.Webhook{}))
+	require.NoError(t, db.AutoMigrate(&models.Webhook{}, &models.Event{}))
 
 	for i := range webhooks {
 		require.NoError(t, db.Create(&webhooks[i]).Error)

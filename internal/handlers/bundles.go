@@ -68,7 +68,9 @@ func (b *Bundle) PostBundle(ctx *fiber.Ctx) error {
 	}
 
 	// Omit("Software.*") links the existing rows without upserting them.
-	if err := b.db.Omit("Software.*").Create(bundle).Error; err != nil {
+	if err := models.Transaction(writeDB(ctx, b.db), func(tran *gorm.DB) error {
+		return tran.Omit("Software.*").Create(bundle).Error
+	}); err != nil {
 		return writeError(err, errMsg)
 	}
 
@@ -106,14 +108,16 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 
 	updatedBundle.Software = nil
 
-	err = b.db.Transaction(func(tran *gorm.DB) error {
+	err = models.Transaction(writeDB(ctx, b.db), func(tran *gorm.DB) error {
 		if err := updateColumns(tran, &updatedBundle, "Name", "Description", "Active"); err != nil {
 			return err
 		}
 
 		// Omit("Software.*") swaps the join rows without upserting the
-		// software rows themselves.
-		return tran.Model(&updatedBundle).Omit("Software.*").
+		// software rows themselves. The swap saves the bundle again, and
+		// updateColumns has already recorded that update, so the hooks
+		// are skipped here or the same change would emit two events.
+		return tran.Session(&gorm.Session{SkipHooks: true}).Model(&updatedBundle).Omit("Software.*").
 			Association("Software").Replace(software)
 	})
 	if err != nil {
@@ -135,7 +139,9 @@ func (b *Bundle) DeleteBundle(ctx *fiber.Ctx) error {
 	}
 
 	// Select("Software") also removes the bundles_software join rows.
-	if err := b.db.Select(softwareAssociation).Delete(bundle).Error; err != nil {
+	if err := models.Transaction(writeDB(ctx, b.db), func(tran *gorm.DB) error {
+		return tran.Select(softwareAssociation).Delete(bundle).Error
+	}); err != nil {
 		return common.InternalServerError(errMsg)
 	}
 

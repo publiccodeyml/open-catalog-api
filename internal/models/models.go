@@ -216,6 +216,14 @@ type Webhook struct {
 	EntityType string `json:"-" gorm:"index:idx_webhook_url,unique"`
 }
 
+func (Webhook) TableName() string {
+	return "webhooks"
+}
+
+func (w Webhook) UUID() string {
+	return w.ID
+}
+
 // Event is one entry of the audit trail. Actor is the subject of the
 // token that authenticated the write, empty when the token carries none.
 type Event struct {
