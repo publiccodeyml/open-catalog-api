@@ -56,16 +56,6 @@ var dialGuardDisabled atomic.Bool
 //nolint:gochecknoglobals // tunable for tests, effectively const at runtime
 var lookupHost = net.DefaultResolver.LookupHost
 
-// isForbiddenIP reports whether ip must not be dialed by the webhook
-// dispatcher. IsPrivate covers RFC 1918 and RFC 4193.
-func isForbiddenIP(ip net.IP) bool {
-	return ip.IsLoopback() ||
-		ip.IsLinkLocalUnicast() ||
-		ip.IsLinkLocalMulticast() ||
-		ip.IsUnspecified() ||
-		ip.IsPrivate()
-}
-
 // allowedAddresses resolves host once and returns the addresses that may be
 // dialed, all of them inside the publicly routable space. The whole answer is
 // vetted and the addresses are handed back so the caller dials them as
@@ -73,7 +63,7 @@ func isForbiddenIP(ip net.IP) bool {
 // forbidden address after the check has passed.
 func allowedAddresses(ctx context.Context, host string) ([]string, error) {
 	if ip := net.ParseIP(host); ip != nil {
-		if isForbiddenIP(ip) {
+		if common.IsForbiddenIP(ip) {
 			return nil, fmt.Errorf("%w: %s", errForbiddenAddress, host)
 		}
 
@@ -86,7 +76,7 @@ func allowedAddresses(ctx context.Context, host string) ([]string, error) {
 	}
 
 	for _, addr := range addrs {
-		if ip := net.ParseIP(addr); ip == nil || isForbiddenIP(ip) {
+		if ip := net.ParseIP(addr); ip == nil || common.IsForbiddenIP(ip) {
 			return nil, fmt.Errorf("%w: %s resolves to %s", errForbiddenAddress, host, addr)
 		}
 	}

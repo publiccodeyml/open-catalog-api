@@ -38,7 +38,7 @@ func TestIsForbiddenIP(t *testing.T) {
 		t.Run(tt.ip, func(t *testing.T) {
 			ip := net.ParseIP(tt.ip)
 			require.NotNil(t, ip)
-			assert.Equal(t, tt.forbidden, isForbiddenIP(ip))
+			assert.Equal(t, tt.forbidden, IsForbiddenIP(ip))
 		})
 	}
 }
