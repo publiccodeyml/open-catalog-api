@@ -20,6 +20,8 @@ type Software struct {
 	db *gorm.DB
 }
 
+const softwareEntityName = "Software"
+
 var (
 	errLoadNotFound = errors.New("Software was not found")
 	errLoad         = errors.New("error while loading Software")
@@ -87,21 +89,24 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 	return updateSoftware(ctx, writeDB(ctx, p.db), software)
 }
 
-// DeleteSoftware deletes the software with the given ID.
+// DeleteSoftware deletes the software with the given ID. The row is
+// looked up first: gorm runs the AfterDelete hook even when the delete
+// matched nothing, and the hook would record an event for a software
+// that never existed.
 func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
-	var rowsAffected int64
+	const errMsg = "can't delete Software"
 
-	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
-		result := tran.Select("Aliases", "Bundles").Delete(&models.Software{ID: ctx.Params("id")})
-		rowsAffected = result.RowsAffected
-
-		return result.Error
-	}); err != nil {
-		return common.Error(fiber.StatusInternalServerError, "can't delete Software", "db error")
+	found, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{title: errMsg, name: softwareEntityName})
+	if err != nil {
+		return err
 	}
 
-	if rowsAffected == 0 {
-		return common.Error(fiber.StatusNotFound, "can't delete Software", "Software was not found")
+	software := *found
+
+	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
+		return tran.Select("Aliases", "Bundles").Delete(&software).Error
+	}); err != nil {
+		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)
@@ -311,7 +316,7 @@ func (p *Software) GetSoftwareAnalysis(ctx *fiber.Ctx) error {
 
 	software, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{
 		title: errMsg,
-		name:  "Software",
+		name:  softwareEntityName,
 	})
 	if err != nil {
 		return err
@@ -331,7 +336,7 @@ func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 
 	found, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{
 		title: errMsg,
-		name:  "Software",
+		name:  softwareEntityName,
 	})
 	if err != nil {
 		return err
