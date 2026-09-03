@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A webhook `POST` with the url of an existing one answered `500` instead
   of `409`.
 - The `409` for a duplicate catalog `alternativeId` now names the field.
+- An error the API did not classify answered `404` with the raw error
+  text. It is now a `500` with a generic detail.
 
 ### Security
 

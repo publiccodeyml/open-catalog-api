@@ -2,6 +2,8 @@ package common
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"testing"
 
@@ -72,4 +74,33 @@ func TestCustomErrorHandler_AuthError(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, fiber.StatusUnauthorized, res.StatusCode)
+}
+
+// An error nothing classified is a server failure, and its text can
+// carry the schema or the failing statement, so it stays in the log.
+func TestCustomErrorHandler_UnknownError(t *testing.T) {
+	app := newTestApp()
+	app.Get("/unknown", func(ctx *fiber.Ctx) error {
+		return errors.New(`pq: relation "secret_table" does not exist`)
+	})
+
+	req, err := http.NewRequest(http.MethodGet, "/unknown", nil)
+	require.NoError(t, err)
+	req.Host = "localhost"
+
+	res, err := app.Test(req, -1)
+	require.NoError(t, err)
+
+	assert.Equal(t, fiber.StatusInternalServerError, res.StatusCode)
+
+	raw, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	assert.NotContains(t, string(raw), "secret_table")
+
+	var body ProblemJSONError
+	require.NoError(t, json.Unmarshal(raw, &body))
+
+	assert.Equal(t, fiber.ErrInternalServerError.Message, body.Title)
+	assert.Equal(t, fiber.ErrInternalServerError.Message, body.Detail)
+	assert.Equal(t, fiber.StatusInternalServerError, body.Status)
 }
