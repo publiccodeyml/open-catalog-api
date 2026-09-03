@@ -44,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An error the API did not classify answered `404` with the raw error
   text. It is now a `500` with a generic detail.
 - Deleting a publisher or software did not delete its logs.
+- The `filter` parameter of `GET /v1/logs` was missing from the OpenAPI
+  spec, and the README named a Go version older than the one required.
 
 ### Security
 

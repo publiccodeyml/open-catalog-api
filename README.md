@@ -9,8 +9,8 @@
 <p align="center">
   <a href="https://www.bestpractices.dev/projects/14158">
     <img src="https://www.bestpractices.dev/projects/14158/badge">
-  </a> 
-  
+  </a>
+
   <img alt="License" src="https://img.shields.io/github/license/publiccodeyml/open-catalog-api?color=brightgreen">
 </p>
 
@@ -23,7 +23,8 @@
 </div>
 
 <p align="center">
-  <strong>Open Catalog API</strong> is a RESTful API for public software catalogs.
+  <strong>Open Catalog API</strong> is a RESTful API for public software
+  catalogs.
   It powers national open source catalogs for public administrations:
 </p>
 
@@ -32,7 +33,7 @@
 
 ## Requirements
 
-* Golang 1.25+
+* Golang 1.27+
 * [PostgreSQL](https://www.postgresql.org/)
 
 ## Development
@@ -48,8 +49,8 @@ To start developing:
 
 Docker Compose will bring up the app and PostgreSQL containers.
 
-Wait until the Docker logs explicitly say the API is up and you can use its
-endpoints at `http://localhost:3000/v1/`.
+Wait until the Docker logs explicitly say the API is up and you can use
+its endpoints at `http://localhost:3000/v1/`.
 
 ## Configuration
 
@@ -73,11 +74,12 @@ You can configure the API with environment variables:
 
   If not set, the API will run in read only mode.
 
-* `ENVIRONMENT` (optional): possible values `test`, `development`, `production`.
+* `ENVIRONMENT` (optional): `test` turns the rate limiter and the event
+  purge off, for the test suite. Any other value is a normal run.
   Default `production`.
 
-* `MAX_REQUESTS` (optional): number of requests per minute after which responses
-  will be ratelimited.
+* `MAX_REQUESTS` (optional): number of requests per minute after which
+  responses will be ratelimited.
   Default: no limit.
 
 * `TRUSTED_PROXIES` (optional): comma separated list of addresses or
@@ -110,8 +112,8 @@ You can configure the API with environment variables:
 
 ## Contributing
 
-This project exists also thanks to your contributions! Here is a list of people
-who already contributed to this repository:
+This project exists also thanks to your contributions! Here is a list of
+people who already contributed to this repository:
 
 <a href="https://github.com/publiccodeyml/open-catalog-api/graphs/contributors">
   <img

@@ -940,6 +940,14 @@ paths:
           in: query
           name: search
           description: Only logs matching the search string in their message
+        - schema:
+            type: string
+            maxLength: 255
+            pattern: '.*'
+            example: 'BAD publiccode'
+          in: query
+          name: filter
+          description: Only logs whose message is exactly this string
     post:
       summary: Create Logs
       description: Create Logs
