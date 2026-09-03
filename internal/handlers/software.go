@@ -31,8 +31,6 @@ func NewSoftware(db *gorm.DB) *Software {
 
 // GetAllSoftware gets the list of all software and returns any error encountered.
 func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error {
-	// Preload will load all the associated aliases, which include
-	// also the canonical url. detachCanonicalURL separates them later.
 	stmt, err := general.Clauses(ctx, p.db.Preload("Aliases"), "")
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
@@ -47,18 +45,7 @@ func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error {
 		return ctx.JSON(fiber.Map{"data": []any{}, "links": general.PaginationLinks{}})
 	}
 
-	software, cursor, err := paginate[models.Software](ctx, stmt, listOptions{
-		title:       "can't get Software",
-		activeOnly:  true,
-		skipClauses: true,
-	})
-	if err != nil {
-		return err
-	}
-
-	detachCanonicalURL(software)
-
-	return listJSON(ctx, software, cursor)
+	return listSoftware(ctx, stmt)
 }
 
 // GetSoftware gets the software with the given ID and returns any error encountered.
@@ -397,6 +384,24 @@ func softwareURLFilter(ctx *fiber.Ctx, gormdb, stmt *gorm.DB, title string) (*go
 	}
 
 	return stmt.Where("id = ?", softwareURL.SoftwareID), true, nil
+}
+
+// listSoftware writes one page of the software matched by stmt. stmt must
+// Preload("Aliases") and nothing else: Preload("URL") makes gorm guess a
+// has one through the software_id column and load an arbitrary url.
+func listSoftware(ctx *fiber.Ctx, stmt *gorm.DB) error {
+	software, cursor, err := paginate[models.Software](ctx, stmt, listOptions{
+		title:       "can't get Software",
+		activeOnly:  true,
+		skipClauses: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	detachCanonicalURL(software)
+
+	return listJSON(ctx, software, cursor)
 }
 
 // detachCanonicalURL moves the canonical url out of Aliases into URL.
