@@ -117,7 +117,7 @@ func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
 }
 
 func loadSoftware(gormdb *gorm.DB, software *models.Software, id string) error {
-	if err := gormdb.First(&software, "id = ?", id).Error; err != nil {
+	if err := gormdb.First(software, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errLoadNotFound
 		}
