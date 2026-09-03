@@ -32,6 +32,10 @@ const (
 // must never reach, so callers can tell it apart from a transport failure.
 var errForbiddenAddress = errors.New("webhook target is not publicly routable")
 
+// errNoAddress is returned when a webhook host resolves to nothing, so the
+// dispatcher never reports success without a connection.
+var errNoAddress = errors.New("webhook host resolved to no address")
+
 // dispatchTimeout caps the per-request webhook dispatch. It is a var (not
 // const) so tests can shorten it without sleeping for whole seconds.
 //
@@ -46,6 +50,12 @@ var dispatchTimeout = 10 * time.Second
 //nolint:gochecknoglobals // tunable for tests
 var dialGuardDisabled atomic.Bool
 
+// lookupHost resolves a webhook host. It is a var so tests can answer with
+// addresses no real resolver would return for a test name.
+//
+//nolint:gochecknoglobals // tunable for tests, effectively const at runtime
+var lookupHost = net.DefaultResolver.LookupHost
+
 // isForbiddenIP reports whether ip must not be dialed by the webhook
 // dispatcher. IsPrivate covers RFC 1918 and RFC 4193.
 func isForbiddenIP(ip net.IP) bool {
@@ -56,29 +66,44 @@ func isForbiddenIP(ip net.IP) bool {
 		ip.IsPrivate()
 }
 
-// checkHostAllowed refuses a host that is, or resolves to, an address outside
-// the publicly routable space.
-func checkHostAllowed(ctx context.Context, host string) error {
+// allowedAddresses resolves host once and returns the addresses that may be
+// dialed, all of them inside the publicly routable space. The whole answer is
+// vetted and the addresses are handed back so the caller dials them as
+// literals: resolving a second time would let a resolver answer with a
+// forbidden address after the check has passed.
+func allowedAddresses(ctx context.Context, host string) ([]string, error) {
 	if ip := net.ParseIP(host); ip != nil {
 		if isForbiddenIP(ip) {
-			return fmt.Errorf("%w: %s", errForbiddenAddress, host)
+			return nil, fmt.Errorf("%w: %s", errForbiddenAddress, host)
 		}
 
-		return nil
+		return []string{host}, nil
 	}
 
-	addrs, err := net.DefaultResolver.LookupHost(ctx, host)
+	addrs, err := lookupHost(ctx, host)
 	if err != nil {
-		return fmt.Errorf("resolving webhook host %q: %w", host, err)
+		return nil, fmt.Errorf("resolving webhook host %q: %w", host, err)
 	}
 
 	for _, addr := range addrs {
-		if ip := net.ParseIP(addr); ip != nil && isForbiddenIP(ip) {
-			return fmt.Errorf("%w: %s resolves to %s", errForbiddenAddress, host, addr)
+		if ip := net.ParseIP(addr); ip == nil || isForbiddenIP(ip) {
+			return nil, fmt.Errorf("%w: %s resolves to %s", errForbiddenAddress, host, addr)
 		}
 	}
 
-	return nil
+	if len(addrs) == 0 {
+		return nil, fmt.Errorf("%w: %s", errNoAddress, host)
+	}
+
+	return addrs, nil
+}
+
+// checkHostAllowed refuses a host that is, or resolves to, an address outside
+// the publicly routable space.
+func checkHostAllowed(ctx context.Context, host string) error {
+	_, err := allowedAddresses(ctx, host)
+
+	return err
 }
 
 func safeDialContext(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -87,18 +112,29 @@ func safeDialContext(ctx context.Context, network, addr string) (net.Conn, error
 		return nil, fmt.Errorf("invalid address %q: %w", addr, err)
 	}
 
-	if err := checkHostAllowed(ctx, host); err != nil {
+	addrs, err := allowedAddresses(ctx, host)
+	if err != nil {
 		return nil, err
 	}
 
 	dialer := &net.Dialer{Timeout: dialTimeout}
 
-	conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(host, port))
-	if err != nil {
-		return nil, fmt.Errorf("dialing webhook target %q: %w", addr, err)
+	var firstErr error
+
+	for _, vetted := range addrs {
+		target := net.JoinHostPort(vetted, port)
+
+		conn, err := dialer.DialContext(ctx, network, target)
+		if err == nil {
+			return conn, nil
+		}
+
+		if firstErr == nil {
+			firstErr = fmt.Errorf("dialing webhook target %q: %w", target, err)
+		}
 	}
 
-	return conn, nil
+	return nil, firstErr
 }
 
 func newWebhookClient() *http.Client {
