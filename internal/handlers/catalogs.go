@@ -143,7 +143,7 @@ func (c *Catalog) PostCatalog(ctx *fiber.Ctx) error {
 }
 
 // PatchCatalog updates the catalog with the given id.
-func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop,funlen
+func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 	const errMsg = "can't update Catalog"
 
 	catalogID, _ := url.PathUnescape(ctx.Params("id"))
@@ -163,25 +163,14 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop,funlen
 
 	catalog := *resolved
 
-	contentType := ctx.Get(fiber.HeaderContentType)
-	if contentType != common.ContentTypeJSONPatch {
-		if err := common.ValidateRequestEntity(ctx, new(common.CatalogPatch), errMsg); err != nil {
-			return err //nolint:wrapcheck
-		}
-	}
-
-	updatedCatalog, patchErr := common.ApplyPatch(&catalog, contentType, ctx.Body())
-	if patchErr != nil {
-		return common.Error(patchErr.Code, errMsg, patchErr.Error())
-	}
-
-	updatedCatalog.ID = catalog.ID
-	updatedCatalog.CreatedAt = catalog.CreatedAt
-
-	if contentType == common.ContentTypeJSONPatch {
-		if err := validatePatchedCatalog(updatedCatalog, errMsg); err != nil {
-			return err
-		}
+	updatedCatalog, err := applyPatch(ctx, &catalog, patchOptions[models.Catalog]{
+		title:    errMsg,
+		request:  new(common.CatalogPatch),
+		restore:  restoreCatalog,
+		validate: validatePatchedCatalog,
+	})
+	if err != nil {
+		return err
 	}
 
 	if isRoot(&catalog) {
@@ -405,26 +394,14 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error { //nolint:cyclop,
 		return common.Error(fiber.StatusNotFound, errMsg, "Publisher was not found")
 	}
 
-	contentType := ctx.Get(fiber.HeaderContentType)
-	if contentType != common.ContentTypeJSONPatch {
-		if err := common.ValidateRequestEntity(ctx, new(common.PublisherPatch), errMsg); err != nil {
-			return err //nolint:wrapcheck
-		}
-	}
-
-	updatedPublisher, patchErr := common.ApplyPatch(&publisher, contentType, ctx.Body())
-	if patchErr != nil {
-		return common.Error(patchErr.Code, errMsg, patchErr.Error())
-	}
-
-	updatedPublisher.ID = publisher.ID
-	updatedPublisher.CatalogID = publisher.CatalogID
-	updatedPublisher.CreatedAt = publisher.CreatedAt
-
-	if contentType == common.ContentTypeJSONPatch {
-		if err := validatePatchedPublisher(updatedPublisher, errMsg); err != nil {
-			return err
-		}
+	updatedPublisher, err := applyPatch(ctx, &publisher, patchOptions[models.Publisher]{
+		title:    errMsg,
+		request:  new(common.PublisherPatch),
+		restore:  restorePublisher,
+		validate: validatePatchedPublisher,
+	})
+	if err != nil {
+		return err
 	}
 
 	updatedPublisher.Email = common.NormalizeEmail(updatedPublisher.Email)
@@ -552,30 +529,14 @@ func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error { //nolint:funlen,c
 		return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
 	}
 
-	contentType := ctx.Get(fiber.HeaderContentType)
-	if contentType != common.ContentTypeJSONPatch {
-		if err := common.ValidateRequestEntity(ctx, &common.SoftwarePatch{}, errMsg); err != nil {
-			return err //nolint:wrapcheck
-		}
-	}
-
-	updatedSoftware, patchErr := common.ApplyPatch(&software, contentType, ctx.Body())
-	if patchErr != nil {
-		return common.Error(patchErr.Code, errMsg, patchErr.Error())
-	}
-
-	// ApplyPatch already refuses an operation on these paths. Putting them
-	// back anyway keeps the save and the response correct should a future
-	// operation kind or an alias slip past that check: the primary key feeds
-	// the WHERE, so a changed one makes gorm update no row at all.
-	updatedSoftware.ID = software.ID
-	updatedSoftware.CreatedAt = software.CreatedAt
-	updatedSoftware.CatalogID = software.CatalogID
-
-	if contentType == common.ContentTypeJSONPatch {
-		if err := validatePatchedSoftware(updatedSoftware, errMsg); err != nil {
-			return err
-		}
+	updatedSoftware, err := applyPatch(ctx, &software, patchOptions[models.Software]{
+		title:    errMsg,
+		request:  &common.SoftwarePatch{},
+		restore:  restoreSoftware,
+		validate: validatePatchedSoftware,
+	})
+	if err != nil {
+		return err
 	}
 
 	updatedSoftware.URL.URL = common.NormalizeURL(updatedSoftware.URL.URL)

@@ -20,11 +20,11 @@ import (
 // crudItem is the minimal shape the helpers need: the paginator keys
 // (CreatedAt, ID), the Active scope column and an alternative id.
 type crudItem struct {
-	ID            string `gorm:"primaryKey"`
-	AlternativeID *string
-	Message       string
-	Active        bool
-	CreatedAt     time.Time
+	ID            string    `gorm:"primaryKey" json:"id"`
+	AlternativeID *string   `json:"alternativeId"`
+	Message       string    `json:"message"`
+	Active        bool      `json:"active"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 func newCrudDB(t *testing.T) *gorm.DB {
@@ -191,4 +191,89 @@ func TestWriteError(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, fiber.StatusInternalServerError, problem.Status)
 	assert.Equal(t, fiber.ErrInternalServerError.Message, problem.Detail)
+}
+
+// crudItemPatch stands in for the request DTOs: the merge patch path
+// validates the body against it, the JSON Patch path skips it.
+type crudItemPatch struct {
+	Message *string `json:"message" validate:"omitempty,min=2"`
+}
+
+func newPatchCtx(t *testing.T, contentType, body string) *fiber.Ctx {
+	t.Helper()
+
+	ctx := newCrudCtx(t, "")
+	ctx.Request().Header.SetContentType(contentType)
+	ctx.Request().SetBodyString(body)
+
+	return ctx
+}
+
+func validateCrudItem(item crudItem, title string) error {
+	if len(item.Message) < 2 {
+		return common.Error(fiber.StatusUnprocessableEntity, title, "message too short")
+	}
+
+	return nil
+}
+
+func TestApplyPatchMergePatch(t *testing.T) {
+	current := crudItem{ID: "one", Message: "first", Active: true}
+	restored := false
+
+	opts := patchOptions[crudItem]{
+		title:   "can't update Item",
+		request: new(crudItemPatch),
+		restore: func(updated, current *crudItem) {
+			restored = true
+			updated.ID = current.ID
+		},
+		validate: validateCrudItem,
+	}
+
+	updated, err := applyPatch(newPatchCtx(t, fiber.MIMEApplicationJSON, `{"message":"changed"}`), &current, opts)
+	require.NoError(t, err)
+	assert.Equal(t, "changed", updated.Message)
+	assert.Equal(t, "one", updated.ID)
+	assert.True(t, restored)
+
+	_, err = applyPatch(newPatchCtx(t, fiber.MIMEApplicationJSON, `{"message":"x"}`), &current, opts)
+	assert.Equal(t, fiber.StatusUnprocessableEntity, problemStatus(t, err))
+
+	_, err = applyPatch(newPatchCtx(t, fiber.MIMEApplicationJSON, `{"message":`), &current, opts)
+	assert.Equal(t, fiber.StatusBadRequest, problemStatus(t, err))
+}
+
+func TestApplyPatchJSONPatch(t *testing.T) {
+	current := crudItem{ID: "one", Message: "first", Active: true}
+
+	opts := patchOptions[crudItem]{
+		title:    "can't update Item",
+		request:  new(crudItemPatch),
+		restore:  func(updated, current *crudItem) { updated.ID = current.ID },
+		validate: validateCrudItem,
+	}
+
+	updated, err := applyPatch(
+		newPatchCtx(t, common.ContentTypeJSONPatch, `[{"op":"replace","path":"/message","value":"changed"}]`),
+		&current, opts,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "changed", updated.Message)
+
+	_, err = applyPatch(
+		newPatchCtx(t, common.ContentTypeJSONPatch, `[{"op":"replace","path":"/message","value":"x"}]`),
+		&current, opts,
+	)
+	assert.Equal(t, fiber.StatusUnprocessableEntity, problemStatus(t, err))
+	assert.Equal(t, "message too short", err.(common.ProblemJSONError).Detail)
+
+	_, err = applyPatch(newPatchCtx(t, common.ContentTypeJSONPatch, `not a patch`), &current, opts)
+	assert.Equal(t, fiber.StatusBadRequest, problemStatus(t, err))
+
+	_, err = applyPatch(
+		newPatchCtx(t, common.ContentTypeJSONPatch, `[{"op":"replace","path":"/id","value":"two"}]`),
+		&current, opts,
+	)
+	assert.Equal(t, fiber.StatusUnprocessableEntity, problemStatus(t, err))
 }
