@@ -265,6 +265,5 @@ func setupHandlers(app *fiber.App, gormDB *gorm.DB) { //nolint:funlen
 	v1.Get("/status", statusHandler.GetStatus)
 
 	v1.Get("/webhooks/:id<guid>", publisherWebhookHandler.GetWebhook)
-	v1.Patch("/webhooks/:id<guid>", publisherWebhookHandler.PatchWebhook)
 	v1.Delete("/webhooks/:id<guid>", publisherWebhookHandler.DeleteWebhook)
 }

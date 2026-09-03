@@ -134,47 +134,6 @@ func (p *Webhook[T]) PostSingleResourceWebhook(ctx *fiber.Ctx) error {
 	return ctx.JSON(&webhook)
 }
 
-// PatchWebhook updates the webhook with the given ID.
-func (p *Webhook[T]) PatchWebhook(ctx *fiber.Ctx) error {
-	const errMsg = "can't update Webhook"
-
-	webhookReq := new(common.Webhook)
-
-	if err := common.ValidateRequestEntity(ctx, webhookReq, errMsg); err != nil {
-		return err //nolint:wrapcheck
-	}
-
-	found, err := findOne[models.Webhook](p.db, ctx.Params("id"), findOptions{
-		title: errMsg,
-		name:  "Webhook",
-	})
-	if err != nil {
-		return err
-	}
-
-	webhook := *found
-
-	webhook.URL = common.NormalizeURL(webhookReq.URL)
-
-	// The secret is optional on PATCH, so an omitted one keeps the stored
-	// value instead of clearing it.
-	if webhookReq.Secret != "" {
-		webhook.Secret = webhookReq.Secret
-	}
-
-	// The format is optional on PATCH, so an omitted one keeps the stored
-	// value instead of resetting it.
-	if webhookReq.Format != "" {
-		webhook.Format = webhookReq.Format
-	}
-
-	if err := p.db.Updates(&webhook).Error; err != nil {
-		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
-	}
-
-	return ctx.JSON(&webhook)
-}
-
 // DeleteWebhook deletes the webhook with the given ID.
 func (p *Webhook[T]) DeleteWebhook(ctx *fiber.Ctx) error {
 	var webhook models.Webhook
