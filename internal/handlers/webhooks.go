@@ -90,7 +90,9 @@ func (p *Webhook[T]) PostResourceWebhook(ctx *fiber.Ctx) error {
 		EntityType: resource.TableName(),
 	}
 
-	if err := p.db.Create(&webhook).Error; err != nil {
+	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
+		return tran.Create(&webhook).Error
+	}); err != nil {
 		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
 	}
 
@@ -127,25 +129,30 @@ func (p *Webhook[T]) PostSingleResourceWebhook(ctx *fiber.Ctx) error {
 		EntityType: resource.TableName(),
 	}
 
-	if err := p.db.Create(&webhook).Error; err != nil {
+	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
+		return tran.Create(&webhook).Error
+	}); err != nil {
 		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
 	}
 
 	return ctx.JSON(&webhook)
 }
 
-// DeleteWebhook deletes the webhook with the given ID.
+// DeleteWebhook deletes the webhook with the given ID. The row is looked
+// up first, so that the AfterDelete hook records no event for a missing
+// id.
 func (p *Webhook[T]) DeleteWebhook(ctx *fiber.Ctx) error {
-	var webhook models.Webhook
+	const errMsg = "can't delete Webhook"
 
-	result := p.db.Delete(&webhook, "id = ?", ctx.Params("id"))
-
-	if result.Error != nil {
-		return common.Error(fiber.StatusInternalServerError, "can't delete Webhook", "db error")
+	webhook, err := findOne[models.Webhook](p.db, ctx.Params("id"), findOptions{title: errMsg, name: "Webhook"})
+	if err != nil {
+		return err
 	}
 
-	if result.RowsAffected == 0 {
-		return common.Error(fiber.StatusNotFound, "can't delete Webhook", "Webhook was not found")
+	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
+		return tran.Delete(webhook).Error
+	}); err != nil {
+		return common.Error(fiber.StatusInternalServerError, errMsg, "db error")
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)

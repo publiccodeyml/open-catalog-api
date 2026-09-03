@@ -40,6 +40,38 @@ func (s Software) AfterDelete(trx *gorm.DB) error {
 	return emit(trx, common.EventTypeDelete, s)
 }
 
+func (c Catalog) AfterCreate(trx *gorm.DB) error {
+	return emit(trx, common.EventTypeCreate, c)
+}
+
+func (c Catalog) AfterUpdate(trx *gorm.DB) error {
+	return emit(trx, common.EventTypeUpdate, c)
+}
+
+func (c Catalog) AfterDelete(trx *gorm.DB) error {
+	return emit(trx, common.EventTypeDelete, c)
+}
+
+func (b *Bundle) AfterCreate(trx *gorm.DB) error {
+	return emit(trx, common.EventTypeCreate, b)
+}
+
+func (b *Bundle) AfterUpdate(trx *gorm.DB) error {
+	return emit(trx, common.EventTypeUpdate, b)
+}
+
+func (b *Bundle) AfterDelete(trx *gorm.DB) error {
+	return emit(trx, common.EventTypeDelete, b)
+}
+
+func (w Webhook) AfterCreate(trx *gorm.DB) error {
+	return emit(trx, common.EventTypeCreate, w)
+}
+
+func (w Webhook) AfterDelete(trx *gorm.DB) error {
+	return emit(trx, common.EventTypeDelete, w)
+}
+
 // pendingEventsKey addresses the collector Transaction leaves in the
 // statement context for the hooks running under it.
 type pendingEventsKey struct{}
