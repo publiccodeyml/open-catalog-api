@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"net/url"
@@ -505,6 +506,11 @@ func syncSources( //nolint:cyclop,funlen
 	for _, src := range urlMap {
 		ret = append(ret, src)
 	}
+
+	// urlMap iterates in a random order, the response must not.
+	slices.SortFunc(ret, func(a, b models.CatalogSource) int {
+		return cmp.Compare(a.URL, b.URL)
+	})
 
 	return ret, nil
 }
