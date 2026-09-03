@@ -1874,6 +1874,22 @@ func TestSoftwareDeleteDBChecks(t *testing.T) {
 
 		assert.Equal(t, 0, dbCount(t, "software_urls", "software_id", softwareID))
 	})
+
+	t.Run("DELETE of a missing software records no event", func(t *testing.T) {
+		loadFixtures(t)
+
+		const softwareID = "00000000-dead-beef-0000-0000000000aa"
+
+		req, err := newTestRequest("DELETE", "/v1/software/"+softwareID, nil)
+		require.NoError(t, err)
+		req.Header = map[string][]string{"Authorization": {goodToken}}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 404, res.StatusCode)
+
+		assert.Equal(t, 0, dbCount(t, "events", "entity_id", softwareID))
+	})
 }
 
 func addSoftwareForPaginationCapTest(t *testing.T) {

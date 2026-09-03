@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not save the software.
 - A JSON Patch could store a malformed URL or email. The patched entity
   now goes through the same validation as a `POST`.
+- A `DELETE` of a missing software answered `404` but still recorded a
+  delete event and notified the webhooks.
 
 ### Security
 

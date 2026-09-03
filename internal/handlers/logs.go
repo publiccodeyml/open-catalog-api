@@ -103,7 +103,7 @@ func (p *Log) DeleteLog(ctx *fiber.Ctx) error {
 
 // GetSoftwareLogs gets the logs associated to a Software with the given ID and returns any error encountered.
 func (p *Log) GetSoftwareLogs(ctx *fiber.Ctx) error {
-	return p.getEntityLogs(ctx, &models.Software{}, "Software")
+	return p.getEntityLogs(ctx, &models.Software{}, softwareEntityName)
 }
 
 // PostCatalogLog creates a new log associated to a Catalog with the given ID and returns any error encountered.
@@ -162,7 +162,7 @@ func (p *Log) PostPublisherLog(ctx *fiber.Ctx) error {
 
 // PostSoftwareLog creates a new log associated to a Software with the given ID and returns any error encountered.
 func (p *Log) PostSoftwareLog(ctx *fiber.Ctx) error {
-	return p.postEntityLog(ctx, &models.Software{}, "Software")
+	return p.postEntityLog(ctx, &models.Software{}, softwareEntityName)
 }
 
 // getEntityLogs gets the logs associated to the entity with the ID in the request path.
