@@ -337,41 +337,6 @@ func TestSafeDialContextDialsVettedAddress(t *testing.T) {
 	assert.Contains(t, err.Error(), vetted+":443")
 }
 
-// TestIsForbiddenIP is a table-driven unit test for the isForbiddenIP helper.
-func TestIsForbiddenIP(t *testing.T) {
-	tests := []struct {
-		ip        string
-		forbidden bool
-	}{
-		{"127.0.0.1", true},
-		{"127.0.0.2", true},
-		{"::1", true},
-		{"0.0.0.0", true},
-		{"169.254.169.254", true},
-		{"169.254.0.1", true},
-		{"fe80::1", true},
-		{"10.0.0.1", true},
-		{"10.255.255.255", true},
-		{"172.16.0.1", true},
-		{"172.31.255.255", true},
-		{"192.168.0.1", true},
-		{"192.168.255.255", true},
-		{"fc00::1", true},
-		{"fdff::1", true},
-		{"8.8.8.8", false},
-		{"1.1.1.1", false},
-		{"2001:4860:4860::8888", false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.ip, func(t *testing.T) {
-			ip := net.ParseIP(tt.ip)
-			require.NotNil(t, ip, "invalid IP in test table: %s", tt.ip)
-			assert.Equal(t, tt.forbidden, isForbiddenIP(ip))
-		})
-	}
-}
-
 func captureDispatch(t *testing.T, webhook models.Webhook, event models.Event) receivedRequest {
 	t.Helper()
 

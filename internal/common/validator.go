@@ -36,9 +36,9 @@ type ValidationError struct {
 	Value string `json:"value"`
 }
 
-// isForbiddenIP reports whether ip must not be dialed by the webhook
+// IsForbiddenIP reports whether ip must not be dialed by the webhook
 // dispatcher. IsPrivate covers RFC 1918 and RFC 4193.
-func isForbiddenIP(ip net.IP) bool {
+func IsForbiddenIP(ip net.IP) bool {
 	return ip.IsLoopback() ||
 		ip.IsLinkLocalUnicast() ||
 		ip.IsLinkLocalMulticast() ||
@@ -94,7 +94,7 @@ func validateWebhookURL(fl validator.FieldLevel) bool {
 	}
 
 	if ip := net.ParseIP(host); ip != nil {
-		return !isForbiddenIP(ip)
+		return !IsForbiddenIP(ip)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), webhookLookupTimeout)
@@ -108,7 +108,7 @@ func validateWebhookURL(fl validator.FieldLevel) bool {
 	}
 
 	for _, addr := range addrs {
-		if ip := net.ParseIP(addr); ip != nil && isForbiddenIP(ip) {
+		if ip := net.ParseIP(addr); ip != nil && IsForbiddenIP(ip) {
 			return false
 		}
 	}
