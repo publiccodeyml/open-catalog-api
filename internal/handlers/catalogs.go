@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -207,7 +208,9 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 
 		updatedCatalog.Sources = nil
 
-		if err := tran.Updates(&updatedCatalog).Error; err != nil {
+		err = updateColumns(tran, &updatedCatalog,
+			"Name", "AlternativeID", "Active", "PublishersNamespace", "Scopes")
+		if err != nil {
 			return err
 		}
 
@@ -443,6 +446,16 @@ func buildSources(inputs []common.SourceInput) []models.CatalogSource {
 	return sources
 }
 
+// sameString reports whether two optional strings are both absent or hold
+// the same value. A source whose driver the patch omits keeps no driver.
+func sameString(a, b *string) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+
+	return *a == *b
+}
+
 // syncSources brings the catalog_sources table in line with the desired state.
 // Sources are matched by URL; removed if absent, added if new.
 func syncSources( //nolint:cyclop,funlen
@@ -476,12 +489,12 @@ func syncSources( //nolint:cyclop,funlen
 		if existing, ok := urlMap[srcURL]; ok {
 			changed := false
 
-			if inp.Driver != nil && (existing.Driver == nil || *existing.Driver != *inp.Driver) {
+			if !sameString(existing.Driver, inp.Driver) {
 				existing.Driver = inp.Driver
 				changed = true
 			}
 
-			if inp.Args != nil {
+			if !slices.Equal(existing.Args, inp.Args) {
 				existing.Args = inp.Args
 				changed = true
 			}

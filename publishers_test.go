@@ -1150,6 +1150,36 @@ func TestPublishersPatchDBChecks(t *testing.T) {
 		assert.Equal(t, publisherID, dbValue(t, "publishers_code_hosting", "publisher_id", "url", "https://gitlab.example.org/patched-repo"))
 		assert.Equal(t, 1, dbCount(t, "publishers_code_hosting", "publisher_id", publisherID))
 	})
+
+	t.Run("PATCH publisher clears the email with a null", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, publisherPath+italiaPublisherID, `{"email": null}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+		assert.NotContains(t, decodeJSON(t, body), "email")
+
+		assert.True(t, dbNull(t, "publishers", "email", "id", italiaPublisherID))
+		assert.NotEqual(t,
+			dbValue(t, "publishers", "created_at", "id", italiaPublisherID),
+			dbValue(t, "publishers", "updated_at", "id", italiaPublisherID),
+		)
+		assert.Equal(t, 1, dbCount(t, "events", "entity_id", italiaPublisherID))
+	})
+
+	t.Run("PATCH publisher clears the alternativeId with a null", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, publisherPath+italiaPublisherID, `{"alternativeId": "an-alias"}`)
+		require.Equal(t, 200, code, "body: %s", body)
+
+		code, body = patchMerge(t, publisherPath+italiaPublisherID, `{"alternativeId": null}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+		assert.NotContains(t, decodeJSON(t, body), "alternativeId")
+
+		assert.True(t, dbNull(t, "publishers", "alternative_id", "id", italiaPublisherID))
+	})
 }
 
 func TestPublishersDeleteDBChecks(t *testing.T) {

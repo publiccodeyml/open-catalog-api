@@ -368,6 +368,55 @@ func TestMergePatchValidatesPatchedEntity(t *testing.T) {
 	}
 }
 
+// TestMergePatchRefusesNullActive covers a merge patch nulling active. The
+// column is NOT NULL with a database default, so the write would fail deep
+// in the database instead of telling the client what is wrong. Each body
+// carries a valid change as well, which must stay uncommitted.
+func TestMergePatchRefusesNullActive(t *testing.T) {
+	tests := []struct {
+		description string
+		path        string
+		body        string
+		table       string
+		column      string
+		id          string
+		want        string
+	}{
+		{
+			"publisher", publisherPath + italiaPublisherID,
+			`{"description": "patched", "active": null}`,
+			"publishers", "description", italiaPublisherID, "Publisher description 1",
+		},
+		{
+			"software", softwarePath + italiaSoftwareID,
+			`{"publiccodeYml": "patched", "active": null}`,
+			"software", "publiccode_yml", italiaSoftwareID, "-",
+		},
+		{
+			"catalog", catalogPath + italiaID,
+			`{"name": "patched", "active": null}`,
+			"catalogs", "name", italiaID, "Italian Catalog",
+		},
+		{
+			"bundle", "/v1/bundles/" + fixtureBundleID,
+			`{"description": "patched", "active": null}`,
+			"bundles", "description", fixtureBundleID, "Recommended software for municipalities",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			loadFixtures(t)
+
+			code, body := patchMerge(t, test.path, test.body)
+
+			assert.Equal(t, http.StatusUnprocessableEntity, code, "body: %s", body)
+			assert.Contains(t, string(body), "active cannot be null")
+			assert.Equal(t, test.want, dbValue(t, test.table, test.column, "id", test.id))
+		})
+	}
+}
+
 // TestPatchTestOpOnProtectedPathIsAllowed pins that a read-only field can
 // still be named in a test operation, which reads it and changes nothing.
 func TestPatchTestOpOnProtectedPathIsAllowed(t *testing.T) {

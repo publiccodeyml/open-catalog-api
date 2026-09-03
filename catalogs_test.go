@@ -23,6 +23,10 @@ const (
 	italiaPublisherID = "2ded32eb-c45e-4167-9166-a44e18b8adde" // catalog_id = italiaID
 	swissPublisherID  = "47807e0c-0613-4aea-9917-5455cc6eddad" // catalog_id = swissID
 	rootPublisherID   = "d6ddc11a-ff85-4f0f-bb87-df38b2a9b394" // catalog_id IS NULL (root)
+
+	// The only catalog source of the Italian catalog.
+	italiaSourceID  = "aaa11111-1111-1111-1111-111111111111"
+	italiaSourceURL = "https://github.com/example/italia-catalog"
 )
 
 // assertCanonicalURLs checks that every listed software carries its own
@@ -1503,5 +1507,71 @@ func TestCatalogPatchDBChecks(t *testing.T) {
 		assert.Equal(t, 200, res.StatusCode)
 
 		assert.Equal(t, newNS, dbValue(t, "catalogs", "publishers_namespace", "id", italiaID))
+	})
+
+	t.Run("PATCH catalog clears the publishersNamespace with a null", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, catalogPath+italiaID, `{"publishersNamespace": "patched-ns"}`)
+		require.Equal(t, 200, code, "body: %s", body)
+
+		code, body = patchMerge(t, catalogPath+italiaID, `{"publishersNamespace": null}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+		assert.NotContains(t, decodeJSON(t, body), "publishersNamespace")
+
+		assert.True(t, dbNull(t, "catalogs", "publishers_namespace", "id", italiaID))
+	})
+
+	t.Run("PATCH catalog clears the scopes with a null", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, catalogPath+italiaID, `{"scopes": ["health"]}`)
+		require.Equal(t, 200, code, "body: %s", body)
+
+		code, body = patchMerge(t, catalogPath+italiaID, `{"scopes": null}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+		assert.NotContains(t, decodeJSON(t, body), "scopes")
+
+		assert.True(t, dbNull(t, "catalogs", "scopes", "id", italiaID))
+	})
+
+	t.Run("PATCH catalog clears the alternativeId with a null", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, catalogPath+italiaID, `{"alternativeId": null}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+		assert.NotContains(t, decodeJSON(t, body), "alternativeId")
+
+		assert.True(t, dbNull(t, "catalogs", "alternative_id", "id", italiaID))
+	})
+
+	t.Run("PATCH catalog clears a source driver absent from the patch", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, catalogPath+italiaID,
+			`{"sources": [{"url": "`+italiaSourceURL+`"}]}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+
+		assert.True(t, dbNull(t, "catalog_sources", "driver", "id", italiaSourceID))
+	})
+
+	t.Run("PATCH catalog clears source args absent from the patch", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, catalogPath+italiaID,
+			`{"sources": [{"url": "`+italiaSourceURL+`", "driver": "github", "args": ["--depth", "1"]}]}`)
+		require.Equal(t, 200, code, "body: %s", body)
+		require.False(t, dbNull(t, "catalog_sources", "args", "id", italiaSourceID))
+
+		code, body = patchMerge(t, catalogPath+italiaID,
+			`{"sources": [{"url": "`+italiaSourceURL+`", "driver": "github"}]}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+
+		assert.True(t, dbNull(t, "catalog_sources", "args", "id", italiaSourceID))
 	})
 }

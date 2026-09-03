@@ -204,3 +204,12 @@ func applyPatch[T any](ctx *fiber.Ctx, current *T, opts patchOptions[T]) (T, err
 
 	return updated, nil
 }
+
+// updateColumns writes the listed columns of entity and only those. A plain
+// struct update skips a nil pointer, so a merge patch nulling an optional
+// field would answer 200 and leave the old value in the row. Naming the
+// columns makes gorm write the NULL, and it still sets updated_at and still
+// runs the model hooks.
+func updateColumns[T any](tran *gorm.DB, entity *T, columns ...string) error {
+	return tran.Model(entity).Select(columns).Updates(entity).Error
+}
