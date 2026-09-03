@@ -39,7 +39,7 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, searchFieldName string) (*gorm.DB, e
 		filter := ctx.Query("filter", "")
 
 		if filter != "" {
-			ret = stmt.Where(map[string]any{searchFieldName: filter})
+			ret = ret.Where(map[string]any{searchFieldName: filter})
 		}
 	}
 
@@ -49,7 +49,7 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, searchFieldName string) (*gorm.DB, e
 			return nil, common.ErrInvalidDateTime
 		}
 
-		ret = stmt.Where("created_at > ?", at)
+		ret = ret.Where("created_at > ?", at)
 	}
 
 	if to := ctx.Query("to", ""); to != "" {
@@ -58,11 +58,11 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, searchFieldName string) (*gorm.DB, e
 			return nil, common.ErrInvalidDateTime
 		}
 
-		ret = stmt.Where("created_at < ?", at)
+		ret = ret.Where("created_at < ?", at)
 	}
 
 	if search := ctx.Query("search", ""); search != "" {
-		ret = stmt.Where("LOWER(message) LIKE ?", "%"+utils.ToLower(search)+"%")
+		ret = ret.Where("LOWER(message) LIKE ?", "%"+utils.ToLower(search)+"%")
 	}
 
 	return ret, nil
