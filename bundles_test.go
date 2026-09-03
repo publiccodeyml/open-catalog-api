@@ -326,6 +326,17 @@ func TestBundlePatchDBChecks(t *testing.T) {
 		assert.Equal(t, 1, dbCount(t, "bundles_software", "bundle_id", bundleID))
 		assert.Equal(t, existingSoftwareID3, dbValue(t, "bundles_software", "software_id", "bundle_id", bundleID))
 	})
+
+	t.Run("PATCH bundle clears the description with a null", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, "/v1/bundles/"+municipalitiesID, `{"description": null}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+		assert.NotContains(t, decodeJSON(t, body), "description")
+
+		assert.True(t, dbNull(t, "bundles", "description", "id", municipalitiesID))
+	})
 }
 
 func TestBundleDeleteDBChecks(t *testing.T) {

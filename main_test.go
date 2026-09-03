@@ -287,6 +287,31 @@ func dbCount(t *testing.T, table, column, value string) int {
 	return n
 }
 
+// dbNull reports whether the column is NULL on the row matching
+// whereCol=whereVal.
+func dbNull(t *testing.T, table, column, whereCol, whereVal string) bool {
+	t.Helper()
+
+	var val *string
+
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = %s", column, table, whereCol, placeholder(1))
+	require.NoError(t, db.QueryRow(query, whereVal).Scan(&val))
+
+	return val == nil
+}
+
+// decodeJSON unmarshals a response body into a map, so a test can assert on
+// the keys it carries.
+func decodeJSON(t *testing.T, body []byte) map[string]any {
+	t.Helper()
+
+	var out map[string]any
+
+	require.NoError(t, json.Unmarshal(body, &out))
+
+	return out
+}
+
 // requestFrom does a GET on the given app claiming to come from the client
 // in the X-Forwarded-For header, and returns the status code.
 func requestFrom(t *testing.T, rateLimitedApp *fiber.App, forwardedFor string) int {

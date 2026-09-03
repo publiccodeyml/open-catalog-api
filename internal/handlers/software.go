@@ -208,7 +208,9 @@ func updateSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, software models.Software) e
 		// because we handle the alias manually
 		updatedSoftware.Aliases = []models.SoftwareURL{}
 
-		if err := tran.Updates(&updatedSoftware).Error; err != nil {
+		err = updateColumns(tran, &updatedSoftware,
+			"PubliccodeYml", "Active", "Vitality", "SoftwareURLID")
+		if err != nil {
 			return err
 		}
 

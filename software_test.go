@@ -1669,6 +1669,33 @@ func TestSoftwarePatchDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 422, res.StatusCode)
 	})
+
+	t.Run("PATCH software clears the vitality with a null", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, softwarePath+swissSoftwareID, `{"vitality": null}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+		assert.Nil(t, decodeJSON(t, body)["vitality"])
+
+		assert.True(t, dbNull(t, "software", "vitality", "id", swissSoftwareID))
+		assert.NotEqual(t,
+			dbValue(t, "software", "created_at", "id", swissSoftwareID),
+			dbValue(t, "software", "updated_at", "id", swissSoftwareID),
+		)
+		assert.Equal(t, 1, dbCount(t, "events", "entity_id", swissSoftwareID))
+	})
+
+	t.Run("PATCH software removes the vitality with a JSON Patch", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchJSON(t, softwarePath+swissSoftwareID, `[{"op": "remove", "path": "/vitality"}]`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+		assert.Nil(t, decodeJSON(t, body)["vitality"])
+
+		assert.True(t, dbNull(t, "software", "vitality", "id", swissSoftwareID))
+	})
 }
 
 func TestSoftwareAnalysisEndpoints(t *testing.T) {

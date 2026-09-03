@@ -107,7 +107,7 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 	updatedBundle.Software = nil
 
 	err = b.db.Transaction(func(tran *gorm.DB) error {
-		if err := tran.Updates(&updatedBundle).Error; err != nil {
+		if err := updateColumns(tran, &updatedBundle, "Name", "Description", "Active"); err != nil {
 			return err
 		}
 

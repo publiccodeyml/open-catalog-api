@@ -177,7 +177,8 @@ func updatePublisher(ctx *fiber.Ctx, gormdb *gorm.DB, publisher models.Publisher
 		// because we handle it manually via syncCodeHosting.
 		publisher.CodeHosting = []models.CodeHosting{}
 
-		if err := tran.Updates(&publisher).Error; err != nil {
+		err = updateColumns(tran, &publisher, "Description", "Email", "Active", "AlternativeID")
+		if err != nil {
 			return err
 		}
 

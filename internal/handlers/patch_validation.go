@@ -10,6 +10,10 @@ import (
 // to the complete entity produced by an RFC 6902 patch. JSON Patch operates on
 // the response model directly, so it otherwise bypasses the request DTO.
 func validatePatchedSoftware(software models.Software, title string) error {
+	if err := refuseNullActive(software.Active, title); err != nil {
+		return err
+	}
+
 	aliases := make([]string, 0, len(software.Aliases))
 	for _, alias := range software.Aliases {
 		aliases = append(aliases, alias.URL)
@@ -27,6 +31,10 @@ func validatePatchedSoftware(software models.Software, title string) error {
 }
 
 func validatePatchedPublisher(publisher models.Publisher, title string) error {
+	if err := refuseNullActive(publisher.Active, title); err != nil {
+		return err
+	}
+
 	codeHosting := make([]common.CodeHosting, 0, len(publisher.CodeHosting))
 	for _, codeHost := range publisher.CodeHosting {
 		codeHosting = append(codeHosting, common.CodeHosting{
@@ -47,6 +55,10 @@ func validatePatchedPublisher(publisher models.Publisher, title string) error {
 }
 
 func validatePatchedCatalog(catalog models.Catalog, title string) error {
+	if err := refuseNullActive(catalog.Active, title); err != nil {
+		return err
+	}
+
 	sources := make([]common.SourceInput, 0, len(catalog.Sources))
 	for _, source := range catalog.Sources {
 		sources = append(sources, common.SourceInput{
@@ -79,6 +91,10 @@ func validatePatchedLog(log models.Log, title string) error {
 }
 
 func validatePatchedBundle(bundle models.Bundle, title string) error {
+	if err := refuseNullActive(bundle.Active, title); err != nil {
+		return err
+	}
+
 	request := common.BundlePatch{
 		Name:        &bundle.Name,
 		Description: bundle.Description,
@@ -119,6 +135,17 @@ func restoreLog(updated, current *models.Log) {
 func restoreBundle(updated, current *models.Bundle) {
 	updated.ID = current.ID
 	updated.CreatedAt = current.CreatedAt
+}
+
+// refuseNullActive rejects an entity a patch left without an active flag.
+// The column is NOT NULL with a database default, so the write would fail
+// deep in the database instead of telling the client what is wrong.
+func refuseNullActive(active *bool, title string) error {
+	if active != nil {
+		return nil
+	}
+
+	return common.Error(fiber.StatusUnprocessableEntity, title, "active cannot be null")
 }
 
 func validatePatchedEntity(request any, title string) error {
