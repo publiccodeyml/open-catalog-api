@@ -31,10 +31,22 @@ const (
 func patchJSON(t *testing.T, path, body string) (int, []byte) {
 	t.Helper()
 
+	return patch(t, path, "application/json-patch+json", body)
+}
+
+func patchMerge(t *testing.T, path, body string) (int, []byte) {
+	t.Helper()
+
+	return patch(t, path, "application/json", body)
+}
+
+func patch(t *testing.T, path, contentType, body string) (int, []byte) {
+	t.Helper()
+
 	req, err := newTestRequest(http.MethodPatch, path, strings.NewReader(body))
 	require.NoError(t, err)
 
-	req.Header.Set("Content-Type", "application/json-patch+json")
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Authorization", goodToken)
 
 	res, err := app.Test(req, -1)
@@ -283,6 +295,71 @@ func TestJSONPatchValidatesPatchedEntity(t *testing.T) {
 			loadFixtures(t)
 
 			code, body := patchJSON(t, test.path, "["+test.ops+"]")
+
+			assert.Equal(t, http.StatusUnprocessableEntity, code, "body: %s", body)
+			assert.Contains(t, string(body), `"validationErrors"`)
+			assert.Equal(t, test.want, dbValue(t, test.table, test.column, "id", test.id))
+		})
+	}
+}
+
+// TestMergePatchValidatesPatchedEntity covers the null case of a merge
+// patch. The request DTO decodes a null into a nil pointer, the same as an
+// absent field, so it cannot refuse it, while the merge clears the field on
+// the entity. Each body carries a valid change as well, which must stay
+// uncommitted.
+func TestMergePatchValidatesPatchedEntity(t *testing.T) {
+	tests := []struct {
+		description string
+		path        string
+		body        string
+		table       string
+		column      string
+		id          string
+		want        string
+	}{
+		{
+			"software url", softwarePath + italiaSoftwareID,
+			`{"publiccodeYml": "patched", "url": null}`,
+			"software", "publiccode_yml", italiaSoftwareID, "-",
+		},
+		{
+			"catalog software url", catalogSoftwarePath + italiaSoftwareID,
+			`{"publiccodeYml": "patched", "url": null}`,
+			"software", "publiccode_yml", italiaSoftwareID, "-",
+		},
+		{
+			"publisher code hosting", publisherPath + italiaPublisherID,
+			`{"description": "patched", "codeHosting": null}`,
+			"publishers", "description", italiaPublisherID, "Publisher description 1",
+		},
+		{
+			"catalog publisher code hosting", catalogPubPath + italiaPublisherID,
+			`{"description": "patched", "codeHosting": null}`,
+			"publishers", "description", italiaPublisherID, "Publisher description 1",
+		},
+		{
+			"catalog name", catalogPath + italiaID,
+			`{"active": false, "name": null}`,
+			"catalogs", "name", italiaID, "Italian Catalog",
+		},
+		{
+			"log message", logPath + fixtureLogID,
+			`{"message": null}`,
+			"logs", "message", fixtureLogID, "A log message",
+		},
+		{
+			"bundle name", "/v1/bundles/" + fixtureBundleID,
+			`{"description": "patched", "name": null}`,
+			"bundles", "name", fixtureBundleID, "Bundle for municipalities",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			loadFixtures(t)
+
+			code, body := patchMerge(t, test.path, test.body)
 
 			assert.Equal(t, http.StatusUnprocessableEntity, code, "body: %s", body)
 			assert.Contains(t, string(body), `"validationErrors"`)
