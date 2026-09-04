@@ -86,28 +86,20 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 	return updateSoftware(ctx, writeDB(ctx, p.db), software)
 }
 
-// DeleteSoftware deletes the software with the given ID. The row is
-// looked up first: gorm runs the AfterDelete hook even when the delete
-// matched nothing, and the hook would record an event for a software
-// that never existed.
+// DeleteSoftware deletes the software with the given ID.
 func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
 	const errMsg = "can't delete Software"
 
-	found, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{title: errMsg, name: softwareEntityName})
-	if err != nil {
-		return err
-	}
-
-	software := *found
+	software := models.Software{ID: ctx.Params("id")}
 
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
 		if err := deleteEntityLogs(tran, software); err != nil {
 			return err
 		}
 
-		return tran.Select("Aliases", "Bundles").Delete(&software).Error
+		return deleteResult(tran.Select("Aliases", "Bundles").Delete(&software))
 	}); err != nil {
-		return common.InternalServerError(errMsg)
+		return deleteError(err, errMsg, softwareEntityName)
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)

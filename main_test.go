@@ -322,6 +322,33 @@ func dbNull(t *testing.T, table, column, whereCol, whereVal string) bool {
 	return val == nil
 }
 
+// addEntityLogs attaches count logs to the entity. Soft deleting them
+// makes the delete of the entity itself slow enough that a concurrent
+// DELETE of the same id still finds the row.
+func addEntityLogs(t *testing.T, entityType, entityID string, count int) {
+	t.Helper()
+
+	query := fmt.Sprintf(
+		"INSERT INTO logs (id, message, entity_id, entity_type, created_at, updated_at) "+
+			"VALUES (%s, %s, %s, %s, %s, %s)",
+		placeholder(1),
+		placeholder(2),
+		placeholder(3),
+		placeholder(4),
+		placeholder(5),
+		placeholder(6),
+	)
+
+	now := time.Now().UTC()
+
+	for i := range count {
+		id := fmt.Sprintf("33333333-3333-3333-3333-%012d", i)
+
+		_, err := db.Exec(query, id, "concurrent delete padding", entityID, entityType, now, now)
+		require.NoError(t, err)
+	}
+}
+
 // decodeJSON unmarshals a response body into a map, so a test can assert on
 // the keys it carries.
 func decodeJSON(t *testing.T, body []byte) map[string]any {

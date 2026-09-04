@@ -262,9 +262,9 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error {
 			return err
 		}
 
-		return tran.Delete(&catalog).Error
+		return deleteResult(tran.Delete(&catalog))
 	}); err != nil {
-		return common.InternalServerError(errMsg)
+		return deleteError(err, errMsg, "Catalog")
 	}
 
 	if conflictErr != nil {

@@ -138,21 +138,16 @@ func (p *Webhook[T]) PostSingleResourceWebhook(ctx *fiber.Ctx) error {
 	return ctx.JSON(&webhook)
 }
 
-// DeleteWebhook deletes the webhook with the given ID. The row is looked
-// up first, so that the AfterDelete hook records no event for a missing
-// id.
+// DeleteWebhook deletes the webhook with the given ID.
 func (p *Webhook[T]) DeleteWebhook(ctx *fiber.Ctx) error {
 	const errMsg = "can't delete Webhook"
 
-	webhook, err := findOne[models.Webhook](p.db, ctx.Params("id"), findOptions{title: errMsg, name: "Webhook"})
-	if err != nil {
-		return err
-	}
+	webhook := models.Webhook{ID: ctx.Params("id")}
 
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
-		return tran.Delete(webhook).Error
+		return deleteResult(tran.Delete(&webhook))
 	}); err != nil {
-		return common.InternalServerError(errMsg)
+		return deleteError(err, errMsg, "Webhook")
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)
