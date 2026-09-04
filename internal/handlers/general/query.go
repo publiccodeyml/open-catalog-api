@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 const unknownQueryDetail = "invalid query parameters"
@@ -68,7 +69,10 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string) (*g
 
 	if searchField != "" {
 		if search := ctx.Query("search", ""); search != "" {
-			ret = ret.Where("LOWER("+searchField+") LIKE ?", "%"+utils.ToLower(search)+"%")
+			ret = ret.Where(clause.Expr{
+				SQL:  "LOWER(?) LIKE ?",
+				Vars: []any{clause.Column{Name: searchField}, "%" + utils.ToLower(search) + "%"},
+			})
 		}
 	}
 
