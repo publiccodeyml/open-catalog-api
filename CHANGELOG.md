@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   privately and which versions get fixes.
 - CI checks for the Helm chart with `helm lint` and `kubeconform`, and for
   GitHub Actions workflows with `actionlint`.
+- CI checks for the Dockerfiles with `hadolint`, and a weekly `trivy`
+  scan of the published container image for Alpine package
+  vulnerabilities.
 - `entityType`, `entityId`, `type` and `actor` filters on `GET /v1/events`.
 - An `extraEnv` value on the Helm chart, for environment variables
   without a dedicated chart value.
