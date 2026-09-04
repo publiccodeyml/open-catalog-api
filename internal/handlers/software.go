@@ -1,16 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"slices"
 	"sort"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
-	"github.com/publiccodeyml/open-catalog-api/internal/database"
 	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
@@ -326,11 +323,7 @@ func (p *Software) GetSoftwareAnalysis(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	if software.Analysis == nil {
-		return ctx.JSON(common.AnalysisData{})
-	}
-
-	return ctx.JSON(software.Analysis)
+	return ctx.JSON(analysisOrEmpty(software.Analysis))
 }
 
 // PatchSoftwareAnalysis merges the incoming analysis namespaces into the stored analysis.
@@ -338,40 +331,23 @@ func (p *Software) GetSoftwareAnalysis(ctx *fiber.Ctx) error {
 func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Software analysis"
 
-	var incoming common.AnalysisData
-	if err := json.Unmarshal(ctx.Body(), &incoming); err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "invalid or malformed JSON")
-	}
-
-	patch, err := common.WithTimestamps(incoming, time.Now())
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
-	}
-
-	if len(patch) == 0 {
-		software, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{
-			title: errMsg,
-			name:  softwareEntityName,
-		})
-		if err != nil {
-			return err
-		}
-
-		return ctx.JSON(analysisOrEmpty(software.Analysis))
-	}
-
 	software := models.Software{ID: ctx.Params("id")}
 
-	merged, err := database.MergeAnalysis(writeDB(ctx, p.db), &software, patch)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
-		}
+	return patchAnalysis(ctx, p.db, &software, analysisOptions{
+		title: errMsg,
+		name:  softwareEntityName,
+		current: func() (common.AnalysisData, error) {
+			found, err := findOne[models.Software](p.db, software.ID, findOptions{
+				title: errMsg,
+				name:  softwareEntityName,
+			})
+			if err != nil {
+				return nil, err
+			}
 
-		return common.InternalServerError(errMsg)
-	}
-
-	return ctx.JSON(merged)
+			return found.Analysis, nil
+		},
+	})
 }
 
 // softwareURLFilter narrows stmt to the software owning the ?url query

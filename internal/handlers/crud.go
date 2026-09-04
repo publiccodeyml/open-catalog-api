@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/database"
 	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
@@ -155,6 +158,56 @@ func analysisOrEmpty(a common.AnalysisData) common.AnalysisData {
 	}
 
 	return a
+}
+
+// analysisOptions drives patchAnalysis.
+type analysisOptions struct {
+	// title is the Problem JSON title on failure, e.g. "can't update Software analysis".
+	title string
+	// name is the resource name in the 404 detail: "<name> was not found".
+	name string
+	// current answers the analysis the row holds. It runs only for an empty
+	// patch: a handler that leaves the row to the merge, addressed by its
+	// primary key, reads nothing on a request that writes.
+	current func() (common.AnalysisData, error)
+}
+
+// patchAnalysis runs the PATCH sequence shared by the analysis endpoints:
+// decode the body, stamp every namespace with its timestamp, answer the
+// stored document when the patch is empty and merge it into model
+// otherwise. Errors are Problem JSON errors, ready to be returned from a
+// handler as they are.
+func patchAnalysis(ctx *fiber.Ctx, gormdb *gorm.DB, model models.Analyzable, opts analysisOptions) error {
+	var incoming common.AnalysisData
+	if err := json.Unmarshal(ctx.Body(), &incoming); err != nil {
+		return common.Error(fiber.StatusUnprocessableEntity, opts.title, "invalid or malformed JSON")
+	}
+
+	patch, err := common.WithTimestamps(incoming, time.Now())
+	if err != nil {
+		return common.Error(fiber.StatusUnprocessableEntity, opts.title, err.Error())
+	}
+
+	// An empty patch writes nothing: no updated_at bump, no event, no webhook.
+	if len(patch) == 0 {
+		current, err := opts.current()
+		if err != nil {
+			return err
+		}
+
+		return ctx.JSON(analysisOrEmpty(current))
+	}
+
+	merged, err := database.MergeAnalysis(writeDB(ctx, gormdb), model, patch)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.Error(fiber.StatusNotFound, opts.title, opts.name+" was not found")
+		}
+
+		return common.InternalServerError(opts.title)
+	}
+
+	return ctx.JSON(merged)
 }
 
 // writeError maps the error of a create or update to Problem JSON: 409
