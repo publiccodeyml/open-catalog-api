@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func TestSoftwareEndpoints(t *testing.T) {
@@ -1857,55 +1860,24 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 
 		const softwareID = "59803fb7-8eec-4fe5-a354-8926009c364a"
 
-		bodies := []string{
-			`{"scanner-one":{"v":1,"score":90}}`,
-			`{"scanner-two":{"v":2,"grade":"A"}}`,
-		}
-		type patchResult struct {
-			status int
-			err    error
-		}
+		waitForPark, release := holdFirstAnalysisWrite(t, softwareID)
 
-		start := make(chan struct{})
-		results := make(chan patchResult, len(bodies))
+		parked := make(chan patchResult, 1)
+		go func() {
+			parked <- sendAnalysisPatch(softwareID, `{"scanner-one":{"v":1,"score":90}}`)
+		}()
 
-		for _, body := range bodies {
-			go func() {
-				req, err := newTestRequest(
-					"PATCH",
-					"/v1/software/"+softwareID+"/analysis",
-					strings.NewReader(body),
-				)
-				if err != nil {
-					results <- patchResult{err: err}
+		waitForPark()
 
-					return
-				}
+		overtaking := sendAnalysisPatch(softwareID, `{"scanner-two":{"v":2,"grade":"A"}}`)
+		release()
 
-				req.Header = map[string][]string{
-					"Authorization": {goodToken},
-					"Content-Type":  {"application/merge-patch+json"},
-				}
+		first := <-parked
 
-				<-start
-
-				res, err := app.Test(req, -1)
-				status := 0
-				if res != nil {
-					status = res.StatusCode
-					_ = res.Body.Close()
-				}
-
-				results <- patchResult{status: status, err: err}
-			}()
-		}
-
-		close(start)
-		for range bodies {
-			result := <-results
-			require.NoError(t, result.err)
-			assert.Equal(t, 200, result.status)
-		}
+		require.NoError(t, overtaking.err)
+		require.NoError(t, first.err)
+		assert.Equal(t, 200, overtaking.status)
+		assert.Equal(t, 200, first.status)
 
 		raw := dbValue(t, "software", "analysis", "id", softwareID)
 
@@ -2025,6 +1997,85 @@ func storedNamespace(t *testing.T, softwareID, namespace string) map[string]any 
 	require.NoError(t, json.Unmarshal([]byte(dbValue(t, "software", "analysis", "id", softwareID)), &analysis))
 
 	return analysis[namespace]
+}
+
+type patchResult struct {
+	status int
+	err    error
+}
+
+// sendAnalysisPatch runs one analysis PATCH and returns the outcome
+// instead of failing the test, so it can run on its own goroutine.
+func sendAnalysisPatch(softwareID, body string) patchResult {
+	req, err := newTestRequest(
+		"PATCH",
+		"/v1/software/"+softwareID+"/analysis",
+		strings.NewReader(body),
+	)
+	if err != nil {
+		return patchResult{err: err}
+	}
+
+	req.Header = map[string][]string{
+		"Authorization": {goodToken},
+		"Content-Type":  {"application/merge-patch+json"},
+	}
+
+	res, err := app.Test(req, -1)
+	if res == nil {
+		return patchResult{err: err}
+	}
+
+	_ = res.Body.Close()
+
+	return patchResult{status: res.StatusCode, err: err}
+}
+
+// holdFirstAnalysisWrite blocks the first UPDATE of the analysis of
+// softwareID until release is called. The test needs it because two
+// requests started together overlap only by chance: a handler that reads
+// the document, merges it in Go and writes it back passes whenever the
+// first request finishes before the second starts.
+func holdFirstAnalysisWrite(t *testing.T, softwareID string) (waitForPark, release func()) {
+	t.Helper()
+
+	const name = "test:hold_analysis_write"
+
+	parked := make(chan struct{})
+	proceed := make(chan struct{})
+
+	var once sync.Once
+
+	updates := gormDB.Callback().Update()
+
+	require.NoError(t, updates.Before("gorm:update").Register(name, func(tx *gorm.DB) {
+		software, ok := tx.Statement.Model.(*models.Software)
+		if !ok || software.ID != softwareID {
+			return
+		}
+
+		first := false
+		once.Do(func() { first = true })
+
+		if !first {
+			return
+		}
+
+		close(parked)
+		<-proceed
+	}))
+
+	t.Cleanup(func() { require.NoError(t, updates.Remove(name)) })
+
+	waitForPark = func() {
+		select {
+		case <-parked:
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "the first analysis PATCH never reached its write")
+		}
+	}
+
+	return waitForPark, func() { close(proceed) }
 }
 
 func TestSoftwareDeleteDBChecks(t *testing.T) {
