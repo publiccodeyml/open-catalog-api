@@ -73,15 +73,19 @@ func analysisMergeExpression(dialect string, patch common.AnalysisData) (clause.
 		// json_patch cannot be used here: its recursive merge would treat a
 		// null inside a namespace as a deletion. Rebuild only the top-level
 		// object so namespace values remain opaque and are replaced whole.
+		// The value column of json_each loses the JSON type of an atom: a
+		// string comes back unquoted, true and false as 1 and 0. The ->
+		// operator returns every value as JSON text, so the namespace is read
+		// with it from the document instead.
 		return gorm.Expr(
 			`(
 				SELECT json_group_object(merged.key, json(merged.value))
 				FROM (
-					SELECT key, value
+					SELECT key, json -> fullkey AS value
 					FROM json_each(COALESCE(analysis, '{}'))
 					WHERE key NOT IN (SELECT key FROM json_each(json(?)))
 					UNION ALL
-					SELECT key, value FROM json_each(json(?))
+					SELECT key, json -> fullkey AS value FROM json_each(json(?))
 				) AS merged
 			)`,
 			string(patchJSON),
