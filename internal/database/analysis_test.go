@@ -246,3 +246,75 @@ func openAnalysisTestDatabase(t *testing.T) *gorm.DB {
 
 	return gormdb
 }
+
+func TestMergeAnalysisKeepsEveryStoredJSONType(t *testing.T) {
+	tests := []struct {
+		name      string
+		namespace string
+		stored    string
+	}{
+		{"string", "s", `"just a string"`},
+		{"integer", "i", `1`},
+		{"float", "f", `1.5`},
+		{"true", "t", `true`},
+		{"false", "b", `false`},
+		{"null", "n", `null`},
+		{"array", "a", `[1,"x",null]`},
+		{"nested object", "o", `{"v":1,"nested":{"k":[true]}}`},
+		{"object", "normal", `{"v":1}`},
+	}
+
+	gormdb := openAnalysisTestDatabase(t)
+	recordID := utils.UUIDv4()
+	seeded := make(common.AnalysisData, len(tests))
+
+	for _, test := range tests {
+		seeded[test.namespace] = json.RawMessage(test.stored)
+	}
+
+	require.NoError(t, gormdb.Create(&analysisMergeRecord{ID: recordID, Analysis: seeded}).Error)
+	t.Cleanup(func() {
+		require.NoError(t, gormdb.Delete(&analysisMergeRecord{}, "id = ?", recordID).Error)
+	})
+
+	target := analysisMergeRecord{ID: recordID}
+	merged, err := MergeAnalysis(gormdb, &target, common.AnalysisData{"fresh": json.RawMessage(`{"v":2}`)})
+	require.NoError(t, err)
+
+	var stored analysisMergeRecord
+
+	require.NoError(t, gormdb.First(&stored, "id = ?", recordID).Error)
+	require.Len(t, stored.Analysis, len(tests)+1)
+	assert.JSONEq(t, `{"v":2}`, string(stored.Analysis["fresh"]))
+	assert.Equal(t, decodeAnalysis(t, stored.Analysis), decodeAnalysis(t, merged))
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t,
+				decodeValue(t, json.RawMessage(test.stored)),
+				decodeValue(t, stored.Analysis[test.namespace]),
+			)
+		})
+	}
+}
+
+func decodeAnalysis(t *testing.T, analysis common.AnalysisData) map[string]any {
+	t.Helper()
+
+	decoded := make(map[string]any, len(analysis))
+	for namespace, value := range analysis {
+		decoded[namespace] = decodeValue(t, value)
+	}
+
+	return decoded
+}
+
+func decodeValue(t *testing.T, value json.RawMessage) any {
+	t.Helper()
+
+	var decoded any
+
+	require.NoError(t, json.Unmarshal(value, &decoded))
+
+	return decoded
+}
