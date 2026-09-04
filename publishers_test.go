@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1219,6 +1220,54 @@ func TestPublishersDeleteDBChecks(t *testing.T) {
 
 		assert.False(t, dbNull(t, "logs", "deleted_at", "id", logID))
 		assert.Equal(t, 1, dbCount(t, "events", "entity_id", italiaPublisherID))
+	})
+
+	t.Run("concurrent DELETE of one publisher answers 404 once", func(t *testing.T) {
+		loadFixtures(t)
+
+		const (
+			publisherID = "0947ebca-ae8f-46e1-9cfe-2caccc87108b"
+			paddingLogs = 300
+		)
+
+		addEntityLogs(t, "publishers", publisherID, paddingLogs)
+
+		start := make(chan struct{})
+		statuses := make(chan int, 2)
+
+		for range 2 {
+			go func() {
+				req, err := newTestRequest("DELETE", "/v1/publishers/"+publisherID, nil)
+				if err != nil {
+					statuses <- 0
+
+					return
+				}
+
+				req.Header = map[string][]string{"Authorization": {goodToken}}
+
+				<-start
+
+				res, err := app.Test(req, -1)
+				if err != nil {
+					statuses <- 0
+
+					return
+				}
+
+				_ = res.Body.Close()
+
+				statuses <- res.StatusCode
+			}()
+		}
+
+		close(start)
+
+		statusCodes := []int{<-statuses, <-statuses}
+		slices.Sort(statusCodes)
+
+		assert.Equal(t, []int{204, 404}, statusCodes)
+		assert.Equal(t, 1, dbCount(t, "events", "entity_id", publisherID))
 	})
 }
 

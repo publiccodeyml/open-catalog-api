@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now goes through the same validation as a `POST`.
 - A `DELETE` of a missing software answered `404` but still recorded a
   delete event and notified the webhooks.
+- Two concurrent `DELETE` of the same software or publisher both
+  answered `204` and recorded two delete events.
 - The event recorded by an analysis `PATCH` had no actor.
 - `?from` and `?to` refused RFC 3339 values with a zone offset.
 - `?from` and `?to` were ignored on the per entity log lists and on the

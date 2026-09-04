@@ -68,10 +68,14 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error {
 	return updatePublisher(ctx, writeDB(ctx, p.db), *found)
 }
 
-// DeletePublisher deletes the publisher with the given ID.
+// DeletePublisher deletes the publisher with the given ID. The lookup
+// stays because the delete matches the UUID alone, while the id in the
+// path can be an alternative id.
 func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
+	const errMsg = "can't delete Publisher"
+
 	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
-		title:           "can't delete Publisher",
+		title:           errMsg,
 		name:            publisherEntityName,
 		byAlternativeID: true,
 	})
@@ -86,9 +90,9 @@ func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
 			return err
 		}
 
-		return tran.Select(codeHostingAssociation).Delete(&publisher).Error
+		return deleteResult(tran.Select(codeHostingAssociation).Delete(&publisher))
 	}); err != nil {
-		return common.InternalServerError("can't delete Publisher")
+		return deleteError(err, errMsg, publisherEntityName)
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)

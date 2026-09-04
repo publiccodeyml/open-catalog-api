@@ -280,6 +280,32 @@ func deleteEntityLogs(tran *gorm.DB, entity models.Model) error {
 		Delete(&models.Log{}).Error
 }
 
+// deleteResult reports gorm.ErrRecordNotFound when the delete matched no
+// row. gorm runs the AfterDelete hook either way, so a concurrent DELETE
+// of an id already gone would otherwise answer 204 and record a second
+// delete event.
+func deleteResult(result *gorm.DB) error {
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+// deleteError maps the error of a delete to Problem JSON: 404 when the row
+// was already gone, 500 otherwise.
+func deleteError(err error, title, name string) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return common.Error(fiber.StatusNotFound, title, name+" was not found")
+	}
+
+	return common.InternalServerError(title)
+}
+
 // updateColumns writes the listed columns of entity and only those. A plain
 // struct update skips a nil pointer, so a merge patch nulling an optional
 // field would answer 200 and leave the old value in the row. Naming the

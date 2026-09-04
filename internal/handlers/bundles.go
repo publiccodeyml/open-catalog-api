@@ -130,19 +130,13 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 func (b *Bundle) DeleteBundle(ctx *fiber.Ctx) error {
 	const errMsg = "can't delete Bundle"
 
-	bundle, err := findOne[models.Bundle](b.db, ctx.Params("id"), findOptions{
-		title: errMsg,
-		name:  bundleEntityName,
-	})
-	if err != nil {
-		return err
-	}
+	bundle := models.Bundle{ID: ctx.Params("id")}
 
 	// Select("Software") also removes the bundles_software join rows.
 	if err := models.Transaction(writeDB(ctx, b.db), func(tran *gorm.DB) error {
-		return tran.Select(softwareAssociation).Delete(bundle).Error
+		return deleteResult(tran.Select(softwareAssociation).Delete(&bundle))
 	}); err != nil {
-		return common.InternalServerError(errMsg)
+		return deleteError(err, errMsg, bundleEntityName)
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)
