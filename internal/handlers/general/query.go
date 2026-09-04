@@ -49,7 +49,7 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string) (*g
 	}
 
 	if from := ctx.Query("from", ""); from != "" {
-		at, err := time.Parse("2006-01-02T15:04:05Z", from)
+		at, err := time.Parse(time.RFC3339, from)
 		if err != nil {
 			return nil, common.ErrInvalidDateTime
 		}
@@ -58,7 +58,7 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string) (*g
 	}
 
 	if to := ctx.Query("to", ""); to != "" {
-		at, err := time.Parse("2006-01-02T15:04:05Z", to)
+		at, err := time.Parse(time.RFC3339, to)
 		if err != nil {
 			return nil, common.ErrInvalidDateTime
 		}
