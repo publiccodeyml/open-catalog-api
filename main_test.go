@@ -72,13 +72,13 @@ func init() {
 
 	dsn := os.Getenv("DATABASE_DSN")
 
-	dialect, err := database.Dialect(dsn)
+	dialect, err := database.DialectFromDSN(dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// database/sql registers the SQLite driver under a name of its own.
-	dbDriver = dialect
+	dbDriver = string(dialect)
 	if dialect == database.SQLite {
 		dbDriver = "sqlite3"
 	}

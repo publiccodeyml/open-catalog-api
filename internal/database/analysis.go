@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-var errUnsupportedAnalysisDialect = errors.New("unsupported database dialect for analysis merge")
+var errUnsupportedDialect = errors.New("unsupported database dialect for analysis merge")
 
 // MergeAnalysis atomically replaces the namespaces in patch while preserving
 // every namespace that is already stored but absent from patch. It writes
@@ -26,7 +26,12 @@ func MergeAnalysis(
 		patch = common.AnalysisData{}
 	}
 
-	expression, err := analysisMergeExpression(gormdb.Name(), patch)
+	dialect, err := DialectOf(gormdb)
+	if err != nil {
+		return nil, err
+	}
+
+	expression, err := analysisMergeExpression(dialect, patch)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +62,7 @@ func MergeAnalysis(
 	return merged, nil
 }
 
-func analysisMergeExpression(dialect string, patch common.AnalysisData) (clause.Expr, error) {
+func analysisMergeExpression(dialect Dialect, patch common.AnalysisData) (clause.Expr, error) {
 	patchJSON, err := json.Marshal(patch)
 	if err != nil {
 		return clause.Expr{}, fmt.Errorf("marshal analysis patch: %w", err)
@@ -94,6 +99,6 @@ func analysisMergeExpression(dialect string, patch common.AnalysisData) (clause.
 			string(patchJSON),
 		), nil
 	default:
-		return clause.Expr{}, fmt.Errorf("%w: %s", errUnsupportedAnalysisDialect, dialect)
+		return clause.Expr{}, fmt.Errorf("%w: %q", errUnsupportedDialect, dialect)
 	}
 }

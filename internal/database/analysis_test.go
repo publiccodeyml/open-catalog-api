@@ -220,7 +220,7 @@ func openAnalysisTestDatabase(t *testing.T) *gorm.DB {
 	if dsn != "" {
 		var err error
 
-		dialect, err = Dialect(dsn)
+		dialect, err = DialectFromDSN(dsn)
 		require.NoError(t, err)
 	}
 

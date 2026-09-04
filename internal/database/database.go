@@ -14,19 +14,23 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+type Dialect string
+
 const (
-	SQLite   = "sqlite"
-	Postgres = "postgres"
+	SQLite   Dialect = "sqlite"
+	Postgres Dialect = "postgres"
 )
 
 var ErrUnknownDialect = errors.New(
 	`unrecognized database DSN: expected a "file:" SQLite DSN, a "postgres://" URL or a key=value connection string`,
 )
 
-// Dialect reports which database a DSN points at. Everything that opens
-// a connection goes through here, so the application and the test
+var errUnknownGormDialect = errors.New("unrecognized gorm driver name")
+
+// DialectFromDSN reports which database a DSN points at. Everything that
+// opens a connection goes through here, so the application and the test
 // harness can't disagree and end up talking to two different databases.
-func Dialect(connection string) (string, error) {
+func DialectFromDSN(connection string) (Dialect, error) {
 	switch {
 	case strings.HasPrefix(connection, "file:"):
 		return SQLite, nil
@@ -39,8 +43,23 @@ func Dialect(connection string) (string, error) {
 	return "", fmt.Errorf("%w: %q", ErrUnknownDialect, connection)
 }
 
+// DialectOf reports the Dialect an already open *gorm.DB is talking to, read
+// from the driver name gorm reports for it. It is the one place that maps a
+// gorm driver name back to a Dialect, so a request handler and NewDatabase
+// read the same fact instead of each guessing from the connection.
+func DialectOf(gormdb *gorm.DB) (Dialect, error) {
+	switch name := gormdb.Name(); name {
+	case string(SQLite):
+		return SQLite, nil
+	case string(Postgres):
+		return Postgres, nil
+	default:
+		return "", fmt.Errorf("%w: %q", errUnknownGormDialect, name)
+	}
+}
+
 func NewDatabase(connection string) (*gorm.DB, error) {
-	dialect, err := Dialect(connection)
+	dialect, err := DialectFromDSN(connection)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +71,7 @@ func NewDatabase(connection string) (*gorm.DB, error) {
 		log.Println("using SQLite database")
 
 		database, err = gorm.Open(sqlite.Open(connection), &gorm.Config{})
-	default:
+	case Postgres:
 		log.Println("using Postgres database")
 
 		database, err = gorm.Open(postgres.Open(connection), &gorm.Config{
