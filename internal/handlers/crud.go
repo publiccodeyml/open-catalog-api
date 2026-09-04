@@ -147,6 +147,16 @@ func findOne[T any](gormdb *gorm.DB, id string, opts findOptions) (*T, error) {
 	return &item, nil
 }
 
+// analysisOrEmpty answers a as the response body, or an empty AnalysisData
+// when a is nil, so a bare {} never renders as the JSON literal null.
+func analysisOrEmpty(a common.AnalysisData) common.AnalysisData {
+	if a == nil {
+		return common.AnalysisData{}
+	}
+
+	return a
+}
+
 // writeError maps the error of a create or update to Problem JSON: 409
 // when a unique constraint or the alternativeId check failed, 500
 // otherwise. The raw database error never reaches the client.

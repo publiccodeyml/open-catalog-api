@@ -60,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   made every later `PATCH` on that row answer `500`.
 - A `PATCH` on the analysis dropped a namespace that another writer had
   changed since the client read it.
+- An empty `PATCH` on the analysis recorded an update event and fired
+  the webhooks.
 
 ### Security
 

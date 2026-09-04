@@ -348,6 +348,18 @@ func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
 	}
 
+	if len(patch) == 0 {
+		software, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{
+			title: errMsg,
+			name:  softwareEntityName,
+		})
+		if err != nil {
+			return err
+		}
+
+		return ctx.JSON(analysisOrEmpty(software.Analysis))
+	}
+
 	software := models.Software{ID: ctx.Params("id")}
 
 	merged, err := database.MergeAnalysis(writeDB(ctx, p.db), &software, patch)
