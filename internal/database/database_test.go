@@ -26,7 +26,7 @@ func testConnection(t *testing.T) string {
 		return sqliteTestConnection(t)
 	}
 
-	dialect, err := Dialect(connection)
+	dialect, err := DialectFromDSN(connection)
 	require.NoError(t, err)
 
 	if dialect == SQLite {
