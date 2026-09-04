@@ -604,9 +604,7 @@ func (c *Catalog) PatchCatalogAnalysis(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "invalid or malformed JSON")
 	}
 
-	// Validate and timestamp only the changed namespaces. The returned map
-	// is a database patch, not a copy of the complete analysis document.
-	patch, err := timestampTouchedAnalysis(catalog.Analysis, incoming, time.Now())
+	patch, err := common.WithTimestamps(incoming, time.Now())
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
 	}

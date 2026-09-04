@@ -318,3 +318,59 @@ func decodeValue(t *testing.T, value json.RawMessage) any {
 
 	return decoded
 }
+
+func TestMergeAnalysisKeepsTheStoredNamespaceWhenOnlyTheTimestampDiffers(t *testing.T) {
+	gormdb := openAnalysisTestDatabase(t)
+	recordID := utils.UUIDv4()
+
+	// The stored and the incoming namespace use the same key order, as the
+	// API writes them, so the textual comparison on SQLite matches.
+	require.NoError(t, gormdb.Create(&analysisMergeRecord{
+		ID: recordID,
+		Analysis: common.AnalysisData{
+			"scanner": json.RawMessage(`{"v":1,"score":90,"t":"2020-01-01T00:00:00Z"}`),
+		},
+	}).Error)
+	t.Cleanup(func() {
+		require.NoError(t, gormdb.Delete(&analysisMergeRecord{}, "id = ?", recordID).Error)
+	})
+
+	target := analysisMergeRecord{ID: recordID}
+	merged, err := MergeAnalysis(gormdb, &target, common.AnalysisData{
+		"scanner": json.RawMessage(`{"v":1,"score":90,"t":"2026-09-04T10:00:00Z"}`),
+	})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"v":1,"score":90,"t":"2020-01-01T00:00:00Z"}`, string(merged["scanner"]))
+
+	var stored analysisMergeRecord
+
+	require.NoError(t, gormdb.First(&stored, "id = ?", recordID).Error)
+	assert.JSONEq(t, `{"v":1,"score":90,"t":"2020-01-01T00:00:00Z"}`, string(stored.Analysis["scanner"]))
+}
+
+func TestMergeAnalysisWritesTheIncomingNamespaceWhenTheValueDiffers(t *testing.T) {
+	gormdb := openAnalysisTestDatabase(t)
+	recordID := utils.UUIDv4()
+
+	require.NoError(t, gormdb.Create(&analysisMergeRecord{
+		ID: recordID,
+		Analysis: common.AnalysisData{
+			"scanner": json.RawMessage(`{"v":1,"score":50,"t":"2020-01-01T00:00:00Z"}`),
+		},
+	}).Error)
+	t.Cleanup(func() {
+		require.NoError(t, gormdb.Delete(&analysisMergeRecord{}, "id = ?", recordID).Error)
+	})
+
+	target := analysisMergeRecord{ID: recordID}
+	merged, err := MergeAnalysis(gormdb, &target, common.AnalysisData{
+		"scanner": json.RawMessage(`{"v":1,"score":90,"t":"2026-09-04T10:00:00Z"}`),
+	})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"v":1,"score":90,"t":"2026-09-04T10:00:00Z"}`, string(merged["scanner"]))
+
+	var stored analysisMergeRecord
+
+	require.NoError(t, gormdb.First(&stored, "id = ?", recordID).Error)
+	assert.JSONEq(t, `{"v":1,"score":90,"t":"2026-09-04T10:00:00Z"}`, string(stored.Analysis["scanner"]))
+}

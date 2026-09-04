@@ -1914,6 +1914,85 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 		assert.Contains(t, analysis, "scanner-one")
 		assert.Contains(t, analysis, "scanner-two")
 	})
+
+	t.Run("PATCH analysis keeps the timestamp of a namespace it does not change", func(t *testing.T) {
+		loadFixtures(t)
+
+		const softwareID = "59803fb7-8eec-4fe5-a354-8926009c364a"
+		const storedAt = "2020-01-01T00:00:00Z"
+
+		writeAnalysis(t, softwareID, `{"scanner":{"v":1,"score":90,"t":"`+storedAt+`"}}`)
+
+		code, body := patch(t, "/v1/software/"+softwareID+"/analysis",
+			"application/merge-patch+json", `{"scanner": {"v": 1, "score": 90}}`)
+
+		assert.Equal(t, 200, code, "body: %s", body)
+
+		scanner := storedNamespace(t, softwareID, "scanner")
+		assert.Equal(t, storedAt, scanner["t"])
+		assert.Equal(t, float64(90), scanner["score"])
+	})
+
+	t.Run("PATCH analysis writes a namespace another writer changed", func(t *testing.T) {
+		loadFixtures(t)
+
+		const softwareID = "59803fb7-8eec-4fe5-a354-8926009c364a"
+		const body = `{"scanner": {"v": 1, "score": 90}}`
+
+		code, response := patch(t, "/v1/software/"+softwareID+"/analysis", "application/merge-patch+json", body)
+		require.Equal(t, 200, code, "body: %s", response)
+
+		seeded := assertRFC3339(t, storedNamespace(t, softwareID, "scanner")["t"])
+
+		writeAnalysis(t, softwareID, `{"scanner":{"v":1,"score":50,"t":"2020-01-01T00:00:00Z"}}`)
+
+		code, response = patch(t, "/v1/software/"+softwareID+"/analysis", "application/merge-patch+json", body)
+		assert.Equal(t, 200, code, "body: %s", response)
+
+		scanner := storedNamespace(t, softwareID, "scanner")
+		assert.Equal(t, float64(90), scanner["score"])
+		assert.False(t, assertRFC3339(t, scanner["t"]).Before(seeded))
+	})
+
+	t.Run("PATCH analysis with an identical body keeps the timestamp", func(t *testing.T) {
+		loadFixtures(t)
+
+		const softwareID = "59803fb7-8eec-4fe5-a354-8926009c364a"
+		const body = `{"scanner": {"v": 1, "score": 90}}`
+
+		code, response := patch(t, "/v1/software/"+softwareID+"/analysis", "application/merge-patch+json", body)
+		require.Equal(t, 200, code, "body: %s", response)
+
+		first := storedNamespace(t, softwareID, "scanner")["t"]
+
+		code, response = patch(t, "/v1/software/"+softwareID+"/analysis", "application/merge-patch+json", body)
+		assert.Equal(t, 200, code, "body: %s", response)
+
+		assert.Equal(t, first, storedNamespace(t, softwareID, "scanner")["t"])
+	})
+}
+
+// writeAnalysis sets the analysis column of a software row directly, as
+// another writer would between the client's read and its PATCH.
+func writeAnalysis(t *testing.T, softwareID, document string) {
+	t.Helper()
+
+	query := "UPDATE software SET analysis = " + placeholder(1) + " WHERE id = " + placeholder(2)
+
+	_, err := db.Exec(query, document, softwareID)
+	require.NoError(t, err)
+}
+
+// storedNamespace decodes one namespace out of the analysis column of a
+// software row.
+func storedNamespace(t *testing.T, softwareID, namespace string) map[string]any {
+	t.Helper()
+
+	var analysis map[string]map[string]any
+
+	require.NoError(t, json.Unmarshal([]byte(dbValue(t, "software", "analysis", "id", softwareID)), &analysis))
+
+	return analysis[namespace]
 }
 
 func TestSoftwareDeleteDBChecks(t *testing.T) {
