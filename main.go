@@ -38,7 +38,7 @@ func main() {
 		Use:          "open-catalog-api",
 		SilenceUsage: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			app, debouncer, stopEventPurge := Setup()
+			app, debouncer, stopEventPurge, _ := Setup()
 
 			sigCh := make(chan os.Signal, 1)
 			signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -74,7 +74,9 @@ func main() {
 	}
 }
 
-func Setup() (*fiber.App, *webhooks.Debouncer, func()) {
+// Setup builds the app. It also returns the gorm handle: the tests hook
+// callbacks on the same connection the handlers use.
+func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	if err := env.Parse(&common.EnvironmentConfig); err != nil {
 		panic(err)
 	}
@@ -167,7 +169,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func()) {
 
 	setupHandlers(app, gormDB)
 
-	return app, debouncer, stopEventPurge
+	return app, debouncer, stopEventPurge, gormDB
 }
 
 // requiresAuth reports whether a request must carry a valid token. Reads

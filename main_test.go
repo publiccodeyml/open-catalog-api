@@ -25,6 +25,7 @@ import (
 	"github.com/publiccodeyml/open-catalog-api/internal/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 const UUID_REGEXP = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
@@ -32,6 +33,7 @@ const UUID_REGEXP = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 var (
 	app       *fiber.App
 	db        *sql.DB
+	gormDB    *gorm.DB
 	dbDriver  string
 	goodToken = "Bearer v2.local.TwwHUQEi8hr2Eo881_Bs5vK9dHOR5BgEU24QRf-U7VmUwI1yOEA6mFT0EsXioMkFT_T-jjrtIJ_Nv8f6hR6ifJXUOuzWEkm9Ijq1mqSjQatD3aDqKMyjjBA"
 	badToken  = "Bearer v2.local.UngfrCDNwGUw4pff2oBNoyxYvOErcbVVqLndl6nzONafUCzktaOeMSmoI7B0h62zoxXXLqTm_Phl"
@@ -95,7 +97,7 @@ func init() {
 	}
 
 	// Setup the app as it is done in the main function
-	app, _, _ = Setup()
+	app, _, _, gormDB = Setup()
 }
 
 func TestMain(m *testing.M) {
@@ -369,11 +371,11 @@ func TestRateLimiterBuckets(t *testing.T) {
 	// An empty variable leaves the already parsed value alone, so the app
 	// trusting nobody has to be built before the one with a trusted proxy.
 	t.Setenv("TRUSTED_PROXIES", "")
-	directApp, _, _ := Setup()
+	directApp, _, _, _ := Setup()
 
 	// 0.0.0.0 is the peer address of a request made through app.Test().
 	t.Setenv("TRUSTED_PROXIES", "0.0.0.0/32")
-	proxiedApp, _, _ := Setup()
+	proxiedApp, _, _, _ := Setup()
 
 	t.Run("a client varying X-Forwarded-For stays in one bucket", func(t *testing.T) {
 		codes := make([]int, 0, maxRequests+1)
