@@ -1285,6 +1285,18 @@ func TestPublishersLogsEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: `GET logs with a "from" query param later than every log`,
+			query:       "GET /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs?from=2020-01-01T00:00:00Z",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				data := assertListResponse(t, response)
+
+				assert.Empty(t, data)
+			},
+		},
+		{
 			description: "GET logs for non existing publisher",
 			query:       "GET /v1/publishers/NO_SUCH_PUBLISHER/logs",
 

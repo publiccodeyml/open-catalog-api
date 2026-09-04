@@ -46,7 +46,7 @@ func (e *Event) GetEvents(ctx *fiber.Ctx) error {
 		stmt = stmt.Where(map[string]any{"type": eventType})
 	}
 
-	return list[models.Event](ctx, stmt, listOptions{title: errMsg, order: paginator.DESC})
+	return list[models.Event](ctx, stmt, listOptions{title: errMsg, order: paginator.DESC, dateWindow: true})
 }
 
 // GetEvent gets the event with the given ID and returns any error encountered.

@@ -378,10 +378,7 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	stmt, err := general.Clauses(ctx, c.db.Preload("Aliases").Scopes(catalogScope(catalog)), "", "")
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
-	}
+	stmt := c.db.Preload("Aliases").Scopes(catalogScope(catalog))
 
 	stmt, found, err := softwareURLFilter(ctx, c.db, stmt, "can't get Software")
 	if err != nil {

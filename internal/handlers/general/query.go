@@ -36,9 +36,10 @@ func QueryErrorDetail(err error) string {
 // Clauses applies the ?filter, ?from, ?to and ?search query parameters
 // to stmt. filterField is the column ?filter matches exactly and
 // searchField the column ?search matches as a case insensitive
-// substring. An empty column name leaves its parameter unread: the
-// lists without such a column must not pass it on to the database.
-func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string) (*gorm.DB, error) {
+// substring, dateWindow turns ?from and ?to on. An empty column name or
+// a false dateWindow leaves the parameter unread: a list must not act
+// on a parameter its OpenAPI operation does not declare.
+func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string, dateWindow bool) (*gorm.DB, error) {
 	ret := stmt
 
 	if filterField != "" {
@@ -48,6 +49,31 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string) (*g
 			ret = ret.Where(map[string]any{filterField: filter})
 		}
 	}
+
+	if dateWindow {
+		var err error
+
+		ret, err = createdAtWindow(ctx, ret)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if searchField != "" {
+		if search := ctx.Query("search", ""); search != "" {
+			ret = ret.Where(clause.Expr{
+				SQL:  "LOWER(?) LIKE ?",
+				Vars: []any{clause.Column{Name: searchField}, "%" + utils.ToLower(search) + "%"},
+			})
+		}
+	}
+
+	return ret, nil
+}
+
+// createdAtWindow narrows stmt to the ?from and ?to window.
+func createdAtWindow(ctx *fiber.Ctx, stmt *gorm.DB) (*gorm.DB, error) {
+	ret := stmt
 
 	if from := ctx.Query("from", ""); from != "" {
 		at, err := time.Parse(time.RFC3339, from)
@@ -65,15 +91,6 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string) (*g
 		}
 
 		ret = ret.Where("created_at < ?", at)
-	}
-
-	if searchField != "" {
-		if search := ctx.Query("search", ""); search != "" {
-			ret = ret.Where(clause.Expr{
-				SQL:  "LOWER(?) LIKE ?",
-				Vars: []any{clause.Column{Name: searchField}, "%" + utils.ToLower(search) + "%"},
-			})
-		}
 	}
 
 	return ret, nil

@@ -30,7 +30,7 @@ func NewSoftware(db *gorm.DB) *Software {
 
 // GetAllSoftware gets the list of all software and returns any error encountered.
 func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error {
-	stmt, err := general.Clauses(ctx, p.db.Preload("Aliases"), "", "")
+	stmt, err := general.Clauses(ctx, p.db.Preload("Aliases"), "", "", true)
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
@@ -375,12 +375,13 @@ func softwareURLFilter(ctx *fiber.Ctx, gormdb, stmt *gorm.DB, title string) (*go
 
 // listSoftware writes one page of the software matched by stmt. stmt must
 // Preload("Aliases") and nothing else: Preload("URL") makes gorm guess a
-// has one through the software_id column and load an arbitrary url.
+// has one through the software_id column and load an arbitrary url. The
+// ?from and ?to window is the caller's, GET /software applies it before
+// its ?url short circuit and the catalog software list does not declare it.
 func listSoftware(ctx *fiber.Ctx, stmt *gorm.DB) error {
 	software, cursor, err := paginate[models.Software](ctx, stmt, listOptions{
-		title:       "can't get Software",
-		activeOnly:  true,
-		skipClauses: true,
+		title:      "can't get Software",
+		activeOnly: true,
 	})
 	if err != nil {
 		return err

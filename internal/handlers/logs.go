@@ -26,6 +26,7 @@ func (p *Log) GetLogs(ctx *fiber.Ctx) error {
 		filterField: "message",
 		searchField: "message",
 		order:       paginator.DESC,
+		dateWindow:  true,
 	})
 }
 
@@ -179,9 +180,9 @@ func (p *Log) getEntityLogs(ctx *fiber.Ctx, entity models.Model, entityName stri
 		Where("entity_id = ?", entity.UUID())
 
 	return list[models.Log](ctx, stmt, listOptions{
-		title:       "can't get Logs",
-		order:       paginator.DESC,
-		skipClauses: true,
+		title:      "can't get Logs",
+		order:      paginator.DESC,
+		dateWindow: true,
 	})
 }
 

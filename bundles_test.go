@@ -39,6 +39,17 @@ func TestBundleEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description:         "GET bundles ignores a from param the operation does not declare",
+			query:               "GET /v1/bundles?from=not-a-date",
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				data := assertListResponse(t, response)
+
+				assert.Equal(t, 2, len(data))
+			},
+		},
+		{
 			description:         "GET bundles with all=true returns inactive too",
 			query:               "GET /v1/bundles?all=true",
 			expectedCode:        200,

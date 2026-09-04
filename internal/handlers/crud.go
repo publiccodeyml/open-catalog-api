@@ -28,11 +28,11 @@ type listOptions struct {
 	order paginator.Order
 	// activeOnly applies models.Active unless ?all=true is given.
 	activeOnly bool
-	// skipClauses leaves ?filter, ?from, ?to and ?search untouched,
-	// either because the list never supported them (webhooks, per
-	// resource logs) or because the handler applied them itself before
-	// a short circuit (the software lists).
-	skipClauses bool
+	// dateWindow narrows the list to the ?from and ?to window on
+	// created_at. Only the lists whose OpenAPI operation declares the two
+	// parameters read them, elsewhere they are ignored rather than
+	// filtering a page or answering 422 on a value nobody documented.
+	dateWindow bool
 }
 
 // paginate applies opts to stmt and returns one page of T plus the cursor
@@ -41,17 +41,13 @@ type listOptions struct {
 func paginate[T any](ctx *fiber.Ctx, stmt *gorm.DB, opts listOptions) ([]T, paginator.Cursor, error) {
 	var items []T
 
-	if !opts.skipClauses {
-		var err error
-
-		stmt, err = general.Clauses(ctx, stmt, opts.filterField, opts.searchField)
-		if err != nil {
-			return nil, paginator.Cursor{}, common.Error(
-				fiber.StatusUnprocessableEntity,
-				opts.title,
-				general.QueryErrorDetail(err),
-			)
-		}
+	stmt, err := general.Clauses(ctx, stmt, opts.filterField, opts.searchField, opts.dateWindow)
+	if err != nil {
+		return nil, paginator.Cursor{}, common.Error(
+			fiber.StatusUnprocessableEntity,
+			opts.title,
+			general.QueryErrorDetail(err),
+		)
 	}
 
 	if opts.activeOnly && !ctx.QueryBool("all", false) {
