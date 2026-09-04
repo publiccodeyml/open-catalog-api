@@ -2,16 +2,13 @@ package handlers
 
 import (
 	"cmp"
-	"encoding/json"
 	"errors"
 	"net/url"
 	"slices"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
-	"github.com/publiccodeyml/open-catalog-api/internal/database"
 	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
@@ -576,11 +573,7 @@ func (c *Catalog) GetCatalogAnalysis(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
 	}
 
-	if catalog.Analysis == nil {
-		return ctx.JSON(common.AnalysisData{})
-	}
-
-	return ctx.JSON(catalog.Analysis)
+	return ctx.JSON(analysisOrEmpty(catalog.Analysis))
 }
 
 // PatchCatalogAnalysis merges the incoming analysis namespaces into the stored analysis.
@@ -599,28 +592,9 @@ func (c *Catalog) PatchCatalogAnalysis(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
 	}
 
-	var incoming common.AnalysisData
-	if err := json.Unmarshal(ctx.Body(), &incoming); err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "invalid or malformed JSON")
-	}
-
-	patch, err := common.WithTimestamps(incoming, time.Now())
-	if err != nil {
-		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
-	}
-
-	if len(patch) == 0 {
-		return ctx.JSON(analysisOrEmpty(catalog.Analysis))
-	}
-
-	merged, err := database.MergeAnalysis(writeDB(ctx, c.db), catalog, patch)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
-		}
-
-		return common.InternalServerError(errMsg)
-	}
-
-	return ctx.JSON(merged)
+	return patchAnalysis(ctx, c.db, catalog, analysisOptions{
+		title:   errMsg,
+		name:    "Catalog",
+		current: func() (common.AnalysisData, error) { return catalog.Analysis, nil },
+	})
 }
