@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `filter` parameter of `GET /v1/logs` was missing from the OpenAPI
   spec, and the README named a Go version older than the one required.
 - The sources of a patched catalog were returned in a random order.
+- A `PATCH` on the analysis of a software or catalog that rolled back
+  still notified the webhooks of an update that never happened.
 
 ### Security
 

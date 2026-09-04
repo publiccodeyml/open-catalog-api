@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -34,7 +35,7 @@ func MergeAnalysis(
 		Analysis common.AnalysisData `gorm:"type:jsonb"`
 	}
 
-	err = gormdb.Transaction(func(transaction *gorm.DB) error {
+	err = models.Transaction(gormdb, func(transaction *gorm.DB) error {
 		result := transaction.Model(model).Where(query, args...).Update("analysis", expression)
 		if result.Error != nil {
 			return fmt.Errorf("update analysis: %w", result.Error)
