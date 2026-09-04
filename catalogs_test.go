@@ -1479,6 +1479,28 @@ func TestCatalogAnalysisDBChecks(t *testing.T) {
 		assert.Contains(t, analysis, "ns-one", "ns-one namespace must survive a subsequent PATCH of a different namespace")
 		assert.Contains(t, analysis, "ns-two", "ns-two namespace must be present after second PATCH")
 	})
+
+	t.Run("PATCH empty analysis leaves the stored analysis untouched", func(t *testing.T) {
+		loadFixtures(t)
+
+		body := `{"badges": {"v": 1, "score": 75}}`
+		code, response := patch(t, "/v1/catalogs/"+italiaID+"/analysis", "application/merge-patch+json", body)
+		require.Equal(t, 200, code, "body: %s", response)
+
+		updatedAtBefore := dbValue(t, "catalogs", "updated_at", "id", italiaID)
+		eventsBefore := dbCount(t, "events", "entity_id", italiaID)
+
+		code, response = patch(t, "/v1/catalogs/"+italiaID+"/analysis", "application/merge-patch+json", `{}`)
+		require.Equal(t, 200, code, "body: %s", response)
+
+		var analysis map[string]any
+		require.NoError(t, json.NewDecoder(strings.NewReader(string(response))).Decode(&analysis))
+		badges := analysis["badges"].(map[string]any)
+		assert.Equal(t, float64(75), badges["score"])
+
+		assert.Equal(t, updatedAtBefore, dbValue(t, "catalogs", "updated_at", "id", italiaID))
+		assert.Equal(t, eventsBefore, dbCount(t, "events", "entity_id", italiaID))
+	})
 }
 
 func TestCatalogPostDBChecks(t *testing.T) {

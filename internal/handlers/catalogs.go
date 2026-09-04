@@ -609,6 +609,10 @@ func (c *Catalog) PatchCatalogAnalysis(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
 	}
 
+	if len(patch) == 0 {
+		return ctx.JSON(analysisOrEmpty(catalog.Analysis))
+	}
+
 	merged, err := database.MergeAnalysis(writeDB(ctx, c.db), catalog, patch)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

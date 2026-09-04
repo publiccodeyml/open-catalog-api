@@ -1970,6 +1970,38 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 
 		assert.Equal(t, first, storedNamespace(t, softwareID, "scanner")["t"])
 	})
+
+	t.Run("PATCH empty analysis leaves the stored analysis untouched", func(t *testing.T) {
+		loadFixtures(t)
+
+		const softwareID = "59803fb7-8eec-4fe5-a354-8926009c364a"
+
+		writeAnalysis(t, softwareID, `{"scanner":{"v":1,"score":90,"t":"2020-01-01T00:00:00Z"}}`)
+
+		updatedAtBefore := dbValue(t, "software", "updated_at", "id", softwareID)
+		eventsBefore := dbCount(t, "events", "entity_id", softwareID)
+
+		code, response := patch(t, "/v1/software/"+softwareID+"/analysis", "application/merge-patch+json", `{}`)
+		require.Equal(t, 200, code, "body: %s", response)
+
+		var analysis map[string]any
+		require.NoError(t, json.NewDecoder(strings.NewReader(string(response))).Decode(&analysis))
+		scanner := analysis["scanner"].(map[string]any)
+		assert.Equal(t, "2020-01-01T00:00:00Z", scanner["t"])
+
+		assert.Equal(t, updatedAtBefore, dbValue(t, "software", "updated_at", "id", softwareID))
+		assert.Equal(t, eventsBefore, dbCount(t, "events", "entity_id", softwareID))
+	})
+
+	t.Run("PATCH empty analysis on software with no analysis returns an empty object", func(t *testing.T) {
+		loadFixtures(t)
+
+		const softwareID = "59803fb7-8eec-4fe5-a354-8926009c364a"
+
+		code, response := patch(t, "/v1/software/"+softwareID+"/analysis", "application/merge-patch+json", `{}`)
+		require.Equal(t, 200, code, "body: %s", response)
+		assert.JSONEq(t, `{}`, string(response))
+	})
 }
 
 // writeAnalysis sets the analysis column of a software row directly, as
