@@ -28,6 +28,10 @@ func (analysisMergeRecord) TableName() string {
 	return "analysis_merge_test_records"
 }
 
+func (r analysisMergeRecord) AnalysisDocument() common.AnalysisData {
+	return r.Analysis
+}
+
 func TestMergeAnalysisConcurrentNamespaces(t *testing.T) {
 	gormdb := openAnalysisTestDatabase(t)
 	recordID := utils.UUIDv4()
@@ -50,7 +54,7 @@ func TestMergeAnalysisConcurrentNamespaces(t *testing.T) {
 			<-start
 
 			target := analysisMergeRecord{ID: recordID}
-			_, err := MergeAnalysis(gormdb, &target, patch, "id = ?", recordID)
+			_, err := MergeAnalysis(gormdb, &target, patch)
 			errorsChannel <- err
 		}()
 	}
@@ -87,13 +91,48 @@ func TestMergeAnalysisReplacesWholeNamespace(t *testing.T) {
 		gormdb,
 		&target,
 		common.AnalysisData{"scanner": json.RawMessage(`{"v":2,"fresh":true,"nullable":null}`)},
-		"id = ?",
-		recordID,
 	)
 	require.NoError(t, err)
 	require.Len(t, merged, 2)
 	assert.JSONEq(t, `{"v":2,"fresh":true,"nullable":null}`, string(merged["scanner"]))
 	assert.JSONEq(t, `{"v":1,"keep":true}`, string(merged["other"]))
+}
+
+func TestMergeAnalysisReadsBackTheUpdatedRow(t *testing.T) {
+	gormdb := openAnalysisTestDatabase(t)
+	firstID := "a-" + utils.UUIDv4()
+	secondID := "z-" + utils.UUIDv4()
+
+	require.NoError(t, gormdb.Create(&analysisMergeRecord{
+		ID:       firstID,
+		Analysis: common.AnalysisData{"scanner": json.RawMessage(`{"v":1,"row":"first"}`)},
+	}).Error)
+	require.NoError(t, gormdb.Create(&analysisMergeRecord{
+		ID:       secondID,
+		Analysis: common.AnalysisData{"scanner": json.RawMessage(`{"v":1,"row":"second"}`)},
+	}).Error)
+	t.Cleanup(func() {
+		require.NoError(t, gormdb.Delete(&analysisMergeRecord{}, "id IN ?", []string{firstID, secondID}).Error)
+	})
+
+	target := analysisMergeRecord{ID: secondID}
+	merged, err := MergeAnalysis(gormdb, &target, common.AnalysisData{"fresh": json.RawMessage(`{"v":2}`)})
+	require.NoError(t, err)
+
+	assert.JSONEq(t, `{"v":1,"row":"second"}`, string(merged["scanner"]))
+	assert.JSONEq(t, `{"v":2}`, string(merged["fresh"]))
+
+	var stored analysisMergeRecord
+
+	require.NoError(t, gormdb.First(&stored, "id = ?", secondID).Error)
+	assert.JSONEq(t, `{"v":1,"row":"second"}`, string(stored.Analysis["scanner"]))
+	assert.JSONEq(t, `{"v":2}`, string(stored.Analysis["fresh"]))
+
+	var untouched analysisMergeRecord
+
+	require.NoError(t, gormdb.First(&untouched, "id = ?", firstID).Error)
+	assert.Len(t, untouched.Analysis, 1)
+	assert.JSONEq(t, `{"v":1,"row":"first"}`, string(untouched.Analysis["scanner"]))
 }
 
 func TestMergeAnalysisOnAMissingRowSendsNoEvent(t *testing.T) {
@@ -108,8 +147,6 @@ func TestMergeAnalysisOnAMissingRowSendsNoEvent(t *testing.T) {
 		gormdb,
 		&target,
 		common.AnalysisData{"scanner": json.RawMessage(`{"v":1}`)},
-		"id = ?",
-		softwareID,
 	)
 
 	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
@@ -146,8 +183,6 @@ func TestMergeAnalysisSendsOneUpdateEventAfterTheCommit(t *testing.T) {
 		gormdb,
 		&target,
 		common.AnalysisData{"scanner": json.RawMessage(`{"v":1}`)},
-		"id = ?",
-		softwareID,
 	)
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"v":1}`, string(merged["scanner"]))

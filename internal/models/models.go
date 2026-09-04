@@ -14,6 +14,12 @@ type Model interface {
 	UUID() string
 }
 
+// Analyzable is a model carrying an analysis document. MergeAnalysis reads
+// the merged document back through it.
+type Analyzable interface {
+	AnalysisDocument() common.AnalysisData
+}
+
 type Bundle struct {
 	ID          string     `json:"id" gorm:"primaryKey"`
 	Name        string     `json:"name" gorm:"uniqueIndex;not null"`
@@ -93,6 +99,10 @@ func (c Catalog) UUID() string {
 	return c.ID
 }
 
+func (c Catalog) AnalysisDocument() common.AnalysisData {
+	return c.Analysis
+}
+
 type Publisher struct {
 	ID            string        `json:"id" gorm:"primaryKey"`
 	CatalogID     *string       `json:"catalogId,omitempty" gorm:"index"`
@@ -155,6 +165,10 @@ func (Software) TableName() string {
 
 func (s Software) UUID() string {
 	return s.ID
+}
+
+func (s Software) AnalysisDocument() common.AnalysisData {
+	return s.Analysis
 }
 
 //nolint:musttag // we are using a custom MarshalJSON method

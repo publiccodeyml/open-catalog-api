@@ -14,13 +14,13 @@ import (
 var errUnsupportedAnalysisDialect = errors.New("unsupported database dialect for analysis merge")
 
 // MergeAnalysis atomically replaces the namespaces in patch while preserving
-// every namespace that is already stored but absent from patch.
+// every namespace that is already stored but absent from patch. It writes
+// the row the model's primary key addresses and reads the merged document
+// back from the same statement.
 func MergeAnalysis(
 	gormdb *gorm.DB,
-	model any,
+	model models.Analyzable,
 	patch common.AnalysisData,
-	query string,
-	args ...any,
 ) (common.AnalysisData, error) {
 	if patch == nil {
 		patch = common.AnalysisData{}
@@ -31,12 +31,10 @@ func MergeAnalysis(
 		return nil, err
 	}
 
-	var stored struct {
-		Analysis common.AnalysisData `gorm:"type:jsonb"`
-	}
-
 	err = models.Transaction(gormdb, func(transaction *gorm.DB) error {
-		result := transaction.Model(model).Where(query, args...).Update("analysis", expression)
+		result := transaction.Model(model).
+			Clauses(clause.Returning{Columns: []clause.Column{{Name: "analysis"}}}).
+			Update("analysis", expression)
 		if result.Error != nil {
 			return fmt.Errorf("update analysis: %w", result.Error)
 		}
@@ -45,24 +43,18 @@ func MergeAnalysis(
 			return gorm.ErrRecordNotFound
 		}
 
-		if err := transaction.Model(model).
-			Select("analysis").
-			Where(query, args...).
-			Take(&stored).Error; err != nil {
-			return fmt.Errorf("read merged analysis: %w", err)
-		}
-
 		return nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("merge analysis: %w", err)
 	}
 
-	if stored.Analysis == nil {
+	merged := model.AnalysisDocument()
+	if merged == nil {
 		return common.AnalysisData{}, nil
 	}
 
-	return stored.Analysis, nil
+	return merged, nil
 }
 
 func analysisMergeExpression(dialect string, patch common.AnalysisData) (clause.Expr, error) {
