@@ -178,6 +178,30 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: `GET with "from" query param carrying a zone offset`,
+			query:       "GET /v1/logs?from=2010-03-01T11:56:23%2B02:00",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+
+				assert.Equal(t, 20, len(data))
+			},
+		},
+		{
+			description: `GET with "from" query param carrying fractional seconds`,
+			query:       "GET /v1/logs?from=2010-03-01T09:56:23.000000Z",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+
+				assert.Equal(t, 20, len(data))
+			},
+		},
+		{
 			description: `GET with invalid "from" query param`,
 			query:       "GET /v1/logs?from=3",
 
@@ -191,6 +215,18 @@ func TestLogsEndpoints(t *testing.T) {
 		{
 			description: `GET with "to" query param`,
 			query:       "GET /v1/logs?to=2010-03-01T09:56:23Z",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := response["data"].([]any)
+
+				assert.Equal(t, 6, len(data))
+			},
+		},
+		{
+			description: `GET with "to" query param carrying a zone offset`,
+			query:       "GET /v1/logs?to=2010-03-01T11:56:23%2B02:00",
 
 			expectedCode:        200,
 			expectedContentType: "application/json",

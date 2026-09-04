@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A `DELETE` of a missing software answered `404` but still recorded a
   delete event and notified the webhooks.
 - The event recorded by an analysis `PATCH` had no actor.
+- `?from` and `?to` refused RFC 3339 values with a zone offset.
 - Catalogs, bundles and webhooks wrote no event to the audit trail.
 - A webhook `POST` with the url of an existing one answered `500` instead
   of `409`.
