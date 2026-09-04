@@ -338,27 +338,17 @@ func (p *Software) GetSoftwareAnalysis(ctx *fiber.Ctx) error {
 func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Software analysis"
 
-	found, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{
-		title: errMsg,
-		name:  softwareEntityName,
-	})
-	if err != nil {
-		return err
-	}
-
-	software := *found
-
 	var incoming common.AnalysisData
 	if err := json.Unmarshal(ctx.Body(), &incoming); err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "invalid or malformed JSON")
 	}
 
-	// Validate and timestamp only the changed namespaces. The returned map
-	// is a database patch, not a copy of the complete analysis document.
-	patch, err := timestampTouchedAnalysis(software.Analysis, incoming, time.Now())
+	patch, err := common.WithTimestamps(incoming, time.Now())
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, err.Error())
 	}
+
+	software := models.Software{ID: ctx.Params("id")}
 
 	merged, err := database.MergeAnalysis(writeDB(ctx, p.db), &software, patch)
 	if err != nil {
@@ -370,26 +360,6 @@ func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.JSON(merged)
-}
-
-// timestampTouchedAnalysis returns the added or changed namespaces with a
-// fresh timestamp. Namespaces absent from updated are deliberately omitted:
-// the database merges this patch atomically with the value it currently has.
-func timestampTouchedAnalysis(
-	original, updated common.AnalysisData,
-	now time.Time,
-) (common.AnalysisData, error) {
-	touched := make(common.AnalysisData)
-
-	for namespace, value := range updated {
-		originalValue, exists := original[namespace]
-		if !exists || string(originalValue) != string(value) {
-			touched[namespace] = value
-		}
-	}
-
-	//nolint:wrapcheck // validation errors are safe API messages with their namespace prefix
-	return common.WithTimestamps(touched, now)
 }
 
 // softwareURLFilter narrows stmt to the software owning the ?url query

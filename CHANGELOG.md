@@ -58,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   still notified the webhooks of an update that never happened.
 - On SQLite, a stored analysis namespace that was not a JSON object
   made every later `PATCH` on that row answer `500`.
+- A `PATCH` on the analysis dropped a namespace that another writer had
+  changed since the client read it.
 
 ### Security
 

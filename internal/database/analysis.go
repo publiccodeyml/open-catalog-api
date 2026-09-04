@@ -62,6 +62,12 @@ func MergeAnalysis(
 	return merged, nil
 }
 
+// analysisMergeExpression builds the SET expression of the analysis merge.
+// Each incoming namespace is compared with the stored one, "t" excluded:
+// equal keeps the stored namespace and its timestamp, different writes the
+// incoming one. The comparison runs on the row being updated, so a
+// namespace another writer changed after the client read it is still
+// written.
 func analysisMergeExpression(dialect Dialect, patch common.AnalysisData) (clause.Expr, error) {
 	patchJSON, err := json.Marshal(patch)
 	if err != nil {
@@ -70,8 +76,18 @@ func analysisMergeExpression(dialect Dialect, patch common.AnalysisData) (clause
 
 	switch dialect {
 	case Postgres:
+		// Postgres refuses to delete a key from a jsonb scalar, so when
+		// either side is not an object the incoming value is taken as is.
 		return gorm.Expr(
-			"COALESCE(analysis, '{}'::jsonb) || CAST(? AS jsonb)",
+			`COALESCE(analysis, '{}'::jsonb) || (
+				SELECT COALESCE(jsonb_object_agg(patch.key, CASE
+					WHEN jsonb_typeof(analysis -> patch.key) <> 'object'
+						OR jsonb_typeof(patch.value) <> 'object' THEN patch.value
+					WHEN (analysis -> patch.key) - 't' = patch.value - 't' THEN analysis -> patch.key
+					ELSE patch.value
+				END), '{}'::jsonb)
+				FROM jsonb_each(CAST(? AS jsonb)) AS patch
+			)`,
 			string(patchJSON),
 		), nil
 	case SQLite:
@@ -82,18 +98,27 @@ func analysisMergeExpression(dialect Dialect, patch common.AnalysisData) (clause
 		// string comes back unquoted, true and false as 1 and 0. The ->
 		// operator returns every value as JSON text, so the namespace is read
 		// with it from the document instead.
+		// SQLite compares the two namespaces as text, so the keys must be in
+		// the same order on both sides. A namespace written through this API
+		// keeps the key order of the request, so it matches. One stored in
+		// another order counts as changed and only gets a fresh timestamp.
 		return gorm.Expr(
 			`(
 				WITH patch AS MATERIALIZED (
 					SELECT key, json -> fullkey AS value FROM json_each(json(?))
+				), stored AS MATERIALIZED (
+					SELECT key, json -> fullkey AS value FROM json_each(COALESCE(analysis, '{}'))
 				)
 				SELECT json_group_object(merged.key, json(merged.value))
 				FROM (
-					SELECT key, json -> fullkey AS value
-					FROM json_each(COALESCE(analysis, '{}'))
-					WHERE key NOT IN (SELECT key FROM patch)
+					SELECT key, value FROM stored WHERE key NOT IN (SELECT key FROM patch)
 					UNION ALL
-					SELECT key, value FROM patch
+					SELECT patch.key, CASE
+						WHEN json(json_remove(stored.value, '$.t')) = json(json_remove(patch.value, '$.t'))
+							THEN stored.value
+						ELSE patch.value
+					END
+					FROM patch LEFT JOIN stored ON stored.key = patch.key
 				) AS merged
 			)`,
 			string(patchJSON),
