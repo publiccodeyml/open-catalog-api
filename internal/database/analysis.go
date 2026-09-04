@@ -79,16 +79,18 @@ func analysisMergeExpression(dialect string, patch common.AnalysisData) (clause.
 		// with it from the document instead.
 		return gorm.Expr(
 			`(
+				WITH patch AS MATERIALIZED (
+					SELECT key, json -> fullkey AS value FROM json_each(json(?))
+				)
 				SELECT json_group_object(merged.key, json(merged.value))
 				FROM (
 					SELECT key, json -> fullkey AS value
 					FROM json_each(COALESCE(analysis, '{}'))
-					WHERE key NOT IN (SELECT key FROM json_each(json(?)))
+					WHERE key NOT IN (SELECT key FROM patch)
 					UNION ALL
-					SELECT key, json -> fullkey AS value FROM json_each(json(?))
+					SELECT key, value FROM patch
 				) AS merged
 			)`,
-			string(patchJSON),
 			string(patchJSON),
 		), nil
 	default:
