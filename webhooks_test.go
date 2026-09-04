@@ -101,6 +101,19 @@ func TestWebhooksEndpoints(t *testing.T) {
 			},
 		},
 
+		{
+			description:         `GET webhooks with a "from" query param later than every webhook`,
+			query:               "GET /v1/software/webhooks?from=2020-01-01T00:00:00Z",
+			headers:             map[string][]string{"Authorization": {goodToken}},
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				data := assertListResponse(t, response)
+
+				assert.Empty(t, data)
+			},
+		},
+
 		// GET /software/:id/webhooks
 		{
 			description:         "GET webhooks of a software with invalid format for page[size] query param",
@@ -111,6 +124,19 @@ func TestWebhooksEndpoints(t *testing.T) {
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assert.Equal(t, "can't get Webhooks", response["title"])
 				assert.Equal(t, "page[size] must be an integer", response["detail"])
+			},
+		},
+
+		{
+			description:         `GET webhooks of a software with a "from" query param later than every webhook`,
+			query:               "GET /v1/software/9f135268-a37e-4ead-96ec-e4a24bb9344a/webhooks?from=2020-01-01T00:00:00Z",
+			headers:             map[string][]string{"Authorization": {goodToken}},
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]interface{}) {
+				data := assertListResponse(t, response)
+
+				assert.Empty(t, data)
 			},
 		},
 

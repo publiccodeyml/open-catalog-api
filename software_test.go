@@ -1176,6 +1176,30 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: `GET logs with a "from" query param later than every log`,
+			query:       "GET /v1/software/c353756e-8597-4e46-a99b-7da2e141603b/logs?from=2020-01-01T00:00:00Z",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+
+				assert.Empty(t, data)
+			},
+		},
+		{
+			description: `GET logs with a "to" query param earlier than every log`,
+			query:       "GET /v1/software/c353756e-8597-4e46-a99b-7da2e141603b/logs?to=2000-01-01T00:00:00Z",
+
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+
+				assert.Empty(t, data)
+			},
+		},
+		{
 			description: "GET logs for non existing software",
 			query:       "GET /v1/software/NO_SUCH_SOFTWARE/logs",
 

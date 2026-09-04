@@ -44,7 +44,7 @@ func (p *Webhook[T]) GetResourceWebhooks(ctx *fiber.Ctx) error {
 
 	stmt := p.db.Where(map[string]any{"entity_type": resource.TableName()})
 
-	return list[models.Webhook](ctx, stmt, listOptions{title: "can't get Webhooks", skipClauses: true})
+	return list[models.Webhook](ctx, stmt, listOptions{title: "can't get Webhooks", dateWindow: true})
 }
 
 // GetSingleResourceWebhooks gets the webhooks associated to a resource
@@ -65,7 +65,7 @@ func (p *Webhook[T]) GetSingleResourceWebhooks(ctx *fiber.Ctx) error {
 		Where(map[string]any{"entity_type": resource.TableName()}).
 		Where("entity_id = ?", resource.UUID())
 
-	return list[models.Webhook](ctx, stmt, listOptions{title: "can't get Webhooks", skipClauses: true})
+	return list[models.Webhook](ctx, stmt, listOptions{title: "can't get Webhooks", dateWindow: true})
 }
 
 // PostResourceWebhook creates a new webhook associated to resources

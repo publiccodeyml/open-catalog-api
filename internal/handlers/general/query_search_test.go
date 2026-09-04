@@ -20,7 +20,7 @@ func TestClausesQuotesSearchColumn(t *testing.T) {
 
 	stmt := db.Session(&gorm.Session{DryRun: true}).Table("logs")
 
-	ret, err := Clauses(ctx, stmt, "", "name")
+	ret, err := Clauses(ctx, stmt, "", "name", false)
 	require.NoError(t, err)
 
 	sql := ret.Find(&[]struct{}{}).Statement.SQL.String()

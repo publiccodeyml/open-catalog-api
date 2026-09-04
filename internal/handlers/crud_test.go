@@ -110,7 +110,7 @@ func TestPaginateFilterField(t *testing.T) {
 	require.Len(t, items, 1)
 	assert.Equal(t, "two", items[0].ID)
 
-	items, _, err = paginate[crudItem](newCrudCtx(t, "filter=second"), db, listOptions{title: "t", skipClauses: true})
+	items, _, err = paginate[crudItem](newCrudCtx(t, "filter=second"), db, listOptions{title: "t"})
 	require.NoError(t, err)
 	assert.Len(t, items, 3)
 }
@@ -131,11 +131,34 @@ func TestPaginateSearchField(t *testing.T) {
 	assert.Len(t, items, 3)
 }
 
+func TestPaginateDateWindow(t *testing.T) {
+	db := newCrudDB(t)
+	seedCrudItems(t, db)
+
+	items, _, err := paginate[crudItem](
+		newCrudCtx(t, "from=2024-01-01T00:30:00Z"), db, listOptions{title: "t", dateWindow: true},
+	)
+	require.NoError(t, err)
+	assert.Len(t, items, 2)
+
+	// Without the window the two parameters are ignored, a bad value
+	// included: the list does not document them.
+	items, _, err = paginate[crudItem](newCrudCtx(t, "from=2024-01-01T00:30:00Z"), db, listOptions{title: "t"})
+	require.NoError(t, err)
+	assert.Len(t, items, 3)
+
+	items, _, err = paginate[crudItem](newCrudCtx(t, "from=not-a-date"), db, listOptions{title: "t"})
+	require.NoError(t, err)
+	assert.Len(t, items, 3)
+}
+
 func TestPaginateErrors(t *testing.T) {
 	db := newCrudDB(t)
 	seedCrudItems(t, db)
 
-	_, _, err := paginate[crudItem](newCrudCtx(t, "from=not-a-date"), db, listOptions{title: "can't get Items"})
+	_, _, err := paginate[crudItem](
+		newCrudCtx(t, "from=not-a-date"), db, listOptions{title: "can't get Items", dateWindow: true},
+	)
 	assert.Equal(t, fiber.StatusUnprocessableEntity, problemStatus(t, err))
 
 	_, _, err = paginate[crudItem](newCrudCtx(t, "page[after]=garbage"), db, listOptions{title: "can't get Items"})

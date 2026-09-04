@@ -27,6 +27,7 @@ func (p *Publisher) GetPublishers(ctx *fiber.Ctx) error {
 	return list[models.Publisher](ctx, p.db.Preload(codeHostingAssociation), listOptions{
 		title:      "can't get Publishers",
 		activeOnly: true,
+		dateWindow: true,
 	})
 }
 
