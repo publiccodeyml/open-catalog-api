@@ -2,8 +2,6 @@ package database
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,10 +10,7 @@ import (
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type analysisMergeRecord struct {
@@ -214,35 +209,8 @@ func drainEventChan() {
 func openAnalysisTestDatabase(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	dsn := os.Getenv("DATABASE_DSN")
-	dialect := SQLite
-
-	if dsn != "" {
-		var err error
-
-		dialect, err = DialectFromDSN(dsn)
-		require.NoError(t, err)
-	}
-
-	var (
-		gormdb *gorm.DB
-		err    error
-	)
-
-	if dialect == Postgres {
-		gormdb, err = gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-	} else {
-		dsn = "file:" + filepath.Join(t.TempDir(), "analysis.db") + "?_journal_mode=WAL&_busy_timeout=5000"
-		gormdb, err = gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	}
-	require.NoError(t, err)
+	gormdb := openDatabase(t, testConnection(t))
 	require.NoError(t, gormdb.AutoMigrate(&analysisMergeRecord{}))
-
-	sqldb, err := gormdb.DB()
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, sqldb.Close())
-	})
 
 	return gormdb
 }
