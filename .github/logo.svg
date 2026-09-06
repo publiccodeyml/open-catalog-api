@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 24 24" role="img" aria-labelledby="title" color="#6b25c7">
+  <title id="title">Open Catalog API</title>
+  <g fill="currentColor">
+    <path d="M12.0000 9.8000L12.0000 3.6000" fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round" />
+    <circle cx="12.0000" cy="3.6000" r="1.35" />
+    <path d="M13.9053 10.9000L19.2746 7.8000" fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round" />
+    <circle cx="19.2746" cy="7.8000" r="1.35" />
+    <path d="M13.9053 13.1000L19.2746 16.2000" fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round" />
+    <circle cx="19.2746" cy="16.2000" r="1.35" />
+    <path d="M12.0000 14.2000L12.0000 20.4000" fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round" />
+    <circle cx="12.0000" cy="20.4000" r="1.35" />
+    <path d="M10.0947 13.1000L4.7254 16.2000" fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round" />
+    <circle cx="4.7254" cy="16.2000" r="1.35" />
+    <path d="M10.0947 10.9000L4.7254 7.8000" fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round" />
+    <circle cx="4.7254" cy="7.8000" r="1.35" />
+    <circle cx="12" cy="12" r="2.2" fill="none" stroke="currentColor" stroke-width=".8" />
+    <circle cx="12" cy="12" r="1.05" />
+  </g>
+</svg>

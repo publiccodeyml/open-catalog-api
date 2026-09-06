@@ -3,7 +3,7 @@
 <h1 align="center">Open Catalog API</h1>
 
 <p align="center">
-  <img width="200" src=".github/logo.png" alt="open-catalog-api logo">
+  <img width="200" src=".github/logo.svg" alt="open-catalog-api logo">
 </p>
 
 <p align="center">
