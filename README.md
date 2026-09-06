@@ -123,6 +123,6 @@ people who already contributed to this repository:
 
 ## License
 
-Copyright © 2022-present Presidenza del Consiglio dei Ministri
-
 The source code is released under the AGPL version 3.
+
+The version control system provides attribution for specific lines of code.
