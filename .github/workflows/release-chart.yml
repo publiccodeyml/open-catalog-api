@@ -7,7 +7,7 @@ permissions: {}
 
 jobs:
   release_chart:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     permissions:
       # To check out the repository
       contents: read
