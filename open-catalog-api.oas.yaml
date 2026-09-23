@@ -1,10 +1,56 @@
 openapi: 3.0.0
 info:
-  title: Open Catalog API
+  title: Free and Open Source Software Catalog API for public administrations
   version: 1.0.0
-  x-summary: Open Catalog API
+  x-summary: Free and Open Source Software Catalog API for public administrations
   description: |
     REST API for public software catalogs.
+
+    Public administrations publish their open source software in code
+    repositories, each described by a [`publiccode.yml`](https://publiccodeyml.github.io)
+    file. A catalog collects that software so that other administrations,
+    companies and citizens can find it, reuse it and contribute to it.
+
+    **`open-catalog-api`** stores the catalog data and serves it to the tools that
+    build it and the tools that read it.
+
+    [![publiccode.yml core tools, with the Open Catalog API highlighted](https://publiccodeyml.github.io/open-catalog-api/core-tools.svg)](https://publiccodeyml.github.io/open-catalog-api/core-tools.svg)
+
+    ## How the catalog works
+
+    1. [publiccode-crawler](https://github.com/publiccodeyml/publiccode-crawler)
+       reads the publishers from this API, visits their code repositories
+       and validates each `publiccode.yml` it finds. It then creates or
+       updates the software here and records a log of every crawl.
+    2. Other authorized clients, such as metrics tools, security scanners
+       and quality checks, write their own data through the same API.
+    3. Catalog frontends, like [publiccode-ui](https://bfabio.github.io/publiccode-ui/),
+       read software and publishers to show them to the public.
+       [publiccode-issueopener](https://github.com/publiccodeyml/publiccode-issueopener)
+       reads the crawl logs and opens an issue on the repository when
+       its `publiccode.yml` has errors.
+    4. Webhook subscribers receive a `POST` on every change to software
+       and publishers, so they do not need to poll.
+
+    ## Resources
+
+    - **Software**: a piece of software and its `publiccode.yml`.
+    - **Publishers**: the organizations that publish software, with the
+      code hosting locations the crawler visits.
+    - **Catalogs**: one API instance can host several catalogs.
+      Software, publishers and logs of a single catalog live under
+      `/catalogs/{catalogId}`.
+    - **Bundles**: named groups of software.
+    - **Logs**: messages about a resource, such as the crawler's results.
+    - **Events**: the audit trail of every create, update and delete.
+    - **Webhooks**: URLs notified when a resource changes.
+
+    ## Authentication
+
+    Reading software, publishers, catalogs, bundles and logs is public.
+    Writes, events and webhooks require a
+    [PASETO](https://paseto.io/) token in the `Authorization: Bearer`
+    header.
 
     ## Caching
 
@@ -21,16 +67,16 @@ info:
     url: 'https://www.apache.org/licenses/LICENSE-2.0'
   contact:
     url: 'https://github.com/publiccodeyml/open-catalog-api'
-    name: Open Catalog API - publiccode.yml project
+    name: Source
   x-api-id: 0f9ca6b0-db47-11ec-96f7-d8bbc146d165
   termsOfService: 'https://publiccodeyml.github.io/open-catalog-api/#terms-of-service'
 servers:
-  - url: 'https://api.developers.italia.it/v1'
-    description: Italian Catalog
-  - url: 'https://oss-catalog-api.ocp.cloudscale.puzzle.ch/v1'
-    description: Swiss Catalog
   - url: 'https://oss-catalog-api.eu/v1'
     description: EU OSS Catalog (unofficial)
+  - url: 'https://oss-catalog-api.ocp.cloudscale.puzzle.ch/v1'
+    description: Swiss Catalog
+  - url: 'https://api.developers.italia.it/v1'
+    description: Italian Public administrations Catalog
 tags:
   - name: bundles
     description: Operations on bundles
