@@ -10,7 +10,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/go-testfixtures/testfixtures/v3 v3.19.0
 	github.com/gofiber/contrib/paseto v1.2.4
-	github.com/gofiber/fiber/v2 v2.52.15
+	github.com/gofiber/fiber/v2 v2.52.16
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/lib/pq v1.12.3
 	github.com/mattn/go-sqlite3 v1.14.52
@@ -18,7 +18,7 @@ require (
 	github.com/pilagod/gorm-cursor-paginator/v2 v2.7.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
-	github.com/valyala/fasthttp v1.76.0
+	github.com/valyala/fasthttp v1.77.0
 	gorm.io/driver/postgres v1.6.3
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.2
