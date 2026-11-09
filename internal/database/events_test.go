@@ -93,6 +93,25 @@ func TestStartEventPurgeDeletesOnStartup(t *testing.T) {
 	}, time.Second, 10*time.Millisecond)
 }
 
+func TestStartEventPurgeStopsAfterShutdown(t *testing.T) {
+	gormdb := newEventDatabase(t)
+
+	initial := createEvent(t, gormdb, 40*day)
+	stop := StartEventPurge(gormdb, 30*day, 100*time.Millisecond)
+	t.Cleanup(stop)
+
+	require.Eventually(t, func() bool {
+		return !eventExists(t, gormdb, initial)
+	}, time.Second, 10*time.Millisecond)
+
+	afterStop := createEvent(t, gormdb, 40*day)
+	stop()
+
+	assert.Never(t, func() bool {
+		return !eventExists(t, gormdb, afterStop)
+	}, 300*time.Millisecond, 10*time.Millisecond)
+}
+
 func TestStartEventPurgeKeepsEveryEventWithoutRetention(t *testing.T) {
 	gormdb := newEventDatabase(t)
 
