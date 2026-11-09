@@ -1,6 +1,7 @@
 package database
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,7 +18,7 @@ const day = 24 * time.Hour
 func newEventDatabase(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	gormdb, err := NewDatabase("file:" + t.Name() + "?mode=memory&cache=shared")
+	gormdb, err := NewDatabase("file:" + filepath.Join(t.TempDir(), "events.db") + "?_busy_timeout=5000")
 	require.NoError(t, err)
 
 	return gormdb
@@ -104,8 +105,8 @@ func TestStartEventPurgeStopsAfterShutdown(t *testing.T) {
 		return !eventExists(t, gormdb, initial)
 	}, time.Second, 10*time.Millisecond)
 
-	afterStop := createEvent(t, gormdb, 40*day)
 	stop()
+	afterStop := createEvent(t, gormdb, 40*day)
 
 	assert.Never(t, func() bool {
 		return !eventExists(t, gormdb, afterStop)
