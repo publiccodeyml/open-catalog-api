@@ -32,6 +32,30 @@ info:
     4. Webhook subscribers receive a `POST` on every change to software
        and publishers, so they do not need to poll.
 
+    ## Webhook delivery formats
+
+    The webhook `format` determines the JSON body and authentication headers
+    sent to the webhook URL. Every delivery has `Content-Type: application/json`
+    and the `open-catalog-api-webhook/1.0` user agent.
+
+    - **default**: the body is `{"event":"create","subject":"/software/{id}"}`.
+      When a secret is configured, `X-Webhook-Signature` contains the lowercase
+      hexadecimal HMAC-SHA256 of the raw request body, using the secret as the key.
+    - **github**: the URL is a GitHub
+      [`repository_dispatch`](https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event)
+      endpoint. The body is `{"event_type":"software.create","client_payload":{"event":"create","subject":"/software/{id}"}}`.
+      Requests include `Accept: application/vnd.github+json` and
+      `X-GitHub-Api-Version: 2022-11-28`. When configured, the secret is a
+      GitHub token sent as `Authorization: Bearer {secret}`.
+    - **standard-webhooks**: the body is
+      `{"type":"software.create","timestamp":"2026-01-02T15:04:05Z","data":{"event":"create","subject":"/software/{id}"}}`.
+      It includes `webhook-id`, `webhook-timestamp` (Unix seconds) and, when a
+      secret is configured, `webhook-signature`. The signature is
+      `v1,{base64(HMAC-SHA256(secret, "{id}.{timestamp}.{body}"))}`.
+
+    The callback schemas below describe the default format. Consumers of the
+    other formats should use the delivery contract above.
+
     ## Resources
 
     - **Software**: a piece of software and its `publiccode.yml`.
@@ -2462,7 +2486,7 @@ components:
     ResourceCreate:
       '{$request.body#/url}':
         post:
-          description: The webhook called when a new resource is created
+          description: The webhook called in the default format when a new resource is created
           requestBody:
             required: true
             content:
@@ -2490,7 +2514,7 @@ components:
     ResourceUpdate:
       '{$request.body#/url}':
         post:
-          description: The webhook called when a resource is updated
+          description: The webhook called in the default format when a resource is updated
           requestBody:
             required: true
             content:
@@ -2518,7 +2542,7 @@ components:
     ResourceDelete:
       '{$request.body#/url}':
         post:
-          description: The webhook called when a resource is deleted
+          description: The webhook called in the default format when a resource is deleted
           requestBody:
             required: true
             content:
