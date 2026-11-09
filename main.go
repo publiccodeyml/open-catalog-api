@@ -136,11 +136,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	// Automatically recover panics in handlers
 	app.Use(recover.New())
 
-	app.Use(healthcheck.New(healthcheck.Config{
-		ReadinessProbe: func(c *fiber.Ctx) bool {
-			return gormDB.Exec("SELECT 1").Error == nil
-		},
-	}))
+	app.Use(newHealthcheck(gormDB))
 
 	// Use Fiber Rate API Limiter
 	if !common.EnvironmentConfig.IsTest() && common.EnvironmentConfig.MaxRequests != 0 {
@@ -170,6 +166,14 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	setupHandlers(app, gormDB)
 
 	return app, debouncer, stopEventPurge, gormDB
+}
+
+func newHealthcheck(gormDB *gorm.DB) fiber.Handler {
+	return healthcheck.New(healthcheck.Config{
+		ReadinessProbe: func(c *fiber.Ctx) bool {
+			return gormDB.Exec("SELECT 1").Error == nil
+		},
+	})
 }
 
 // requiresAuth reports whether a request must carry a valid token. Reads
