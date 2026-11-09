@@ -15,6 +15,71 @@ import (
 
 const deletedAtIndex = "idx_logs_deleted_at"
 
+func TestDialectFromDSN(t *testing.T) {
+	tests := []struct {
+		name       string
+		connection string
+		dialect    Dialect
+		wantErr    bool
+	}{
+		{
+			name:       "SQLite file DSN",
+			connection: "file:catalog.db",
+			dialect:    SQLite,
+		},
+		{
+			name:       "Postgres URL",
+			connection: "postgres://user:password@localhost:5432/catalog",
+			dialect:    Postgres,
+		},
+		{
+			name:       "PostgreSQL URL",
+			connection: "postgresql://user:password@localhost:5432/catalog",
+			dialect:    Postgres,
+		},
+		{
+			name:       "Postgres connection string",
+			connection: "host=localhost user=postgres dbname=catalog",
+			dialect:    Postgres,
+		},
+		{
+			name:       "bare SQLite filename",
+			connection: "catalog.db",
+			wantErr:    true,
+		},
+		{
+			name:       "unsupported database URL",
+			connection: "mysql://localhost/catalog",
+			wantErr:    true,
+		},
+		{
+			name:    "empty connection string",
+			wantErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			dialect, err := DialectFromDSN(test.connection)
+
+			if test.wantErr {
+				require.ErrorIs(t, err, ErrUnknownDialect)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, test.dialect, dialect)
+		})
+	}
+}
+
+func TestNewDatabaseRejectsUnsupportedDSN(t *testing.T) {
+	database, err := NewDatabase("mysql://localhost/catalog")
+
+	assert.Nil(t, database)
+	require.ErrorIs(t, err, ErrUnknownDialect)
+}
+
 // testConnection hands out a database of its own: these tests drop columns
 // and indexes from the logs table, which would break the package main suite
 // running at the same time against the database DATABASE_DSN points at.
