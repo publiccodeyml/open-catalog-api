@@ -280,6 +280,17 @@ func stubLookupHost(t *testing.T, answers map[string][]string) {
 	t.Cleanup(func() { lookupHost = original })
 }
 
+// TestSafeDialContextRefusesSharedAddress verifies that the dial guard blocks
+// RFC 6598 shared address space before attempting a connection.
+func TestSafeDialContextRefusesSharedAddress(t *testing.T) {
+	stubLookupHost(t, map[string][]string{"rebind.test": {"100.64.0.1"}})
+
+	conn, err := safeDialContext(t.Context(), "tcp", "rebind.test:443")
+
+	require.ErrorIs(t, err, errForbiddenAddress)
+	assert.Nil(t, conn)
+}
+
 // TestSafeDialContextRefusesForbiddenAnswer checks that a name resolving to a
 // forbidden address is refused before anything is dialed. The listener is a
 // live target at the first answered address, so an unvetted dial would show
