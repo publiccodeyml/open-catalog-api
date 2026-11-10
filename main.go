@@ -112,6 +112,11 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 				log.Println(err)
 			}
 		},
+		func(event models.Event) {
+			if err := webhooks.DispatchWebhooksAndWait(event, gormDB); err != nil {
+				log.Println(err)
+			}
+		},
 	)
 
 	go func() {

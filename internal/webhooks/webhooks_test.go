@@ -87,6 +87,60 @@ func TestPostTimesOut(t *testing.T) {
 	})
 }
 
+func TestDebouncerDrainWaitsForWebhookDelivery(t *testing.T) {
+	dialGuardDisabled.Store(true)
+	t.Cleanup(func() { dialGuardDisabled.Store(false) })
+
+	received := make(chan struct{})
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		close(received)
+		<-release
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	db := setupDB(t, []models.Webhook{
+		{ID: "wh-shutdown", URL: srv.URL, EntityType: "software", EntityID: ""},
+	})
+	event := models.Event{Type: "created", EntityType: "software"}
+	deliveryErr := make(chan error, 1)
+
+	d := NewDebouncer(time.Hour, time.Hour,
+		func(models.Event) {},
+		func(event models.Event) { deliveryErr <- DispatchWebhooksAndWait(event, db) },
+	)
+	d.Submit(event)
+
+	drained := make(chan struct{})
+	go func() {
+		d.Drain()
+		close(drained)
+	}()
+
+	select {
+	case <-received:
+	case <-time.After(time.Second):
+		t.Fatal("shutdown did not start the webhook delivery")
+	}
+
+	select {
+	case <-drained:
+		t.Fatal("shutdown returned before the webhook delivery completed")
+	default:
+	}
+
+	close(release)
+
+	select {
+	case <-drained:
+	case <-time.After(time.Second):
+		t.Fatal("shutdown did not finish after the webhook delivery completed")
+	}
+
+	require.NoError(t, <-deliveryErr)
+}
+
 // TestDispatchWebhooks_PerWebhookSignature verifies that each webhook subscriber
 // receives an HMAC signature computed with its own secret, not another's.
 func TestDispatchWebhooks_PerWebhookSignature(t *testing.T) {
