@@ -29,6 +29,10 @@ func TestIsForbiddenIP(t *testing.T) {
 		{"192.168.255.255", true},
 		{"fc00::1", true},
 		{"fdff::1", true},
+		{"100.64.0.0", true},
+		{"100.127.255.255", true},
+		{"100.63.255.255", false},
+		{"100.128.0.0", false},
 		{"8.8.8.8", false},
 		{"1.1.1.1", false},
 		{"2001:4860:4860::8888", false},
@@ -66,6 +70,7 @@ func TestValidateWebhookURLStruct(t *testing.T) {
 		{"RFC 1918 172.16.x", "https://172.16.0.1/hook", false},
 		{"RFC 1918 192.168.x", "https://192.168.1.1/hook", false},
 		{"ULA fc00::1", "https://[fc00::1]/hook", false},
+		{"RFC 6598 shared address", "https://100.64.0.1/hook", false},
 		{"userinfo rejected", "https://user:pass@example.com/hook", false},
 		{"empty url", "", false},
 	}
