@@ -2,12 +2,19 @@ package common
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 )
 
 type Base64Key [SymmetricKeyLen]byte
 
 var EnvironmentConfig Environment //nolint:gochecknoglobals
+
+var (
+	errWebhookDebounceNegative    = errors.New("WEBHOOK_DEBOUNCE_MS must not be negative")
+	errWebhookDebounceMaxNegative = errors.New("WEBHOOK_DEBOUNCE_MAX_MS must not be negative")
+	errEventRetentionNegative     = errors.New("EVENT_RETENTION_DAYS must not be negative")
+)
 
 type Environment struct {
 	MaxRequests        int        `env:"MAX_REQUESTS" envDefault:"0"`
@@ -52,6 +59,24 @@ func (k *Base64Key) UnmarshalText(text []byte) error {
 	}
 
 	*k = *(*[SymmetricKeyLen]byte)(key)
+
+	return nil
+}
+
+// Validate rejects configuration values that reserve zero as the disabled
+// state.
+func (e *Environment) Validate() error {
+	if e.WebhookDebounceMS < 0 {
+		return errWebhookDebounceNegative
+	}
+
+	if e.WebhookDebounceMaxMS < 0 {
+		return errWebhookDebounceMaxNegative
+	}
+
+	if e.EventRetentionDays < 0 {
+		return errEventRetentionNegative
+	}
 
 	return nil
 }
