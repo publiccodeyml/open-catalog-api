@@ -440,6 +440,30 @@ func TestRateLimiterBuckets(t *testing.T) {
 	})
 }
 
+func TestSetupRejectsNegativeDurations(t *testing.T) {
+	savedConfig := common.EnvironmentConfig
+	t.Cleanup(func() { common.EnvironmentConfig = savedConfig })
+
+	tests := []struct {
+		name  string
+		key   string
+		panic string
+	}{
+		{"debounce delay", "WEBHOOK_DEBOUNCE_MS", "WEBHOOK_DEBOUNCE_MS must not be negative"},
+		{"debounce cap", "WEBHOOK_DEBOUNCE_MAX_MS", "WEBHOOK_DEBOUNCE_MAX_MS must not be negative"},
+		{"event retention", "EVENT_RETENTION_DAYS", "EVENT_RETENTION_DAYS must not be negative"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(tt.key, "-1")
+			common.EnvironmentConfig = common.Environment{}
+
+			assert.PanicsWithError(t, tt.panic, func() { Setup() })
+		})
+	}
+}
+
 func TestRequiresAuth(t *testing.T) {
 	t.Parallel()
 
