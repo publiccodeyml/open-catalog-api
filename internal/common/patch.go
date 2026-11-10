@@ -59,7 +59,7 @@ func ApplyPatch[T any](entity *T, contentType string, body []byte) (T, *PatchErr
 	} else {
 		updatedJSON, err = jsonpatch.MergePatch(entityJSON, body)
 		if err != nil {
-			return zero, &PatchError{Code: http.StatusInternalServerError, Err: err}
+			return zero, &PatchError{Code: http.StatusBadRequest, Err: err}
 		}
 	}
 

@@ -47,3 +47,11 @@ func TestApplyPatchJSONPatchValidation(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
+func TestApplyPatchRejectsMalformedMergePatch(t *testing.T) {
+	entity := sampleEntity()
+
+	_, err := common.ApplyPatch(&entity, "application/merge-patch+json", []byte(`{"name":`))
+
+	assert.Equal(t, 400, err.Code)
+}
