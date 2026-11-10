@@ -18,13 +18,14 @@ type Dispatcher func(models.Event)
 // `cap` from the first Submit so a key under continuous churn still
 // gets dispatched.
 type Debouncer struct {
-	delay    time.Duration
-	cap      time.Duration
-	dispatch Dispatcher
-	now      func() time.Time
-	newTimer func(time.Duration, func()) Timer
-	mu       sync.Mutex
-	pending  map[string]*pendingEvent
+	delay         time.Duration
+	cap           time.Duration
+	dispatch      Dispatcher
+	drainDispatch Dispatcher
+	now           func() time.Time
+	newTimer      func(time.Duration, func()) Timer
+	mu            sync.Mutex
+	pending       map[string]*pendingEvent
 }
 
 type pendingEvent struct {
@@ -41,8 +42,8 @@ type realTimer struct{ t *time.Timer }
 
 func (r realTimer) Stop() bool { return r.t.Stop() }
 
-func NewDebouncer(delay, capDuration time.Duration, dispatch Dispatcher) *Debouncer {
-	return &Debouncer{
+func NewDebouncer(delay, capDuration time.Duration, dispatch Dispatcher, drainDispatch ...Dispatcher) *Debouncer {
+	d := &Debouncer{
 		delay:    delay,
 		cap:      capDuration,
 		dispatch: dispatch,
@@ -52,6 +53,13 @@ func NewDebouncer(delay, capDuration time.Duration, dispatch Dispatcher) *Deboun
 		},
 		pending: make(map[string]*pendingEvent),
 	}
+
+	d.drainDispatch = dispatch
+	if len(drainDispatch) > 0 {
+		d.drainDispatch = drainDispatch[0]
+	}
+
+	return d
 }
 
 func (d *Debouncer) Submit(event models.Event) {
@@ -114,7 +122,7 @@ func (d *Debouncer) Drain() {
 	d.mu.Unlock()
 
 	for _, event := range events {
-		d.safeDispatch(event)
+		d.safeDrainDispatch(event)
 	}
 }
 
@@ -141,6 +149,14 @@ func (d *Debouncer) flush(key string) {
 // (a nil deref in the dispatcher closure, a panicking GORM call, etc.)
 // does not bring down the timer goroutine and through it the process.
 func (d *Debouncer) safeDispatch(event models.Event) {
+	d.safeCall(d.dispatch, event)
+}
+
+func (d *Debouncer) safeDrainDispatch(event models.Event) {
+	d.safeCall(d.drainDispatch, event)
+}
+
+func (d *Debouncer) safeCall(dispatch Dispatcher, event models.Event) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("debouncer: dispatch panicked for %s/%s/%s: %v",
@@ -148,5 +164,5 @@ func (d *Debouncer) safeDispatch(event models.Event) {
 		}
 	}()
 
-	d.dispatch(event)
+	dispatch(event)
 }

@@ -82,12 +82,13 @@ func (c *fakeClock) FireAll() {
 func newDebouncerWithClock(delay, capDuration time.Duration, dispatch Dispatcher) (*Debouncer, *fakeClock) {
 	clock := &fakeClock{now: time.Unix(0, 0)}
 	d := &Debouncer{
-		delay:    delay,
-		cap:      capDuration,
-		dispatch: dispatch,
-		now:      clock.Now,
-		newTimer: clock.NewTimer,
-		pending:  make(map[string]*pendingEvent),
+		delay:         delay,
+		cap:           capDuration,
+		dispatch:      dispatch,
+		drainDispatch: dispatch,
+		now:           clock.Now,
+		newTimer:      clock.NewTimer,
+		pending:       make(map[string]*pendingEvent),
 	}
 
 	return d, clock
@@ -246,6 +247,21 @@ func TestDebouncerDrainFlushesPendingEvents(t *testing.T) {
 
 	assert.Len(t, received, 2, "Drain dispatches every pending key")
 	assert.Empty(t, d.pending, "Drain leaves the pending map empty")
+}
+
+func TestDebouncerDrainUsesShutdownDispatcher(t *testing.T) {
+	var dispatched, drained int
+
+	d := NewDebouncer(time.Second, 10*time.Second,
+		func(models.Event) { dispatched++ },
+		func(models.Event) { drained++ },
+	)
+
+	d.Submit(models.Event{EntityType: "Software", EntityID: "a", Type: "Updated"})
+	d.Drain()
+
+	assert.Zero(t, dispatched)
+	assert.Equal(t, 1, drained)
 }
 
 func TestDebouncerDispatchPanicDoesNotCrashTimer(t *testing.T) {

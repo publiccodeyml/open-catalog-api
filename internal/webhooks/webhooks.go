@@ -15,6 +15,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -162,6 +163,18 @@ func newWebhookClient() *http.Client {
 var httpClient = newWebhookClient()
 
 func DispatchWebhooks(event models.Event, gorm *gorm.DB) error {
+	return dispatchWebhooks(event, gorm, false)
+}
+
+// DispatchWebhooksAndWait delivers every matching webhook before returning.
+// It is used while the service is shutting down, after the debouncer has
+// stopped accepting events, so a delivery flushed from its pending window is
+// not abandoned when the process exits.
+func DispatchWebhooksAndWait(event models.Event, gorm *gorm.DB) error {
+	return dispatchWebhooks(event, gorm, true)
+}
+
+func dispatchWebhooks(event models.Event, gorm *gorm.DB, wait bool) error {
 	var webhooks []models.Webhook
 
 	subject := "/" + event.EntityType
@@ -182,13 +195,29 @@ func DispatchWebhooks(event models.Event, gorm *gorm.DB) error {
 		return fmt.Errorf("error finding webhooks for %s: %w", subject, err)
 	}
 
+	var deliveries sync.WaitGroup
+
 	for _, webhook := range webhooks {
 		body, headers, err := buildRequest(webhook, event, subject)
 		if err != nil {
 			return fmt.Errorf("error building webhook request for %s: %w", subject, err)
 		}
 
-		go post(webhook.URL, body, headers)
+		if wait {
+			deliveries.Add(1)
+		}
+
+		go func(url string, body []byte, headers map[string]string) {
+			if wait {
+				defer deliveries.Done()
+			}
+
+			post(url, body, headers)
+		}(webhook.URL, body, headers)
+	}
+
+	if wait {
+		deliveries.Wait()
 	}
 
 	return nil
