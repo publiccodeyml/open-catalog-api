@@ -37,17 +37,17 @@ type ValidationError struct {
 	Value string `json:"value"`
 }
 
-// IsForbiddenIP reports whether ip must not be dialed by the webhook
+// IsForbiddenIP reports whether ipAddress must not be dialed by the webhook
 // dispatcher. IsPrivate covers RFC 1918 and RFC 4193. RFC 6598 shared
 // address space is not publicly routable either.
-func IsForbiddenIP(ip net.IP) bool {
-	ipv4 := ip.To4()
+func IsForbiddenIP(ipAddress net.IP) bool {
+	ipv4 := ipAddress.To4()
 
-	return ip.IsLoopback() ||
-		ip.IsLinkLocalUnicast() ||
-		ip.IsLinkLocalMulticast() ||
-		ip.IsUnspecified() ||
-		ip.IsPrivate() ||
+	return ipAddress.IsLoopback() ||
+		ipAddress.IsLinkLocalUnicast() ||
+		ipAddress.IsLinkLocalMulticast() ||
+		ipAddress.IsUnspecified() ||
+		ipAddress.IsPrivate() ||
 		(ipv4 != nil && ipv4[0] == 100 && ipv4[1]&0xc0 == 0x40)
 }
 
