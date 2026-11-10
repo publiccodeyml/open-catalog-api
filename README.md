@@ -31,6 +31,15 @@
 - 🇮🇹 [developers.italia.it](https://developers.italia.it)
 - 🇨🇭 [swiss/oss-catalog](https://github.com/swiss/oss-catalog)
 
+## Architecture
+
+The API is the only component reading and writing the catalog database: the
+catalog front ends and the publiccode crawler reach it over HTTP.
+
+[docs/architecture.md](docs/architecture.md) covers the components around the
+API, the request path through the middleware, the data model, and how a write
+becomes an event and a webhook.
+
 ## Requirements
 
 * Golang 1.27+
