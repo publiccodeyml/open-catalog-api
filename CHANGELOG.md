@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Webhooks targeting RFC 6598 shared address space are now refused.
 - Negative `WEBHOOK_DEBOUNCE_MS`, `WEBHOOK_DEBOUNCE_MAX_MS` and
   `EVENT_RETENTION_DAYS` settings now prevent startup. Use zero to disable
   the corresponding behavior.
