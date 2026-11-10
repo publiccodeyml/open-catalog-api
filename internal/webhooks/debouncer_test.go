@@ -207,6 +207,21 @@ func TestDebouncerZeroDelayDispatchesImmediately(t *testing.T) {
 	assert.Len(t, received, 1, "zero delay disables debouncing")
 }
 
+func TestDebouncerZeroDelayDispatchPanicDoesNotPropagate(t *testing.T) {
+	var dispatched int
+
+	d, _ := newDebouncerWithClock(0, 0, func(models.Event) {
+		dispatched++
+
+		panic("boom")
+	})
+
+	assert.NotPanics(t, func() {
+		d.Submit(models.Event{EntityType: "Software", EntityID: "a", Type: "Updated"})
+	})
+	assert.Equal(t, 1, dispatched)
+}
+
 func TestDebouncerDrainFlushesPendingEvents(t *testing.T) {
 	var (
 		mu       sync.Mutex

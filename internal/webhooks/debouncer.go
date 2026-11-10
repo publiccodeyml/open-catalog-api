@@ -56,7 +56,7 @@ func NewDebouncer(delay, capDuration time.Duration, dispatch Dispatcher) *Deboun
 
 func (d *Debouncer) Submit(event models.Event) {
 	if d.delay <= 0 {
-		d.dispatch(event)
+		d.safeDispatch(event)
 
 		return
 	}
