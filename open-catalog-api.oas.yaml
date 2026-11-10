@@ -50,8 +50,10 @@ info:
     - **standard-webhooks**: the body is
       `{"type":"software.create","timestamp":"2026-01-02T15:04:05Z","data":{"event":"create","subject":"/software/{id}"}}`.
       It includes `webhook-id`, `webhook-timestamp` (Unix seconds) and, when a
-      secret is configured, `webhook-signature`. The signature is
-      `v1,{base64(HMAC-SHA256(secret, "{id}.{timestamp}.{body}"))}`.
+      secret is configured, `webhook-signature`. The secret is used as raw
+      UTF-8 bytes, not as a Base64 key with the `whsec_` prefix. The
+      signature is
+      `v1,{base64(HMAC-SHA256(secret, "{webhook-id}.{webhook-timestamp}.{body}"))}`.
 
     The callback schemas below describe the default format. Consumers of the
     other formats should use the delivery contract above.
