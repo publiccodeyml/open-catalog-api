@@ -33,6 +33,8 @@ func TestIsForbiddenIP(t *testing.T) {
 		{"100.127.255.255", true},
 		{"100.63.255.255", false},
 		{"100.128.0.0", false},
+		{"::ffff:100.64.0.1", true},
+		{"::ffff:100.128.0.0", false},
 		{"8.8.8.8", false},
 		{"1.1.1.1", false},
 		{"2001:4860:4860::8888", false},
