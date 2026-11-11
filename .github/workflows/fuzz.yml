@@ -19,9 +19,13 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Run all fuzz targets
+        shell: bash
         run: |
-          for pkg in $(go list ./...); do
-            for target in $(go test -list '^Fuzz' "$pkg" | grep '^Fuzz' || true); do
+          packages=$(go list ./...)
+          for pkg in $packages; do
+            listing=$(go test -list '^Fuzz' "$pkg")
+            targets=$(printf '%s\n' "$listing" | awk '/^Fuzz/ {print $0}')
+            for target in $targets; do
               go test -run '^$' -fuzz "^${target}\$" -fuzztime 5m "$pkg"
             done
           done
