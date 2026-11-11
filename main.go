@@ -104,20 +104,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	//
 	// It dispatches the webhooks related to the event that occurred
 	// (es. Publisher creation, Software delete, etc.)
-	debouncer := webhooks.NewDebouncer(
-		time.Duration(common.EnvironmentConfig.WebhookDebounceMS)*time.Millisecond,
-		time.Duration(common.EnvironmentConfig.WebhookDebounceMaxMS)*time.Millisecond,
-		func(event models.Event) {
-			if err := webhooks.DispatchWebhooks(event, gormDB); err != nil {
-				log.Println(err)
-			}
-		},
-		func(event models.Event) {
-			if err := webhooks.DispatchWebhooksAndWait(event, gormDB); err != nil {
-				log.Println(err)
-			}
-		},
-	)
+	debouncer := newWebhookDebouncer(gormDB)
 
 	go func() {
 		for event := range models.EventChan {
@@ -175,6 +162,23 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	setupHandlers(app, gormDB)
 
 	return app, debouncer, stopEventPurge, gormDB
+}
+
+func newWebhookDebouncer(gormDB *gorm.DB) *webhooks.Debouncer {
+	return webhooks.NewDebouncer(
+		time.Duration(common.EnvironmentConfig.WebhookDebounceMS)*time.Millisecond,
+		time.Duration(common.EnvironmentConfig.WebhookDebounceMaxMS)*time.Millisecond,
+		func(event models.Event) {
+			if err := webhooks.DispatchWebhooks(event, gormDB); err != nil {
+				log.Println(err)
+			}
+		},
+		func(event models.Event) {
+			if err := webhooks.DispatchWebhooksAndWait(event, gormDB); err != nil {
+				log.Println(err)
+			}
+		},
+	)
 }
 
 func newHealthcheck(gormDB *gorm.DB) fiber.Handler {
