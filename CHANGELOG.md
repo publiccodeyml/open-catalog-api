@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Container builds now use GoReleaser's `dockers_v2` configuration.
 - Webhooks targeting RFC 6598 shared address space are now refused.
 - Webhooks targeting a NAT64 (`64:ff9b::/96`) or 6to4 (`2002::/16`)
   address are now refused when the embedded IPv4 address is refused.

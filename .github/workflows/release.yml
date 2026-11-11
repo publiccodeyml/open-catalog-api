@@ -36,9 +36,8 @@ jobs:
       - # goreleaser shells out to syft for the sboms stanza
         uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
       - # The reproducibility flags in the goreleaser config need a
-        # docker-container builder, selected via BUILDX_BUILDER: plain
-        # docker build ignores the buildx selected builder, and the
-        # default one silently drops rewrite-timestamp.
+        # docker-container builder, selected via BUILDX_BUILDER. The
+        # default Docker driver drops rewrite-timestamp.
         run: docker buildx create --name "$BUILDX_BUILDER"
       - name: Take the release notes from the changelog
         # Written outside the checkout because goreleaser refuses to
@@ -70,7 +69,7 @@ jobs:
           # Both tags of a release point at one manifest, so the subject
           # of the attestation is the repository plus that digest.
           jq -er '
-            [.[] | select(.type == "Published Docker Image")
+            [.[] | select(.type == "Docker Image")
                  | {name: (.name | split(":")[:-1] | join(":")),
                     digest: .extra.Digest}]
             | unique
