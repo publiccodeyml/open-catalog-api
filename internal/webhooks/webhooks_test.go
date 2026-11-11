@@ -91,26 +91,30 @@ func TestDebouncerDrainWaitsForWebhookDelivery(t *testing.T) {
 	dialGuardDisabled.Store(true)
 	t.Cleanup(func() { dialGuardDisabled.Store(false) })
 
-	received := make(chan struct{})
+	const eventCount = 3
+
+	received := make(chan struct{}, eventCount)
 	release := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		close(received)
+		received <- struct{}{}
 		<-release
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
+	defer close(release)
 
 	db := setupDB(t, []models.Webhook{
 		{ID: "wh-shutdown", URL: srv.URL, EntityType: "software", EntityID: ""},
 	})
-	event := models.Event{Type: "created", EntityType: "software"}
-	deliveryErr := make(chan error, 1)
+	deliveryErr := make(chan error, eventCount)
 
 	d := NewDebouncer(time.Hour, time.Hour,
 		func(models.Event) {},
 		func(event models.Event) { deliveryErr <- DispatchWebhooksAndWait(event, db) },
 	)
-	d.Submit(event)
+	for index := range eventCount {
+		d.Submit(models.Event{Type: "created", EntityType: "software", EntityID: strconv.Itoa(index)})
+	}
 
 	drained := make(chan struct{})
 	go func() {
@@ -118,10 +122,12 @@ func TestDebouncerDrainWaitsForWebhookDelivery(t *testing.T) {
 		close(drained)
 	}()
 
-	select {
-	case <-received:
-	case <-time.After(time.Second):
-		t.Fatal("shutdown did not start the webhook delivery")
+	for range eventCount {
+		select {
+		case <-received:
+		case <-time.After(time.Second):
+			t.Fatal("shutdown did not start every webhook delivery before waiting")
+		}
 	}
 
 	select {
@@ -130,7 +136,9 @@ func TestDebouncerDrainWaitsForWebhookDelivery(t *testing.T) {
 	default:
 	}
 
-	close(release)
+	for range eventCount {
+		release <- struct{}{}
+	}
 
 	select {
 	case <-drained:
@@ -138,7 +146,9 @@ func TestDebouncerDrainWaitsForWebhookDelivery(t *testing.T) {
 		t.Fatal("shutdown did not finish after the webhook delivery completed")
 	}
 
-	require.NoError(t, <-deliveryErr)
+	for range eventCount {
+		require.NoError(t, <-deliveryErr)
+	}
 }
 
 // TestDispatchWebhooks_PerWebhookSignature verifies that each webhook subscriber

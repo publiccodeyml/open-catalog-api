@@ -43,7 +43,7 @@ type realTimer struct{ t *time.Timer }
 func (r realTimer) Stop() bool { return r.t.Stop() }
 
 func NewDebouncer(delay, capDuration time.Duration, dispatch Dispatcher, drainDispatch ...Dispatcher) *Debouncer {
-	d := &Debouncer{
+	debouncer := &Debouncer{
 		delay:    delay,
 		cap:      capDuration,
 		dispatch: dispatch,
@@ -54,12 +54,12 @@ func NewDebouncer(delay, capDuration time.Duration, dispatch Dispatcher, drainDi
 		pending: make(map[string]*pendingEvent),
 	}
 
-	d.drainDispatch = dispatch
+	debouncer.drainDispatch = dispatch
 	if len(drainDispatch) > 0 {
-		d.drainDispatch = drainDispatch[0]
+		debouncer.drainDispatch = drainDispatch[0]
 	}
 
-	return d
+	return debouncer
 }
 
 func (d *Debouncer) Submit(event models.Event) {
@@ -104,8 +104,9 @@ func (d *Debouncer) Submit(event models.Event) {
 }
 
 // Drain stops every pending timer and dispatches the events that were
-// waiting, synchronously. Use it on graceful shutdown so a burst that
-// arrived in the last `delay` window before SIGTERM is not lost.
+// waiting concurrently, then waits for all dispatches to return. Use it on
+// graceful shutdown so a burst that arrived in the last `delay` window before
+// SIGTERM is not lost.
 //
 // Submit must not be called concurrently with Drain or after it returns.
 func (d *Debouncer) Drain() {
@@ -121,9 +122,13 @@ func (d *Debouncer) Drain() {
 
 	d.mu.Unlock()
 
+	var deliveries sync.WaitGroup
+
 	for _, event := range events {
-		d.safeDrainDispatch(event)
+		deliveries.Go(func() { d.safeDrainDispatch(event) })
 	}
+
+	deliveries.Wait()
 }
 
 func (d *Debouncer) flush(key string) {
