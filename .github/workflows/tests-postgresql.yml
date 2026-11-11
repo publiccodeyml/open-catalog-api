@@ -5,12 +5,16 @@ on:
       - '**/*.go'
       - 'go.mod'
       - 'go.sum'
+      - 'test/testdata/fixtures/**'
+      - '.github/workflows/tests-postgresql.yml'
   pull_request:
     branches: [main]
     paths:
       - '**/*.go'
       - 'go.mod'
       - 'go.sum'
+      - 'test/testdata/fixtures/**'
+      - '.github/workflows/tests-postgresql.yml'
 
 permissions: {}
 
