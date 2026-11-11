@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net"
@@ -41,6 +42,12 @@ type ValidationError struct {
 // dispatcher. IsPrivate covers RFC 1918 and RFC 4193. RFC 6598 shared
 // address space is not publicly routable either.
 func IsForbiddenIP(ipAddress net.IP) bool {
+	// A NAT64 or 6to4 gateway forwards these addresses to the IPv4 host
+	// they carry, so that host has to pass the same checks.
+	if embedded := embeddedIPv4(ipAddress); embedded != nil {
+		return IsForbiddenIP(embedded)
+	}
+
 	ipv4 := ipAddress.To4()
 
 	return ipAddress.IsLoopback() ||
@@ -49,6 +56,27 @@ func IsForbiddenIP(ipAddress net.IP) bool {
 		ipAddress.IsUnspecified() ||
 		ipAddress.IsPrivate() ||
 		(ipv4 != nil && ipv4[0] == 100 && ipv4[1]&0xc0 == 0x40)
+}
+
+// embeddedIPv4 returns the IPv4 address carried by a NAT64 address in the
+// RFC 6052 well-known prefix 64:ff9b::/96 or by a RFC 3056 6to4 address in
+// 2002::/16, or nil for any other address.
+func embeddedIPv4(ipAddress net.IP) net.IP {
+	ipv6 := ipAddress.To16()
+	if ipv6 == nil || ipAddress.To4() != nil {
+		return nil
+	}
+
+	nat64Prefix := []byte{0, 0x64, 0xff, 0x9b, 0, 0, 0, 0, 0, 0, 0, 0}
+	if bytes.Equal(ipv6[:len(nat64Prefix)], nat64Prefix) {
+		return net.IPv4(ipv6[12], ipv6[13], ipv6[14], ipv6[15])
+	}
+
+	if ipv6[0] == 0x20 && ipv6[1] == 0x02 {
+		return net.IPv4(ipv6[2], ipv6[3], ipv6[4], ipv6[5])
+	}
+
+	return nil
 }
 
 // validateGitHubWebhook requires a github format webhook to target the
