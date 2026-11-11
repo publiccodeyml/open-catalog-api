@@ -71,6 +71,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changed since the client read it.
 - An empty `PATCH` on the analysis recorded an update event and fired
   the webhooks.
+- On a graceful shutdown, the webhook deliveries of the events still
+  waiting in the debounce queue were started but not awaited, so the
+  process could exit before sending them.
 
 ### Security
 
