@@ -5,12 +5,16 @@ on:
       - '**/*.go'
       - 'go.mod'
       - 'go.sum'
+      - 'test/testdata/fixtures/**'
+      - '.github/workflows/tests-sqlite.yml'
   pull_request:
     branches: [main]
     paths:
       - '**/*.go'
       - 'go.mod'
       - 'go.sum'
+      - 'test/testdata/fixtures/**'
+      - '.github/workflows/tests-sqlite.yml'
 
 permissions: {}
 
