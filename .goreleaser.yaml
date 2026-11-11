@@ -30,18 +30,22 @@ changelog:
   # The release body comes from CHANGELOG.md via --release-notes. A
   # generated commit list is not release notes for the OpenSSF badge.
   disable: true
-dockers:
- -
-   dockerfile: Dockerfile.goreleaser
-   build_flag_templates:
-     # Clamp every timestamp in the image to the commit date and drop
-     # the BuildKit inline attestation, which embeds the build time
-     # (CI attests provenance separately). A rebuild from the same
-     # commit then produces the identical image. Needs a
-     # docker-container builder.
-     - "--build-arg=SOURCE_DATE_EPOCH={{ .CommitTimestamp }}"
-     - "--provenance=false"
-     - "--output=type=docker,rewrite-timestamp=true"
-   image_templates:
-     - "ghcr.io/publiccodeyml/open-catalog-api:{{ .Tag }}"
-     - "ghcr.io/publiccodeyml/open-catalog-api:latest"
+dockers_v2:
+  - dockerfile: Dockerfile.goreleaser
+    # Keep the existing image platform. GoReleaser defaults to arm64 too.
+    platforms:
+      - linux/amd64
+    images:
+      - ghcr.io/publiccodeyml/open-catalog-api
+    tags:
+      - "{{ .Tag }}"
+      - "latest"
+    # Inline attestations contain build timestamps. CI attests separately.
+    sbom: "false"
+    build_args:
+      SOURCE_DATE_EPOCH: "{{ .CommitTimestamp }}"
+    flags:
+      - "--provenance=false"
+      # Snapshots load into Docker. Releases push directly to the registry.
+      # Both exporters must clamp timestamps to the commit date.
+      - "--output=type={{ if .IsSnapshot }}docker{{ else }}image{{ end }},rewrite-timestamp=true"

@@ -140,15 +140,15 @@ jobs:
           install-only: true
       - run: go install github.com/reproducible-containers/diffoci/cmd/diffoci@v0.1.8
       - # The reproducibility flags in the goreleaser configs need a
-        # docker-container builder, selected via BUILDX_BUILDER: plain
-        # docker build ignores the buildx selected builder, and the
-        # default one silently drops rewrite-timestamp.
+        # docker-container builder, selected via BUILDX_BUILDER. The
+        # default Docker driver drops rewrite-timestamp.
         run: docker buildx create --name "$BUILDX_BUILDER"
 
       - name: Build the shipped image with goreleaser
         run: |
           goreleaser release --snapshot --clean --skip=sbom
-          docker tag ghcr.io/publiccodeyml/open-catalog-api:latest repro:shipped
+          # dockers_v2 appends the platform to snapshot tags.
+          docker tag ghcr.io/publiccodeyml/open-catalog-api:latest-amd64 repro:shipped
         env:
           # The newest tag may well be a helm/* one, which goreleaser
           # cannot parse as semver.
@@ -157,12 +157,12 @@ jobs:
       - name: Rebuild the image from a source tree at another path
         run: |
           cp -a . /tmp/src-elsewhere
-          mkdir "$RUNNER_TEMP/context"
+          mkdir -p "$RUNNER_TEMP/context/linux/amd64"
           cp Dockerfile.goreleaser "$RUNNER_TEMP/context/"
           cd /tmp/src-elsewhere
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOAMD64=v1 \
             go build -trimpath -ldflags="-s -w -buildid=" \
-              -o "$RUNNER_TEMP/context/open-catalog-api" .
+              -o "$RUNNER_TEMP/context/linux/amd64/open-catalog-api" .
           # Without --no-cache the layer cache hands back the first build
           # untouched and the comparison below passes having built nothing.
           SOURCE_DATE_EPOCH=$(git -C "$GITHUB_WORKSPACE" log -1 --format=%ct) \

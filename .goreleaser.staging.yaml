@@ -18,15 +18,21 @@ builds:
      - -s -w -buildid=
     goos:
       - linux
-dockers:
- -
-   dockerfile: Dockerfile.goreleaser
-   build_flag_templates:
-     # Same reproducibility flags as .goreleaser.yaml: timestamps
-     # clamped to the commit date, no inline attestation. Needs a
-     # docker-container builder.
-     - "--build-arg=SOURCE_DATE_EPOCH={{ .CommitTimestamp }}"
-     - "--provenance=false"
-     - "--output=type=docker,rewrite-timestamp=true"
-   image_templates:
-     - "ghcr.io/publiccodeyml/open-catalog-api:main"
+dockers_v2:
+  - dockerfile: Dockerfile.goreleaser
+    # Keep the existing image platform. GoReleaser defaults to arm64 too.
+    platforms:
+      - linux/amd64
+    images:
+      - ghcr.io/publiccodeyml/open-catalog-api
+    tags:
+      - "main"
+    # Inline attestations contain build timestamps. CI attests separately.
+    sbom: "false"
+    build_args:
+      SOURCE_DATE_EPOCH: "{{ .CommitTimestamp }}"
+    flags:
+      - "--provenance=false"
+      # Snapshots load into Docker. Releases push directly to the registry.
+      # Both exporters must clamp timestamps to the commit date.
+      - "--output=type={{ if .IsSnapshot }}docker{{ else }}image{{ end }},rewrite-timestamp=true"

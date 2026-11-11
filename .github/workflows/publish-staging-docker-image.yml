@@ -44,9 +44,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - # The reproducibility flags in the goreleaser config need a
-        # docker-container builder, selected via BUILDX_BUILDER: plain
-        # docker build ignores the buildx selected builder, and the
-        # default one silently drops rewrite-timestamp.
+        # docker-container builder, selected via BUILDX_BUILDER. The
+        # default Docker driver drops rewrite-timestamp.
         run: docker buildx create --name "$BUILDX_BUILDER"
 
       - # Tag with a temporary valid semantic version. This is required by goreleaser.
@@ -63,7 +62,7 @@ jobs:
           # The :main tag moves on every push, so the subject of the
           # attestation is the repository plus the manifest digest.
           jq -er '
-            [.[] | select(.type == "Published Docker Image")
+            [.[] | select(.type == "Docker Image")
                  | {name: (.name | split(":")[:-1] | join(":")),
                     digest: .extra.Digest}]
             | unique
