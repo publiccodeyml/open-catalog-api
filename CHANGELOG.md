@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `docs/architecture.md`, an overview of the components around the API,
+  of the request path, of the data model, and of the event and webhook
+  pipeline. The README links it.
 - A security policy, `SECURITY.md`, saying how to report a vulnerability
   privately and which versions get fixes.
 - CI checks for the Helm chart with `helm lint` and `kubeconform`, and for
