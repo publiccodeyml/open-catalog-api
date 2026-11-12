@@ -59,5 +59,6 @@ dependsOn:
     - name: PostgreSQL
       optional: true
 softwareType: standalone/backend
-softwareVersion: v1.0.0
+softwareVersion: v1.4.0
+releaseDate: "2026-08-19"
 url: "https://github.com/publiccodeyml/open-catalog-api"
