@@ -5,6 +5,16 @@ on:
       - 'open-catalog-api.oas.yaml'
       - 'docs/index.html'
       - 'docs/core-tools.svg'
+      - 'docs/package.json'
+      - 'docs/package-lock.json'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'open-catalog-api.oas.yaml'
+      - 'docs/index.html'
+      - 'docs/core-tools.svg'
+      - 'docs/package.json'
+      - 'docs/package-lock.json'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -27,6 +37,7 @@ jobs:
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     permissions:
