@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Deleting a catalog did not delete its logs.
+- `PATCH /v1/publishers/{publisherId}` ignored the `group` flag of
+  `codeHosting` entries, and new entries always became groups.
 - Token creation output now states that a token authorizes every authenticated
   API operation instead of listing an incomplete set of permissions.
 - The weekly fuzz job now reports errors when listing Go packages or their
