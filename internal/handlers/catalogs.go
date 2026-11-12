@@ -258,15 +258,7 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error {
 			return nil
 		}
 
-		if err := tran.Where("catalog_id = ?", catalog.ID).Delete(&models.CatalogSource{}).Error; err != nil {
-			return err
-		}
-
-		if err := deleteEntityLogs(tran, catalog); err != nil {
-			return err
-		}
-
-		return deleteResult(tran.Delete(&catalog))
+		return deleteCatalogResources(tran, &catalog)
 	}); err != nil {
 		return deleteError(err, errMsg, "Catalog")
 	}
@@ -276,6 +268,19 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)
+}
+
+// deleteCatalogResources deletes the catalog and its sources and logs within tran.
+func deleteCatalogResources(tran *gorm.DB, catalog *models.Catalog) error {
+	if err := tran.Where("catalog_id = ?", catalog.ID).Delete(&models.CatalogSource{}).Error; err != nil {
+		return err
+	}
+
+	if err := deleteEntityLogs(tran, catalog); err != nil {
+		return err
+	}
+
+	return deleteResult(tran.Delete(catalog))
 }
 
 // GetCatalogPublishers lists publishers belonging to the given catalog.
