@@ -4,11 +4,13 @@
 
 [[IgnoredVulns]]
 id = "GO-2026-5932"
+ignoreUntil = 2027-08-19
 reason = """
-golang.org/x/crypto/openpgp is unmaintained, and the advisory has no fixed
-version. This project never links it: `go list -deps ./...` pulls in
-chacha20poly1305, blake2b, sha3, ed25519, hkdf and cryptobyte, and
-`go mod why golang.org/x/crypto/openpgp` answers that the main module does
-not need the package. x/crypto itself cannot be dropped, since fasthttp,
-x/net and validator/v10 all require it.
+golang.org/x/crypto/openpgp is unmaintained. The advisory's only fix is
+x/crypto v0.59.0, which deletes the package. This project never links it:
+`go list -deps ./...` pulls in chacha20poly1305, blake2b, sha3, ed25519, hkdf
+and cryptobyte, and `go mod why golang.org/x/crypto/openpgp` answers that the
+main module does not need the package. x/crypto itself cannot be dropped,
+since fasthttp, x/net and validator/v10 all require it. Drop this entry once
+x/crypto reaches v0.59.0.
 """
