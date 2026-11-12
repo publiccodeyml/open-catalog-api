@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"slices"
 	"strings"
 	"testing"
@@ -1181,6 +1183,75 @@ func TestPublishersPatchDBChecks(t *testing.T) {
 
 		assert.True(t, dbNull(t, "publishers", "alternative_id", "id", italiaPublisherID))
 	})
+}
+
+func TestPublishersPatchCodeHostingGroup(t *testing.T) {
+	const (
+		existingURL = "https://1-a.example.org/code/repo"
+		keptURL     = "https://1-b.example.org/code/repo"
+		addedURL    = "https://gitlab.example.org/added-group"
+		defaultURL  = "https://gitlab.example.org/added-default"
+	)
+
+	tests := []struct {
+		name  string
+		patch func(t *testing.T, path, body string) (int, []byte)
+		body  string
+	}{
+		{
+			name:  "merge patch",
+			patch: patchMerge,
+			body: `{"codeHosting": [
+				{"url": "` + existingURL + `", "group": false},
+				{"url": "` + keptURL + `"},
+				{"url": "` + addedURL + `", "group": false},
+				{"url": "` + defaultURL + `"}
+			]}`,
+		},
+		{
+			name:  "JSON Patch",
+			patch: patchJSON,
+			body: `[{"op": "replace", "path": "/codeHosting", "value": [
+				{"url": "` + existingURL + `", "group": false},
+				{"url": "` + keptURL + `"},
+				{"url": "` + addedURL + `", "group": false},
+				{"url": "` + defaultURL + `"}
+			]}]`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			loadFixtures(t)
+
+			code, body := tt.patch(t, publisherPath+italiaPublisherID, tt.body)
+			require.Equal(t, 200, code, "body: %s", body)
+
+			req, err := newTestRequest(http.MethodGet, publisherPath+italiaPublisherID, nil)
+			require.NoError(t, err)
+
+			res, err := app.Test(req, -1)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
+
+			out, err := io.ReadAll(res.Body)
+			require.NoError(t, err)
+			require.Equal(t, 200, res.StatusCode, "body: %s", out)
+
+			groups := map[string]any{}
+			for _, ch := range decodeJSON(t, out)["codeHosting"].([]any) {
+				entry := ch.(map[string]any)
+				groups[entry["url"].(string)] = entry["group"]
+			}
+
+			assert.Equal(t, map[string]any{
+				existingURL: false,
+				keptURL:     false,
+				addedURL:    false,
+				defaultURL:  true,
+			}, groups)
+		})
+	}
 }
 
 func TestPublishersDeleteDBChecks(t *testing.T) {

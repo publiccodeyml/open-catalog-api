@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"slices"
 	"sort"
 
 	"github.com/gofiber/fiber/v2"
@@ -159,9 +158,10 @@ func updatePublisher(ctx *fiber.Ctx, gormdb *gorm.DB, publisher models.Publisher
 
 	updatedPublisher.Email = common.NormalizeEmail(updatedPublisher.Email)
 
-	expectedURLs := make([]string, 0, len(updatedPublisher.CodeHosting))
+	expectedCodeHosting := make([]models.CodeHosting, 0, len(updatedPublisher.CodeHosting))
 	for _, ch := range updatedPublisher.CodeHosting {
-		expectedURLs = append(expectedURLs, common.NormalizeURL(ch.URL))
+		expectedCodeHosting = append(expectedCodeHosting,
+			models.CodeHosting{URL: common.NormalizeURL(ch.URL), Group: ch.Group})
 	}
 
 	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
@@ -172,7 +172,7 @@ func updatePublisher(ctx *fiber.Ctx, gormdb *gorm.DB, publisher models.Publisher
 			}
 		}
 
-		codeHosting, err := syncCodeHosting(tran, publisher, expectedURLs)
+		codeHosting, err := syncCodeHosting(tran, publisher, expectedCodeHosting)
 		if err != nil {
 			return err
 		}
@@ -229,14 +229,15 @@ func checkAlternativeIDConflict(db *gorm.DB, alternativeID string) error {
 }
 
 // syncCodeHosting synchs the CodeHosting for a `publisher` in the database to reflect the
-// passed slice of `codeHosting` URLs.
+// passed `codeHosting` entries, matched by URL.
 //
 // It returns the slice of CodeHosting in the database.
 func syncCodeHosting( //nolint:cyclop // mostly error handling ifs
-	gormdb *gorm.DB, publisher models.Publisher, codeHosting []string,
+	gormdb *gorm.DB, publisher models.Publisher, codeHosting []models.CodeHosting,
 ) ([]models.CodeHosting, error) {
 	toRemove := []string{}          // Slice of CodeHosting ids to remove from the database
 	toAdd := []models.CodeHosting{} // Slice of CodeHosting to add to the database
+	toUpdate := []models.CodeHosting{}
 
 	// Map mirroring the state of CodeHosting for this software in the database,
 	// keyed by url
@@ -246,26 +247,49 @@ func syncCodeHosting( //nolint:cyclop // mostly error handling ifs
 		urlMap[ch.URL] = ch
 	}
 
+	expected := map[string]bool{}
+	for _, ch := range codeHosting {
+		expected[ch.URL] = true
+	}
+
 	for url, ch := range urlMap {
-		if !slices.Contains(codeHosting, url) {
+		if !expected[url] {
 			toRemove = append(toRemove, ch.ID)
 
 			delete(urlMap, url)
 		}
 	}
 
-	for _, url := range codeHosting {
-		_, exists := urlMap[url]
+	for _, wanted := range codeHosting {
+		current, exists := urlMap[wanted.URL]
 		if !exists {
-			ch := models.CodeHosting{ID: utils.UUIDv4(), URL: url, PublisherID: publisher.ID}
+			// A nil Group leaves the column to its database default, as on POST.
+			ch := models.CodeHosting{
+				ID: utils.UUIDv4(), URL: wanted.URL, Group: wanted.Group, PublisherID: publisher.ID,
+			}
 
 			toAdd = append(toAdd, ch)
-			urlMap[url] = ch
+			urlMap[wanted.URL] = ch
+
+			continue
+		}
+
+		// An entry that omits group keeps the stored flag.
+		if wanted.Group != nil && (current.Group == nil || *current.Group != *wanted.Group) {
+			current.Group = wanted.Group
+			toUpdate = append(toUpdate, current)
+			urlMap[wanted.URL] = current
 		}
 	}
 
 	if len(toRemove) > 0 {
 		if err := gormdb.Delete(&models.CodeHosting{}, toRemove).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	for _, ch := range toUpdate {
+		if err := gormdb.Model(&models.CodeHosting{ID: ch.ID}).Update("group", *ch.Group).Error; err != nil {
 			return nil, err
 		}
 	}
