@@ -44,3 +44,14 @@ updates:
       docker-compose:
         patterns:
           - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      docs:
+        patterns:
+          - "*"
