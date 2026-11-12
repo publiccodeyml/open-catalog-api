@@ -825,7 +825,7 @@ func TestCatalogSoftwareDBChecks(t *testing.T) {
 }
 
 func TestCatalogDeleteDBChecks(t *testing.T) {
-	t.Run("DELETE catalog removes it and its sources from DB", func(t *testing.T) {
+	t.Run("DELETE catalog removes its sources and soft deletes its logs", func(t *testing.T) {
 		loadFixtures(t)
 
 		body := `{"name": "To Delete", "sources": [{"url": "https://github.com/example/to-delete"}]}`
@@ -844,6 +844,22 @@ func TestCatalogDeleteDBChecks(t *testing.T) {
 		require.NoError(t, json.NewDecoder(res.Body).Decode(&created))
 		catalogID := created["id"].(string)
 
+		req, err = newTestRequest("POST", "/v1/catalogs/"+catalogID+"/logs", strings.NewReader(`{"message": "catalog log"}`))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err = app.Test(req, -1)
+		require.NoError(t, err)
+		require.Equal(t, 200, res.StatusCode)
+
+		var log map[string]any
+		require.NoError(t, json.NewDecoder(res.Body).Decode(&log))
+		logID := log["id"].(string)
+		require.True(t, dbNull(t, "logs", "deleted_at", "id", logID))
+
 		req, err = newTestRequest("DELETE", "/v1/catalogs/"+catalogID, nil)
 		require.NoError(t, err)
 		req.Header = map[string][]string{"Authorization": {goodToken}}
@@ -854,6 +870,8 @@ func TestCatalogDeleteDBChecks(t *testing.T) {
 
 		assert.Equal(t, 0, dbCount(t, "catalogs", "id", catalogID))
 		assert.Equal(t, 0, dbCount(t, "catalog_sources", "catalog_id", catalogID))
+		assert.False(t, dbNull(t, "logs", "deleted_at", "id", logID))
+		assert.True(t, dbNull(t, "logs", "deleted_at", "id", "53650508-042e-11ed-9b84-d8bbc146d165"))
 
 		// The fixtures carry two delete events, the catalog adds a third.
 		assert.Equal(t, 2, dbCount(t, "events", "entity_id", catalogID))
