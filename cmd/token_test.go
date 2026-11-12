@@ -48,6 +48,8 @@ func TestTokenCreateCreatesDecryptableTokens(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			stdout, stderr, err := runTokenCreateForTest(t, test.args...)
 			require.NoError(t, err)
+			assert.True(t, strings.HasSuffix(stderr, "\npermissions:\n"+
+				"   Authorizes every authenticated operation of the API.\n"), stderr)
 
 			key := test.key
 			if key == nil {

@@ -101,10 +101,7 @@ func runTokenCreate(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintln(os.Stdout, token)
 
 	fmt.Fprint(os.Stderr, "\npermissions:\n"+
-		"   - software:    create, update, delete\n"+
-		"   - publishers:  create, update, delete\n"+
-		"   - logs:        create, update, delete\n"+
-		"   - webhooks:    create, update, delete")
+		"   Authorizes every authenticated operation of the API.\n")
 
 	return nil
 }
