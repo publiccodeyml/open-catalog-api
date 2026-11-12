@@ -262,6 +262,10 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error {
 			return err
 		}
 
+		if err := deleteEntityLogs(tran, catalog); err != nil {
+			return err
+		}
+
 		return deleteResult(tran.Delete(&catalog))
 	}); err != nil {
 		return deleteError(err, errMsg, "Catalog")
