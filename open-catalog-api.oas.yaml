@@ -2652,7 +2652,8 @@ components:
       description: >
         A JSON Patch document as defined by RFC 6902.
         Writable Software fields are: publiccodeYml, url, aliases, active and vitality.
-        Write analysis data through PATCH /software/{softwareId}/analysis instead.
+        Analysis data is written through the analysis endpoint of the resource,
+        PATCH /software/{softwareId}/analysis or PATCH /catalogs/{catalogId}/analysis.
         Operations on /analysis or its children are rejected with 422.
       example:
         - op: replace
