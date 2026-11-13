@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 	"sync"
@@ -2384,6 +2385,65 @@ func TestSoftwareAliasOrder(t *testing.T) {
 			want = []string{"https://cc.example.org", "https://zz.example.org/a-b", "https://zz.example.org/aa"}
 			require.Equal(t, want, software.Aliases)
 			checkReads()
+		})
+	}
+}
+
+func TestSoftwareURLJSONEscaping(t *testing.T) {
+	loadFixtures(t)
+
+	const canonical = `https://escaped.example.org/repo?q="quoted"&path=a\b`
+	const alias = `https://alias-escaped.example.org/repo?q="quoted"&path=a\b`
+	body, err := json.Marshal(map[string]any{
+		"publiccodeYml": "-",
+		"url":           canonical,
+		"aliases":       []string{alias},
+	})
+	require.NoError(t, err)
+
+	req, err := newTestRequest("POST", "/v1/software", strings.NewReader(string(body)))
+	require.NoError(t, err)
+	req.Header.Set("Authorization", goodToken)
+	req.Header.Set("Content-Type", "application/json")
+	res, err := app.Test(req, -1)
+	require.NoError(t, err)
+	defer res.Body.Close()
+	require.Equal(t, 200, res.StatusCode)
+
+	var created models.Software
+	require.NoError(t, json.NewDecoder(res.Body).Decode(&created))
+	assert.Equal(t, canonical, created.URL.URL)
+	require.Len(t, created.Aliases, 1)
+	assert.Equal(t, alias, created.Aliases[0].URL)
+
+	for _, path := range []string{
+		"/v1/software/" + created.ID,
+		"/v1/software?url=" + url.QueryEscape(canonical),
+	} {
+		t.Run(path, func(t *testing.T) {
+			req, err := newTestRequest("GET", path, nil)
+			require.NoError(t, err)
+			res, err := app.Test(req, -1)
+			require.NoError(t, err)
+			defer res.Body.Close()
+			require.Equal(t, 200, res.StatusCode)
+
+			var software models.Software
+			if strings.Contains(path, "?") {
+				var page struct {
+					Data []models.Software `json:"data"`
+				}
+				require.NoError(t, json.NewDecoder(res.Body).Decode(&page))
+				require.Len(t, page.Data, 1)
+				software = page.Data[0]
+			} else {
+				require.NoError(t, json.NewDecoder(res.Body).Decode(&software))
+			}
+
+			assert.Equal(t, created.ID, software.ID)
+			assert.Equal(t, canonical, software.URL.URL)
+			require.Len(t, software.Aliases, 1)
+			assert.Equal(t, alias, software.Aliases[0].URL)
 		})
 	}
 }
