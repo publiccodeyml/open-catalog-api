@@ -3,10 +3,12 @@ on:
     branches: [main]
     paths:
       - '*.oas.yaml'
+      - '.github/workflows/spectral.yaml'
   pull_request:
     branches: [main]
     paths:
       - '*.oas.yaml'
+      - '.github/workflows/spectral.yaml'
 
 permissions: {}
 
