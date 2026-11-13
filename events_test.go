@@ -36,7 +36,7 @@ func TestEventsEndpoints(t *testing.T) {
 			description:         "GET events without a token",
 			query:               "GET /v1/events",
 			expectedCode:        401,
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 			expectedContentType: "application/problem+json",
 		},
 		{
@@ -256,7 +256,7 @@ func TestEventsEndpoints(t *testing.T) {
 			description:         "GET event without a token",
 			query:               "GET /v1/events/" + eventWithActorID,
 			expectedCode:        401,
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 			expectedContentType: "application/problem+json",
 		},
 		{

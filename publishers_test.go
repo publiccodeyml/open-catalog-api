@@ -504,7 +504,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        401,
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 			expectedContentType: "application/problem+json",
 		},
 		{
@@ -746,7 +746,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        401,
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 			expectedContentType: "application/problem+json",
 		},
 		{
@@ -873,7 +873,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        401,
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 			expectedContentType: "application/problem+json",
 		},
 		{
@@ -1026,7 +1026,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        401,
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 			expectedContentType: "application/problem+json",
 		},
 		{
@@ -1483,7 +1483,7 @@ func TestPublishersLogsEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        401,
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 			expectedContentType: "application/problem+json",
 		},
 		{

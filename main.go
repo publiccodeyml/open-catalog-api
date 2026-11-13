@@ -142,6 +142,11 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 			KeyGenerator: func(ctx *fiber.Ctx) string {
 				return ctx.IP()
 			},
+			// The default handler answers in plain text, while the API
+			// documents every 429 as a problem document.
+			LimitReached: func(*fiber.Ctx) error {
+				return fiber.ErrTooManyRequests
+			},
 		}))
 	}
 
