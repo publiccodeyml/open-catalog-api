@@ -123,7 +123,12 @@ func validateOperation(operation jsonpatch.Operation) error {
 // it would reorder every listing.
 func isProtectedPath(path string) bool {
 	switch path {
-	case "/id", "/createdAt", "/updatedAt", "/catalogId":
+	case "/id", "/createdAt", "/updatedAt", "/catalogId", "/analysis":
+		return true
+	}
+
+	// Analysis is written through its dedicated endpoint.
+	if strings.HasPrefix(path, "/analysis/") {
 		return true
 	}
 

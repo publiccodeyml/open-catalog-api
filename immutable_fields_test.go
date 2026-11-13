@@ -81,6 +81,54 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 		want        string
 	}{
 		{
+			"softwarePath add /analysis", softwarePath, italiaSoftwareID,
+			`{"op": "add", "path": "/analysis", "value": {"scanner": {"v": 1}}},
+			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
+			"can't update Software", "software", "publiccode_yml", "-",
+		},
+		{
+			"softwarePath replace /analysis", softwarePath, italiaSoftwareID,
+			`{"op": "replace", "path": "/analysis", "value": {}},
+			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
+			"can't update Software", "software", "publiccode_yml", "-",
+		},
+		{
+			"softwarePath remove /analysis", softwarePath, italiaSoftwareID,
+			`{"op": "remove", "path": "/analysis"},
+			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
+			"can't update Software", "software", "publiccode_yml", "-",
+		},
+		{
+			"softwarePath add /analysis/scanner", softwarePath, italiaSoftwareID,
+			`{"op": "add", "path": "/analysis/scanner", "value": {"v": 1}},
+			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
+			"can't update Software", "software", "publiccode_yml", "-",
+		},
+		{
+			"catalogSoftwarePath add /analysis", catalogSoftwarePath, italiaSoftwareID,
+			`{"op": "add", "path": "/analysis", "value": {"scanner": {"v": 1}}},
+			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
+			"can't update Software", "software", "publiccode_yml", "-",
+		},
+		{
+			"catalogSoftwarePath replace /analysis", catalogSoftwarePath, italiaSoftwareID,
+			`{"op": "replace", "path": "/analysis", "value": {}},
+			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
+			"can't update Software", "software", "publiccode_yml", "-",
+		},
+		{
+			"catalogSoftwarePath remove /analysis", catalogSoftwarePath, italiaSoftwareID,
+			`{"op": "remove", "path": "/analysis"},
+			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
+			"can't update Software", "software", "publiccode_yml", "-",
+		},
+		{
+			"catalogSoftwarePath add /analysis/scanner", catalogSoftwarePath, italiaSoftwareID,
+			`{"op": "add", "path": "/analysis/scanner", "value": {"v": 1}},
+			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
+			"can't update Software", "software", "publiccode_yml", "-",
+		},
+		{
 			"software id", softwarePath, italiaSoftwareID,
 			`{"op": "replace", "path": "/id", "value": "` + unusedID + `"},
 			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,

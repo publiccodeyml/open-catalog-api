@@ -38,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- JSON Patch writes to software `analysis` now return `422` instead of
+  silently discarding the value. Use the dedicated analysis endpoint.
+
 - Software aliases now keep the same URL order in responses and JSON Patch
   documents, so operations by index affect the expected alias.
 - Deleting a publisher or software now removes its resource webhooks while
