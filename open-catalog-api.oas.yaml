@@ -479,14 +479,14 @@ paths:
             example: '2022-06-07T09:56:23Z'
           in: query
           name: from
-          description: Only logs after this time (ISO 8601 datetime)
+          description: Only logs after this time (RFC 3339 datetime)
         - schema:
             type: string
             format: date-time
             example: '2022-06-07T14:56:23Z'
           in: query
           name: to
-          description: Only logs before this time (ISO 8601 datetime)
+          description: Only logs before this time (RFC 3339 datetime)
     post:
       summary: Create Logs for a Software
       description: Create Logs for a Software by its id
@@ -708,14 +708,14 @@ paths:
             example: '2022-06-07T09:56:23Z'
           in: query
           name: from
-          description: Only webhooks created after this time (ISO 8601 datetime)
+          description: Only webhooks created after this time (RFC 3339 datetime)
         - schema:
             type: string
             format: date-time
             example: '2022-06-07T14:56:23Z'
           in: query
           name: to
-          description: Only webhooks created before this time (ISO 8601 datetime)
+          description: Only webhooks created before this time (RFC 3339 datetime)
     post:
       summary: Create Webhook for a Software
       description: Create Webhook for a Software by its id
@@ -2151,14 +2151,14 @@ paths:
             example: '2022-06-07T09:56:23Z'
           in: query
           name: from
-          description: Only logs after this time (ISO 8601 datetime)
+          description: Only logs after this time (RFC 3339 datetime)
         - schema:
             type: string
             format: date-time
             example: '2022-06-07T14:56:23Z'
           in: query
           name: to
-          description: Only logs before this time (ISO 8601 datetime)
+          description: Only logs before this time (RFC 3339 datetime)
     post:
       summary: Create Logs for a Publisher
       description: Create Logs for a Publisher by its id
