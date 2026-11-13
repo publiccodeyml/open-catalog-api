@@ -242,6 +242,9 @@ func (w Webhook) UUID() string {
 // token that authenticated the write, empty when the token carries none.
 // An event is never soft deleted: the retention purge removes the row.
 type Event struct {
+	// DeletedWebhooks retains resource subscriptions for the final live delivery.
+	DeletedWebhooks []Webhook `json:"-" gorm:"-"`
+
 	ID         string    `json:"id" gorm:"primaryKey"`
 	Type       string    `json:"type"`
 	EntityType string    `json:"entityType"`

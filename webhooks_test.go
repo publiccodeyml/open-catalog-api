@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -295,4 +296,39 @@ func TestWebhooksDeleteDBChecks(t *testing.T) {
 
 		assert.Equal(t, 0, dbCount(t, "events", "entity_id", webhookID))
 	})
+}
+
+func TestResourceDeletionRemovesWebhooks(t *testing.T) {
+	for _, test := range []struct {
+		entityType string
+		id         string
+	}{
+		{"publishers", "47807e0c-0613-4aea-9917-5455cc6eddad"},
+		{"software", "c5dec6fa-8a01-4881-9e7d-132770d4214d"},
+	} {
+		t.Run(test.entityType, func(t *testing.T) {
+			loadFixtures(t)
+
+			var expected []models.Webhook
+			require.NoError(t, gormDB.Where("entity_type = ? AND entity_id = ?", test.entityType, test.id).
+				Find(&expected).Error)
+			require.NotEmpty(t, expected)
+
+			var before int64
+			require.NoError(t, gormDB.Model(&models.Webhook{}).Count(&before).Error)
+
+			request, err := newTestRequest(http.MethodDelete, "/v1/"+test.entityType+"/"+test.id, nil)
+			require.NoError(t, err)
+			request.Header.Set("Authorization", goodToken)
+			response, err := app.Test(request, -1)
+			require.NoError(t, err)
+			require.NoError(t, response.Body.Close())
+			require.Equal(t, http.StatusNoContent, response.StatusCode)
+
+			assert.Zero(t, dbCount(t, "webhooks", "entity_id", test.id))
+			var after int64
+			require.NoError(t, gormDB.Model(&models.Webhook{}).Count(&after).Error)
+			assert.Equal(t, before-int64(len(expected)), after, "other subscriptions must remain")
+		})
+	}
 }
