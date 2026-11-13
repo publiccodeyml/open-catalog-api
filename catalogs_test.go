@@ -1666,3 +1666,51 @@ func TestCatalogPatchDBChecks(t *testing.T) {
 		assert.True(t, dbNull(t, "catalog_sources", "args", "id", italiaSourceID))
 	})
 }
+
+func TestCatalogDuplicateSources(t *testing.T) {
+	for _, duplicateURL := range []string{
+		"https://github.com/example/x",
+		"https://www.github.com/example/x",
+	} {
+		for _, method := range []string{"POST", "Merge Patch", "JSON Patch"} {
+			t.Run(method+"/"+duplicateURL, func(t *testing.T) {
+				loadFixtures(t)
+
+				sources := fmt.Sprintf(`[{"url":"https://github.com/example/x","driver":"github"},{"url":%q,"driver":"custom","args":["different"]}]`, duplicateURL)
+				var status int
+				var response map[string]any
+
+				if method == "POST" {
+					body := `{"name":"Duplicate","alternativeId":"duplicate","sources":` + sources + `}`
+					req, err := newTestRequest("POST", "/v1/catalogs", strings.NewReader(body))
+					require.NoError(t, err)
+					req.Header.Set("Content-Type", "application/json")
+					req.Header.Set("Authorization", goodToken)
+
+					res, err := app.Test(req, -1)
+					require.NoError(t, err)
+					defer res.Body.Close()
+					status = res.StatusCode
+					require.NoError(t, json.NewDecoder(res.Body).Decode(&response))
+					assert.Equal(t, 0, dbCount(t, "catalogs", "alternative_id", "duplicate"))
+				} else {
+					var body []byte
+					if method == "Merge Patch" {
+						status, body = patchMerge(t, catalogPath+italiaID,
+							`{"name":"Changed","sources":`+sources+`}`)
+					} else {
+						status, body = patchJSON(t, catalogPath+italiaID,
+							`[{"op":"replace","path":"/name","value":"Changed"},{"op":"replace","path":"/sources","value":`+sources+`}]`)
+					}
+					response = decodeJSON(t, body)
+					assert.Equal(t, "Italian Catalog", dbValue(t, "catalogs", "name", "id", italiaID))
+				}
+
+				assert.Equal(t, 422, status)
+				assert.Equal(t, "sources must have unique URLs", response["detail"])
+				assert.Equal(t, 1, dbCount(t, "catalog_sources", "catalog_id", italiaID))
+				assert.Equal(t, italiaSourceURL, dbValue(t, "catalog_sources", "url", "id", italiaSourceID))
+			})
+		}
+	}
+}
