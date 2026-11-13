@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Software creation rejects aliases that normalize to the canonical URL or
+  to another alias with `422` naming the alias, instead of `409`.
 - Catalog POST and PATCH requests reject duplicate source URLs after
   normalization with `422`, preventing sources that cannot be fully removed
   by a later patch.

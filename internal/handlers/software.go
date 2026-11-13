@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"sort"
 
@@ -138,12 +139,17 @@ func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 		return err //nolint:wrapcheck
 	}
 
+	url := models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(softwareReq.URL)}
+
+	if err := validateAliasURLs(url.URL, softwareReq.Aliases, errMsg); err != nil {
+		return err
+	}
+
 	aliases := []models.SoftwareURL{}
 	for _, u := range softwareReq.Aliases {
 		aliases = append(aliases, models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(u)})
 	}
 
-	url := models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(softwareReq.URL)}
 	software := &models.Software{
 		ID: utils.UUIDv4(),
 
@@ -165,6 +171,30 @@ func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	}
 
 	return ctx.JSON(software)
+}
+
+// validateAliasURLs rejects aliases that normalize to the canonical url or
+// to an earlier alias. Without it the request fails on the unique index with
+// a 409 that cannot be told apart from a URL owned by another software.
+func validateAliasURLs(url string, aliases []string, title string) error {
+	seen := make(map[string]struct{}, len(aliases))
+
+	for _, alias := range aliases {
+		normalized := common.NormalizeURL(alias)
+		if normalized == url {
+			return common.Error(fiber.StatusUnprocessableEntity, title, //nolint:wrapcheck
+				fmt.Sprintf("alias %s repeats url", alias))
+		}
+
+		if _, exists := seen[normalized]; exists {
+			return common.Error(fiber.StatusUnprocessableEntity, title, //nolint:wrapcheck
+				fmt.Sprintf("alias %s repeats another alias", alias))
+		}
+
+		seen[normalized] = struct{}{}
+	}
+
+	return nil
 }
 
 // updateSoftware applies the PATCH body to software and saves it, keeping
