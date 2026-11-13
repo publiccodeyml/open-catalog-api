@@ -120,6 +120,10 @@ func (c *Catalog) PostCatalog(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "sources is required")
 	}
 
+	if err := validateSourceURLs(request.Sources, errMsg); err != nil {
+		return err
+	}
+
 	sources := buildSources(request.Sources)
 
 	catalog := &models.Catalog{
@@ -191,6 +195,10 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 		}
 	} else if len(sourcesInput) == 0 {
 		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "sources must not be empty")
+	}
+
+	if err := validateSourceURLs(sourcesInput, errMsg); err != nil {
+		return err
 	}
 
 	if err := models.Transaction(writeDB(ctx, c.db), func(tran *gorm.DB) error {
@@ -399,6 +407,22 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 	}
 
 	return listSoftware(ctx, stmt)
+}
+
+// validateSourceURLs rejects sources that identify the same normalized URL.
+func validateSourceURLs(inputs []common.SourceInput, title string) error {
+	seen := make(map[string]struct{}, len(inputs))
+
+	for _, source := range inputs {
+		normalized := common.NormalizeURL(source.URL)
+		if _, exists := seen[normalized]; exists {
+			return common.Error(fiber.StatusUnprocessableEntity, title, "sources must have unique URLs") //nolint:wrapcheck
+		}
+
+		seen[normalized] = struct{}{}
+	}
+
+	return nil
 }
 
 // buildSources converts SourceInput slice to CatalogSource models.
