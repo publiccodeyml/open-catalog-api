@@ -395,7 +395,7 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	stmt := c.db.Preload("Aliases").Scopes(catalogScope(catalog))
+	stmt := c.db.Scopes(catalogScope(catalog))
 
 	stmt, found, err := softwareURLFilter(ctx, c.db, stmt, "can't get Software")
 	if err != nil {

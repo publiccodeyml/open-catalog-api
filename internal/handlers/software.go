@@ -31,7 +31,7 @@ func NewSoftware(db *gorm.DB) *Software {
 
 // GetAllSoftware gets the list of all software and returns any error encountered.
 func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error {
-	stmt, err := general.Clauses(ctx, p.db.Preload("Aliases"), "", "", true)
+	stmt, err := general.Clauses(ctx, p.db, "", "", true)
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
@@ -116,10 +116,14 @@ func loadSoftware(gormdb *gorm.DB, software *models.Software, id string) error {
 	}
 
 	if err := gormdb.
-		Where("software_id = ? AND id <> ?", software.ID, software.SoftwareURLID).Order("url").Find(&software.Aliases).
+		Where("software_id = ? AND id <> ?", software.ID, software.SoftwareURLID).Find(&software.Aliases).
 		Error; err != nil {
 		return errLoad
 	}
+
+	sort.Slice(software.Aliases, func(a, b int) bool {
+		return software.Aliases[a].URL < software.Aliases[b].URL
+	})
 
 	if err := gormdb.Where("id = ?", software.SoftwareURLID).First(&software.URL).Error; err != nil {
 		return errLoad
@@ -399,15 +403,13 @@ func softwareURLFilter(ctx *fiber.Ctx, gormdb, stmt *gorm.DB, title string) (*go
 	return stmt.Where("id = ?", softwareURL.SoftwareID), true, nil
 }
 
-// listSoftware writes one page of the software matched by stmt. stmt must
-// Preload("Aliases") and nothing else: Preload("URL") makes gorm guess a
+// listSoftware writes one page of the software matched by stmt and loads
+// its aliases. stmt must not Preload("URL"): that makes gorm guess a
 // has one through the software_id column and load an arbitrary url. The
 // ?from and ?to window is the caller's, GET /software applies it before
 // its ?url short circuit and the catalog software list does not declare it.
 func listSoftware(ctx *fiber.Ctx, stmt *gorm.DB) error {
-	stmt = stmt.Preload("Aliases", func(db *gorm.DB) *gorm.DB {
-		return db.Order("url")
-	})
+	stmt = stmt.Preload("Aliases")
 
 	software, cursor, err := paginate[models.Software](ctx, stmt, listOptions{
 		title:      "can't get Software",
@@ -415,6 +417,13 @@ func listSoftware(ctx *fiber.Ctx, stmt *gorm.DB) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	for i := range software {
+		aliases := software[i].Aliases
+		sort.Slice(aliases, func(a, b int) bool {
+			return aliases[a].URL < aliases[b].URL
+		})
 	}
 
 	detachCanonicalURL(software)
