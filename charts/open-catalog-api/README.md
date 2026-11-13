@@ -37,7 +37,7 @@ Kubernetes: `>=1.23.0-0`
 | maxRequests | int | `nil` | Maximum number of requests per minute from each client IP. Behind a proxy, set TRUSTED_PROXIES in 'extraEnv' so the limit counts the original client address instead of the proxy's. |
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
-| pasetoKey | string | `""` | Base64 encoded Paseto Key. |
+| pasetoKey | string | `""` | Base64 encoded Paseto Key. When empty, the API runs in read-only mode. |
 | podAnnotations | object | `{}` |  |
 | podSecurityContext.fsGroup | int | `10001` |  |
 | podSecurityContext.runAsGroup | int | `10001` |  |
