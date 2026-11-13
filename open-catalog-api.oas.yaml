@@ -2651,7 +2651,9 @@ components:
       maxItems: 100
       description: >
         A JSON Patch document as defined by RFC 6902.
-        Writable fields are: publiccodeYml, url, aliases, active, vitality, analysis.
+        Writable Software fields are: publiccodeYml, url, aliases, active and vitality.
+        Write analysis data through PATCH /software/{softwareId}/analysis instead.
+        Operations on /analysis or its children are rejected with 422.
       example:
         - op: replace
           path: /publiccodeYml
@@ -2686,7 +2688,7 @@ components:
             maxLength: 255
             description: >
               A JSON Pointer (RFC 6901) to a writable field.
-              Examples: /publiccodeYml, /url, /active, /vitality, /analysis,
+              Examples: /publiccodeYml, /url, /active, /vitality,
               /aliases (full replace), /aliases/- (append), /aliases/0 (by index).
             example: '/publiccodeYml'
           value:
