@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +27,7 @@ func TestBundleEndpoints(t *testing.T) {
 			description:         "GET bundles returns only active",
 			query:               "GET /v1/bundles",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				data := assertListResponse(t, response)
 
@@ -42,7 +43,7 @@ func TestBundleEndpoints(t *testing.T) {
 			description:         "GET bundles ignores a from param the operation does not declare",
 			query:               "GET /v1/bundles?from=not-a-date",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				data := assertListResponse(t, response)
 
@@ -53,7 +54,7 @@ func TestBundleEndpoints(t *testing.T) {
 			description:         "GET bundles with all=true returns inactive too",
 			query:               "GET /v1/bundles?all=true",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				data := assertListResponse(t, response)
 				assert.Equal(t, 3, len(data))
@@ -64,7 +65,7 @@ func TestBundleEndpoints(t *testing.T) {
 			description:         "GET bundle by id",
 			query:               "GET /v1/bundles/" + municipalitiesID,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assert.Equal(t, municipalitiesID, response["id"])
 				assert.Equal(t, "Bundle for municipalities", response["name"])
@@ -93,7 +94,7 @@ func TestBundleEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assertUUID(t, response["id"])
 				assert.Equal(t, "New bundle", response["name"])
@@ -183,7 +184,7 @@ func TestBundleEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assert.Equal(t, municipalitiesID, response["id"])
 				assert.Equal(t, "Updated bundle", response["name"])
@@ -198,7 +199,7 @@ func TestBundleEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				ids, ok := response["softwareIds"].([]interface{})
 				assert.True(t, ok)
@@ -233,7 +234,7 @@ func TestBundleEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json-patch+json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assert.Equal(t, "Patched", response["name"])
 			},
@@ -280,7 +281,7 @@ func TestBundlePostDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -310,7 +311,7 @@ func TestBundlePatchDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -330,7 +331,7 @@ func TestBundlePatchDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -360,7 +361,7 @@ func TestBundleDeleteDBChecks(t *testing.T) {
 			"Authorization": {goodToken},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 204, res.StatusCode)
 
@@ -378,7 +379,7 @@ func TestBundleDeleteDBChecks(t *testing.T) {
 			"Authorization": {goodToken},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 204, res.StatusCode)
 

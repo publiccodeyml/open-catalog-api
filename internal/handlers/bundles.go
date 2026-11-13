@@ -3,8 +3,8 @@ package handlers
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
@@ -25,14 +25,14 @@ func NewBundle(db *gorm.DB) *Bundle {
 	return &Bundle{db: db}
 }
 
-func (b *Bundle) GetBundles(ctx *fiber.Ctx) error {
+func (b *Bundle) GetBundles(ctx fiber.Ctx) error {
 	return list[models.Bundle](ctx, b.db.Preload(softwareAssociation), listOptions{
 		title:      "can't get Bundles",
 		activeOnly: true,
 	})
 }
 
-func (b *Bundle) GetBundle(ctx *fiber.Ctx) error {
+func (b *Bundle) GetBundle(ctx fiber.Ctx) error {
 	bundle, err := findOne[models.Bundle](b.db, ctx.Params("id"), findOptions{
 		title:    "can't get Bundle",
 		name:     bundleEntityName,
@@ -45,7 +45,7 @@ func (b *Bundle) GetBundle(ctx *fiber.Ctx) error {
 	return ctx.JSON(bundle)
 }
 
-func (b *Bundle) PostBundle(ctx *fiber.Ctx) error {
+func (b *Bundle) PostBundle(ctx fiber.Ctx) error {
 	const errMsg = "can't create Bundle"
 
 	request := new(common.BundlePost)
@@ -79,7 +79,7 @@ func (b *Bundle) PostBundle(ctx *fiber.Ctx) error {
 	return ctx.JSON(bundle)
 }
 
-func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
+func (b *Bundle) PatchBundle(ctx fiber.Ctx) error {
 	const errMsg = "can't update Bundle"
 
 	bundle, err := findOne[models.Bundle](b.db, ctx.Params("id"), findOptions{
@@ -127,7 +127,7 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 	return ctx.JSON(&updatedBundle)
 }
 
-func (b *Bundle) DeleteBundle(ctx *fiber.Ctx) error {
+func (b *Bundle) DeleteBundle(ctx fiber.Ctx) error {
 	const errMsg = "can't delete Bundle"
 
 	bundle := models.Bundle{ID: ctx.Params("id")}

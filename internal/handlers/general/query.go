@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/fiber/v3"
+	utilsstrings "github.com/gofiber/utils/v2/strings"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -39,7 +39,7 @@ func QueryErrorDetail(err error) string {
 // substring, dateWindow turns ?from and ?to on. An empty column name or
 // a false dateWindow leaves the parameter unread: a list must not act
 // on a parameter its OpenAPI operation does not declare.
-func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string, dateWindow bool) (*gorm.DB, error) {
+func Clauses(ctx fiber.Ctx, stmt *gorm.DB, filterField, searchField string, dateWindow bool) (*gorm.DB, error) {
 	ret := stmt
 
 	if filterField != "" {
@@ -63,7 +63,7 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string, dat
 		if search := ctx.Query("search", ""); search != "" {
 			ret = ret.Where(clause.Expr{
 				SQL:  "LOWER(?) LIKE ?",
-				Vars: []any{clause.Column{Name: searchField}, "%" + utils.ToLower(search) + "%"},
+				Vars: []any{clause.Column{Name: searchField}, "%" + utilsstrings.ToLower(search) + "%"},
 			})
 		}
 	}
@@ -72,7 +72,7 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string, dat
 }
 
 // createdAtWindow narrows stmt to the ?from and ?to window.
-func createdAtWindow(ctx *fiber.Ctx, stmt *gorm.DB) (*gorm.DB, error) {
+func createdAtWindow(ctx fiber.Ctx, stmt *gorm.DB) (*gorm.DB, error) {
 	ret := stmt
 
 	if from := ctx.Query("from", ""); from != "" {

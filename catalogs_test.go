@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -61,7 +62,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalogs",
 			query:               "GET /v1/catalogs",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -78,7 +79,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalogs ignores a from param the operation does not declare",
 			query:               "GET /v1/catalogs?from=not-a-date",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -91,7 +92,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalog by id",
 			query:               "GET /v1/catalogs/" + italiaID,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaID, response["id"])
 				assert.Equal(t, "Italian Catalog", response["name"])
@@ -103,7 +104,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalog by alternativeId",
 			query:               "GET /v1/catalogs/swiss",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, swissID, response["id"])
 				assert.Equal(t, "Swiss Catalog", response["name"])
@@ -154,7 +155,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assertUUID(t, response["id"])
 				assert.Equal(t, "New Catalog", response["name"])
@@ -170,7 +171,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "another", response["alternativeId"])
 			},
@@ -228,7 +229,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t,
 					[]any{"m49:150", "iso3166:IT", "iso3166:IT-25"},
@@ -245,7 +246,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, []any{"IT-25"}, response["scopes"])
 			},
@@ -273,7 +274,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaID, response["id"])
 				assert.Equal(t, "Updated Italian Catalog", response["name"])
@@ -339,7 +340,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assertUUID(t, response["id"])
 				assert.Equal(t, italiaID, response["catalogId"])
@@ -354,7 +355,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Nil(t, response["catalogId"])
 			},
@@ -390,7 +391,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaPublisherID, response["id"])
 				assert.Equal(t, "Updated Publisher", response["description"])
@@ -417,7 +418,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, rootPublisherID, response["id"])
 			},
@@ -448,7 +449,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalog publishers",
 			query:               "GET /v1/catalogs/" + italiaID + "/publishers",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -460,7 +461,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalog publishers by alternativeId",
 			query:               "GET /v1/catalogs/swiss/publishers",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -472,7 +473,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET root catalog publishers (∅)",
 			query:               "GET /v1/catalogs/%E2%88%85/publishers",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -508,7 +509,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assertUUID(t, response["id"])
 				assert.Equal(t, italiaID, response["catalogId"])
@@ -523,7 +524,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaID, response["catalogId"])
 			},
@@ -537,7 +538,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Nil(t, response["catalogId"])
 			},
@@ -586,7 +587,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaSoftwareID, response["id"])
 				assert.Equal(t, "updated", response["publiccodeYml"])
@@ -601,7 +602,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, italiaSoftwareID, response["id"])
 			},
@@ -627,7 +628,7 @@ func TestCatalogEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, rootSoftwareID, response["id"])
 			},
@@ -670,7 +671,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalog software",
 			query:               "GET /v1/catalogs/" + italiaID + "/software",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -684,7 +685,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalog software filtered by url",
 			query:               "GET /v1/catalogs/" + italiaID + "/software?url=https://1-a.example.org/code/repo",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -698,7 +699,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalog software filtered by url excludes inactive",
 			query:               "GET /v1/catalogs/%E2%88%85/software?url=https://31-a.example.org/code/repo",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -709,7 +710,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalog software filtered by url - not found",
 			query:               "GET /v1/catalogs/" + italiaID + "/software?url=https://no.such.url.example.org",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -720,7 +721,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET catalog software ignores a from param the operation does not declare",
 			query:               "GET /v1/catalogs/" + italiaID + "/software?from=not-a-date",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -731,7 +732,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET root catalog software (∅)",
 			query:               "GET /v1/catalogs/%E2%88%85/software",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -745,7 +746,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			description:         "GET root catalog software with all=true returns inactive too",
 			query:               "GET /v1/catalogs/%E2%88%85/software?all=true&page[size]=100",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -791,7 +792,7 @@ func TestCatalogSoftwareDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
@@ -816,7 +817,7 @@ func TestCatalogSoftwareDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -836,7 +837,7 @@ func TestCatalogDeleteDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
@@ -851,7 +852,7 @@ func TestCatalogDeleteDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err = app.Test(req, -1)
+		res, err = app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
@@ -864,7 +865,7 @@ func TestCatalogDeleteDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		req.Header = map[string][]string{"Authorization": {goodToken}}
 
-		res, err = app.Test(req, -1)
+		res, err = app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 204, res.StatusCode)
 
@@ -891,7 +892,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
@@ -913,7 +914,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 	})
@@ -931,7 +932,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
@@ -951,7 +952,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
@@ -985,7 +986,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		require.Equal(t, 200, res.StatusCode)
 
@@ -1025,7 +1026,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 422, res.StatusCode)
 	})
@@ -1050,7 +1051,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 422, res.StatusCode)
 	})
@@ -1068,7 +1069,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 422, res.StatusCode)
 	})
@@ -1086,7 +1087,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 422, res.StatusCode)
 	})
@@ -1111,7 +1112,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 422, res.StatusCode)
 	})
@@ -1129,7 +1130,7 @@ func TestCatalogSourcesDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 422, res.StatusCode)
 	})
@@ -1146,7 +1147,7 @@ func TestRootCatalogMaterialize(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 
 		var resp map[string]any
@@ -1167,7 +1168,7 @@ func TestRootCatalogMaterialize(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 
 		var resp map[string]any
@@ -1183,7 +1184,7 @@ func TestRootCatalogMaterialize(t *testing.T) {
 		require.NoError(t, err)
 		req.Header = map[string][]string{"Authorization": {goodToken}}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 
 		return res.StatusCode
@@ -1283,7 +1284,7 @@ func TestRootCatalogMaterialize(t *testing.T) {
 		req, err := newTestRequest("GET", "/v1/catalogs/%E2%88%85/publishers?all=true", nil)
 		require.NoError(t, err)
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1304,7 +1305,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			description:         "GET analysis on catalog with no analysis returns empty object",
 			query:               "GET /v1/catalogs/" + italiaID + "/analysis",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Empty(t, response)
 			},
@@ -1318,7 +1319,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 				"Content-Type":  {"application/merge-patch+json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				badges := response["badges"].(map[string]any)
 
@@ -1336,7 +1337,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 				"Content-Type":  {"application/merge-patch+json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				badges := response["badges"].(map[string]any)
 				maxima := response["maxima"].(map[string]any)
@@ -1354,7 +1355,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 				"Content-Type":  {"application/merge-patch+json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				badges := response["badges"].(map[string]any)
 
@@ -1462,7 +1463,7 @@ func TestCatalogAnalysisDBChecks(t *testing.T) {
 			"Content-Type":  {"application/merge-patch+json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1487,7 +1488,7 @@ func TestCatalogAnalysisDBChecks(t *testing.T) {
 			"Content-Type":  {"application/merge-patch+json"},
 		}
 
-		res1, err := app.Test(req1, -1)
+		res1, err := app.Test(req1, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res1.StatusCode)
 
@@ -1498,7 +1499,7 @@ func TestCatalogAnalysisDBChecks(t *testing.T) {
 			"Content-Type":  {"application/merge-patch+json"},
 		}
 
-		res2, err := app.Test(req2, -1)
+		res2, err := app.Test(req2, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res2.StatusCode)
 
@@ -1547,7 +1548,7 @@ func TestCatalogPostDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1574,7 +1575,7 @@ func TestCatalogPatchDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1593,7 +1594,7 @@ func TestCatalogPatchDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1687,7 +1688,7 @@ func TestCatalogDuplicateSources(t *testing.T) {
 					req.Header.Set("Content-Type", "application/json")
 					req.Header.Set("Authorization", goodToken)
 
-					res, err := app.Test(req, -1)
+					res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 					require.NoError(t, err)
 					defer res.Body.Close()
 					status = res.StatusCode

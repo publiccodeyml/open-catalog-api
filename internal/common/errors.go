@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 var (
@@ -30,11 +30,17 @@ func ErrorWithValidationErrors(
 	return ProblemJSONError{Title: title, Detail: detail, Status: status, ValidationErrors: validationErrors}
 }
 
-func CustomErrorHandler(ctx *fiber.Ctx, err error) error {
+func CustomErrorHandler(ctx fiber.Ctx, err error) error {
 	var problemJSON *ProblemJSONError
 
 	if e, ok := errors.AsType[*fiber.Error](err); ok {
 		problemJSON = &ProblemJSONError{Status: e.Code, Title: http.StatusText(e.Code), Detail: e.Message}
+
+		// Fiber v3 no longer names the unmatched route in its error, while
+		// clients have always read it in the detail.
+		if e == fiber.ErrNotFound {
+			problemJSON.Detail = "Cannot " + ctx.Method() + " " + ctx.Path()
+		}
 	}
 
 	if errors.Is(err, ErrAuthentication) {

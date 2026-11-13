@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/publiccodeyml/open-catalog-api/internal/jsondecoder"
 )
 
@@ -204,8 +204,14 @@ func ValidateStruct(validateStruct any) []ValidationError {
 	return validationErrors
 }
 
-func ValidateRequestEntity(ctx *fiber.Ctx, request any, errorMessage string) error {
-	if err := ctx.BodyParser(request); err != nil {
+func ValidateRequestEntity(ctx fiber.Ctx, request any, errorMessage string) error {
+	if err := ctx.Bind().Body(request); err != nil {
+		// Fiber wraps the decoder error with the binding source, which
+		// would leak into the detail.
+		if bindErr, ok := errors.AsType[*fiber.BindError](err); ok {
+			err = bindErr.Err
+		}
+
 		if errors.Is(err, jsondecoder.ErrUnknownField) {
 			return Error(fiber.StatusUnprocessableEntity, errorMessage, err.Error())
 		}

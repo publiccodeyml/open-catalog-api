@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +37,7 @@ func newCrudDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func newCrudCtx(t *testing.T, query string) *fiber.Ctx {
+func newCrudCtx(t *testing.T, query string) fiber.Ctx {
 	t.Helper()
 
 	app := fiber.New()
@@ -238,7 +238,7 @@ type crudItemPatch struct {
 	Message *string `json:"message" validate:"omitempty,min=2"`
 }
 
-func newPatchCtx(t *testing.T, contentType, body string) *fiber.Ctx {
+func newPatchCtx(t *testing.T, contentType, body string) fiber.Ctx {
 	t.Helper()
 
 	ctx := newCrudCtx(t, "")

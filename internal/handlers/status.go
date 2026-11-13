@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"gorm.io/gorm"
 )
@@ -15,7 +15,7 @@ func NewStatus(db *gorm.DB) *Status {
 }
 
 // GetStatus gets status of the API.
-func (s *Status) GetStatus(ctx *fiber.Ctx) error {
+func (s *Status) GetStatus(ctx fiber.Ctx) error {
 	ctx.Append("Cache-Control", "no-cache")
 
 	if err := s.db.Exec("SELECT 1 WHERE true").Error; err != nil {

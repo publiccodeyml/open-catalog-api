@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assertUUID(t, response["id"])
 				assert.Equal(t, "https://example.org/receiver", response["url"])
@@ -75,7 +76,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 			},
 			expectedCode:        200,
 			expectedBody:        `{"id":"007bc84a-7e2d-43a0-b7e1-a256d4114aa7","url":"https://1-b.example.org/receiver","format":"default","createdAt":"2017-05-01T00:00:00Z","updatedAt":"2017-05-01T00:00:00Z"}`,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 		},
 		{
 			description: "Non-existent webhook",
@@ -107,7 +108,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 			query:               "GET /v1/software/webhooks?from=2020-01-01T00:00:00Z",
 			headers:             map[string][]string{"Authorization": {goodToken}},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				data := assertListResponse(t, response)
 
@@ -133,7 +134,7 @@ func TestWebhooksEndpoints(t *testing.T) {
 			query:               "GET /v1/software/9f135268-a37e-4ead-96ec-e4a24bb9344a/webhooks?from=2020-01-01T00:00:00Z",
 			headers:             map[string][]string{"Authorization": {goodToken}},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				data := assertListResponse(t, response)
 
@@ -213,7 +214,7 @@ func TestWebhookReadsRequireAuthenticationAndBypassCache(t *testing.T) {
 		require.NoError(t, err)
 		request.Header.Set("Authorization", goodToken)
 
-		response, err := app.Test(request, -1)
+		response, err := app.Test(request, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, response.StatusCode, path)
 		require.NoError(t, response.Body.Close())
@@ -221,7 +222,7 @@ func TestWebhookReadsRequireAuthenticationAndBypassCache(t *testing.T) {
 		request, err = newTestRequest(http.MethodGet, path, nil)
 		require.NoError(t, err)
 
-		response, err = app.Test(request, -1)
+		response, err = app.Test(request, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusUnauthorized, response.StatusCode, path)
 		require.NoError(t, response.Body.Close())
@@ -230,7 +231,7 @@ func TestWebhookReadsRequireAuthenticationAndBypassCache(t *testing.T) {
 	request, err := newTestRequest(http.MethodGet, "/v1/software", nil)
 	require.NoError(t, err)
 
-	response, err := app.Test(request, -1)
+	response, err := app.Test(request, fiber.TestConfig{Timeout: 0})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, response.Body.Close()) })
 
@@ -250,7 +251,7 @@ func TestWebhooksPostDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -274,7 +275,7 @@ func TestWebhooksDeleteDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		req.Header = map[string][]string{"Authorization": {goodToken}}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 204, res.StatusCode)
 
@@ -290,7 +291,7 @@ func TestWebhooksDeleteDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		req.Header = map[string][]string{"Authorization": {goodToken}}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 404, res.StatusCode)
 
@@ -320,7 +321,7 @@ func TestResourceDeletionRemovesWebhooks(t *testing.T) {
 			request, err := newTestRequest(http.MethodDelete, "/v1/"+test.entityType+"/"+test.id, nil)
 			require.NoError(t, err)
 			request.Header.Set("Authorization", goodToken)
-			response, err := app.Test(request, -1)
+			response, err := app.Test(request, fiber.TestConfig{Timeout: 0})
 			require.NoError(t, err)
 			require.NoError(t, response.Body.Close())
 			require.Equal(t, http.StatusNoContent, response.StatusCode)

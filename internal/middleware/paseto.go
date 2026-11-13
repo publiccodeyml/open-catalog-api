@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	pasetoware "github.com/gofiber/contrib/paseto"
-	"github.com/gofiber/fiber/v2"
+	pasetoware "github.com/gofiber/contrib/v3/paseto"
+	"github.com/gofiber/fiber/v3"
 	"github.com/o1egl/paseto"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 )
@@ -27,9 +27,8 @@ func NewPasetoMiddleware(
 	requiresAuth func(method, path string) bool,
 ) fiber.Handler {
 	return pasetoware.New(pasetoware.Config{
-		TokenPrefix:  "Bearer",
 		SymmetricKey: envs.PasetoKey[:],
-		Next: func(ctx *fiber.Ctx) bool {
+		Next: func(ctx fiber.Ctx) bool {
 			return !requiresAuth(ctx.Method(), ctx.Path())
 		},
 		Validate: func(data []byte) (any, error) {
@@ -44,17 +43,17 @@ func NewPasetoMiddleware(
 
 			return payload, nil
 		},
-		SuccessHandler: func(ctx *fiber.Ctx) error {
+		SuccessHandler: func(ctx fiber.Ctx) error {
 			// The token is the only place the identity of the caller comes
 			// from, and the model hooks recording an event read it off the
 			// request context.
-			if payload, ok := ctx.Locals(pasetoware.DefaultContextKey).(paseto.JSONToken); ok {
-				ctx.SetUserContext(common.WithActor(ctx.UserContext(), payload.Subject))
+			if payload, ok := pasetoware.FromContext(ctx).(paseto.JSONToken); ok {
+				ctx.SetContext(common.WithActor(ctx.Context(), payload.Subject))
 			}
 
 			return ctx.Next()
 		},
-		ErrorHandler: func(ctx *fiber.Ctx, _ error) error {
+		ErrorHandler: func(ctx fiber.Ctx, _ error) error {
 			return common.CustomErrorHandler(ctx, common.ErrAuthentication)
 		},
 	})

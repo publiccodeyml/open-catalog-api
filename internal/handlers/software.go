@@ -6,8 +6,8 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
@@ -30,7 +30,7 @@ func NewSoftware(db *gorm.DB) *Software {
 }
 
 // GetAllSoftware gets the list of all software and returns any error encountered.
-func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error {
+func (p *Software) GetAllSoftware(ctx fiber.Ctx) error {
 	stmt, err := general.Clauses(ctx, p.db, "", "", true)
 	if err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
@@ -49,7 +49,7 @@ func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error {
 }
 
 // GetSoftware gets the software with the given ID and returns any error encountered.
-func (p *Software) GetSoftware(ctx *fiber.Ctx) error {
+func (p *Software) GetSoftware(ctx fiber.Ctx) error {
 	const errMsg = "can't get Software"
 
 	software := models.Software{}
@@ -66,12 +66,12 @@ func (p *Software) GetSoftware(ctx *fiber.Ctx) error {
 }
 
 // PostSoftware creates a new software.
-func (p *Software) PostSoftware(ctx *fiber.Ctx) error {
+func (p *Software) PostSoftware(ctx fiber.Ctx) error {
 	return createSoftware(ctx, writeDB(ctx, p.db), nil)
 }
 
 // PatchSoftware updates the software with the given ID.
-func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
+func (p *Software) PatchSoftware(ctx fiber.Ctx) error {
 	const errMsg = "can't update Software"
 
 	software := models.Software{}
@@ -88,7 +88,7 @@ func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 }
 
 // DeleteSoftware deletes the software with the given ID.
-func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
+func (p *Software) DeleteSoftware(ctx fiber.Ctx) error {
 	const errMsg = "can't delete Software"
 
 	software := models.Software{ID: ctx.Params("id")}
@@ -134,7 +134,7 @@ func loadSoftware(gormdb *gorm.DB, software *models.Software, id string) error {
 
 // createSoftware creates a software from the request body. catalogID owns
 // it, nil for the root catalog and for the catalog agnostic endpoint.
-func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
+func createSoftware(ctx fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	const errMsg = "can't create Software"
 
 	softwareReq := new(common.SoftwarePost)
@@ -207,7 +207,7 @@ func validateAliasURLs(url string, aliases []string, title string) error {
 
 // updateSoftware applies the PATCH body to software and saves it, keeping
 // its canonical URL and its aliases in sync.
-func updateSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, software models.Software) error {
+func updateSoftware(ctx fiber.Ctx, gormdb *gorm.DB, software models.Software) error {
 	const errMsg = "can't update Software"
 
 	updatedSoftware, err := applyPatch(ctx, &software, patchOptions[models.Software]{
@@ -342,7 +342,7 @@ func syncAliases( //nolint:cyclop // mostly error handling ifs
 }
 
 // GetSoftwareAnalysis returns the analysis data for the software with the given ID.
-func (p *Software) GetSoftwareAnalysis(ctx *fiber.Ctx) error {
+func (p *Software) GetSoftwareAnalysis(ctx fiber.Ctx) error {
 	const errMsg = "can't get Software analysis"
 
 	software, err := findOne[models.Software](p.db, ctx.Params("id"), findOptions{
@@ -358,7 +358,7 @@ func (p *Software) GetSoftwareAnalysis(ctx *fiber.Ctx) error {
 
 // PatchSoftwareAnalysis merges the incoming analysis namespaces into the stored analysis.
 // The request body is an AnalysisData object (namespace → arbitrary JSON with "v" field).
-func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
+func (p *Software) PatchSoftwareAnalysis(ctx fiber.Ctx) error {
 	const errMsg = "can't update Software analysis"
 
 	software := models.Software{ID: ctx.Params("id")}
@@ -384,7 +384,7 @@ func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 // parameter. found is false when no software has that url, so the caller
 // answers with an empty list instead of running the query. title is the
 // Problem JSON title of the 500 the caller would have written itself.
-func softwareURLFilter(ctx *fiber.Ctx, gormdb, stmt *gorm.DB, title string) (*gorm.DB, bool, error) {
+func softwareURLFilter(ctx fiber.Ctx, gormdb, stmt *gorm.DB, title string) (*gorm.DB, bool, error) {
 	url := common.NormalizeURL(ctx.Query("url", ""))
 	if url == "" {
 		return stmt, true, nil
@@ -408,7 +408,7 @@ func softwareURLFilter(ctx *fiber.Ctx, gormdb, stmt *gorm.DB, title string) (*go
 // has one through the software_id column and load an arbitrary url. The
 // ?from and ?to window is the caller's, GET /software applies it before
 // its ?url short circuit and the catalog software list does not declare it.
-func listSoftware(ctx *fiber.Ctx, stmt *gorm.DB) error {
+func listSoftware(ctx fiber.Ctx, stmt *gorm.DB) error {
 	stmt = stmt.Preload("Aliases")
 
 	software, cursor, err := paginate[models.Software](ctx, stmt, listOptions{

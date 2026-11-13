@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
 )
 
@@ -64,7 +64,7 @@ func buildLink(base map[string]string, key string, cursor *string) *string {
 	return &s
 }
 
-func NewPaginatorWithConfig(ctx *fiber.Ctx, config *paginator.Config) (*paginator.Paginator, error) {
+func NewPaginatorWithConfig(ctx fiber.Ctx, config *paginator.Config) (*paginator.Paginator, error) {
 	mergedConf := *DefaultConfig
 
 	if len(config.Keys) != 0 {
@@ -99,7 +99,7 @@ func NewPaginatorWithConfig(ctx *fiber.Ctx, config *paginator.Config) (*paginato
 	return paginator, nil
 }
 
-func pageSizeFromQuery(ctx *fiber.Ctx) (int, error) {
+func pageSizeFromQuery(ctx fiber.Ctx) (int, error) {
 	raw := ctx.Query("page[size]")
 	if raw == "" {
 		return DefaultLimitCount, nil

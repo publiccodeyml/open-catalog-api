@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/o1egl/paseto"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/stretchr/testify/assert"
@@ -74,14 +74,14 @@ func TestPasetoMiddlewareValidatesTemporalClaims(t *testing.T) {
 
 			app := fiber.New()
 			app.Use(NewPasetoMiddleware(common.Environment{PasetoKey: &key}, func(string, string) bool { return true }))
-			app.Post("/", func(ctx *fiber.Ctx) error {
+			app.Post("/", func(ctx fiber.Ctx) error {
 				return ctx.SendStatus(fiber.StatusNoContent)
 			})
 
 			request := httptest.NewRequest(http.MethodPost, "/", nil)
 			request.Header.Set(fiber.HeaderAuthorization, "Bearer "+token)
 
-			response, err := app.Test(request, -1)
+			response, err := app.Test(request, fiber.TestConfig{Timeout: 0})
 			require.NoError(t, err)
 			defer response.Body.Close()
 

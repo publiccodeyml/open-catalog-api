@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 )

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +18,7 @@ func newTestApp() *fiber.App {
 
 func TestCustomErrorHandler_FiberError(t *testing.T) {
 	app := newTestApp()
-	app.Get("/bad-input", func(ctx *fiber.Ctx) error {
+	app.Get("/bad-input", func(ctx fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "bad input")
 	})
 
@@ -26,7 +26,7 @@ func TestCustomErrorHandler_FiberError(t *testing.T) {
 	require.NoError(t, err)
 	req.Host = "localhost"
 
-	res, err := app.Test(req, -1)
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 	require.NoError(t, err)
 
 	assert.Equal(t, fiber.StatusBadRequest, res.StatusCode)
@@ -41,7 +41,7 @@ func TestCustomErrorHandler_FiberError(t *testing.T) {
 
 func TestCustomErrorHandler_ProblemJSON(t *testing.T) {
 	app := newTestApp()
-	app.Get("/problem", func(ctx *fiber.Ctx) error {
+	app.Get("/problem", func(ctx fiber.Ctx) error {
 		return Error(fiber.StatusUnprocessableEntity, "validation failed", "field x is missing")
 	})
 
@@ -49,7 +49,7 @@ func TestCustomErrorHandler_ProblemJSON(t *testing.T) {
 	require.NoError(t, err)
 	req.Host = "localhost"
 
-	res, err := app.Test(req, -1)
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 	require.NoError(t, err)
 
 	assert.Equal(t, fiber.StatusUnprocessableEntity, res.StatusCode)
@@ -62,7 +62,7 @@ func TestCustomErrorHandler_ProblemJSON(t *testing.T) {
 
 func TestCustomErrorHandler_AuthError(t *testing.T) {
 	app := newTestApp()
-	app.Get("/auth", func(ctx *fiber.Ctx) error {
+	app.Get("/auth", func(ctx fiber.Ctx) error {
 		return ErrAuthentication
 	})
 
@@ -70,7 +70,7 @@ func TestCustomErrorHandler_AuthError(t *testing.T) {
 	require.NoError(t, err)
 	req.Host = "localhost"
 
-	res, err := app.Test(req, -1)
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 	require.NoError(t, err)
 
 	assert.Equal(t, fiber.StatusUnauthorized, res.StatusCode)
@@ -80,7 +80,7 @@ func TestCustomErrorHandler_AuthError(t *testing.T) {
 // carry the schema or the failing statement, so it stays in the log.
 func TestCustomErrorHandler_UnknownError(t *testing.T) {
 	app := newTestApp()
-	app.Get("/unknown", func(ctx *fiber.Ctx) error {
+	app.Get("/unknown", func(ctx fiber.Ctx) error {
 		return errors.New(`pq: relation "secret_table" does not exist`)
 	})
 
@@ -88,7 +88,7 @@ func TestCustomErrorHandler_UnknownError(t *testing.T) {
 	require.NoError(t, err)
 	req.Host = "localhost"
 
-	res, err := app.Test(req, -1)
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 	require.NoError(t, err)
 
 	assert.Equal(t, fiber.StatusInternalServerError, res.StatusCode)

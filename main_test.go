@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/go-testfixtures/testfixtures/v3"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/o1egl/paseto"
@@ -181,7 +181,7 @@ func runTestCases(t *testing.T, tests []TestCase) {
 			}
 			req.URL.RawQuery = u.Query().Encode()
 
-			res, err := app.Test(req, -1)
+			res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 			assert.Nil(t, err)
 
 			assert.Equal(t, test.expectedCode, res.StatusCode)
@@ -371,7 +371,7 @@ func requestFrom(t *testing.T, rateLimitedApp *fiber.App, forwardedFor string) i
 
 	req.Header.Set(fiber.HeaderXForwardedFor, forwardedFor)
 
-	res, err := rateLimitedApp.Test(req, -1)
+	res, err := rateLimitedApp.Test(req, fiber.TestConfig{Timeout: 0})
 	require.NoError(t, err)
 
 	return res.StatusCode
@@ -423,9 +423,9 @@ func TestRateLimiterBuckets(t *testing.T) {
 		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "198.51.100.2"))
 	})
 
-	t.Run("the first entry of the forwarded chain identifies the client", func(t *testing.T) {
-		for range maxRequests {
-			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "198.51.100.3, 10.0.0.7"))
+	t.Run("entries a client prepends to the forwarded chain are ignored", func(t *testing.T) {
+		for i := range maxRequests {
+			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, fmt.Sprintf("203.0.113.%d, 198.51.100.3", i)))
 		}
 
 		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "198.51.100.3"))
@@ -449,7 +449,7 @@ func TestRateLimiterBuckets(t *testing.T) {
 
 		req.Header.Set(fiber.HeaderXForwardedFor, "198.51.100.4")
 
-		res, err := proxiedApp.Test(req, -1)
+		res, err := proxiedApp.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 
 		defer res.Body.Close()

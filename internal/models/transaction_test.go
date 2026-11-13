@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/utils/v2"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

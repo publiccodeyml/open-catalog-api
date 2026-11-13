@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			description:         "GET the first page on publishers",
 			query:               "GET /v1/publishers",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -45,7 +46,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			description:         "GET all the publishers, except the non active ones",
 			query:               "GET /v1/publishers?page[size]=100",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -69,7 +70,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			query:       "GET /v1/publishers?all=true&page[size]=100",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -93,7 +94,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			query:       "GET /v1/publishers?page[size]=2",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -118,7 +119,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			query:       "GET /v1/publishers?page[size]=200",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			setupFunc:           addPublishersForPaginationCapTest,
 			validateFunc: func(t *testing.T, response map[string]any) {
 				items := assertListResponse(t, response)
@@ -130,7 +131,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			query:       "GET /v1/publishers?page[after]=WyIyMDE4LTExLTI3VDAwOjAwOjAwWiIsIjgxZmRhN2M0LTZiYmYtNDM4Ny04Zjg5LTI1OGMxZTZmYWZhMiJd",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -155,7 +156,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			query:       "GET /v1/publishers?page[before]=WyIyMDE4LTExLTI3VDAwOjAwOjAwWiIsIjkxZmRhN2M0LTZiYmYtNDM4Ny04Zjg5LTI1OGMxZTZmYWZhMiJd",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -180,7 +181,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			query:       "GET /v1/publishers?from=2018-11-10T00:56:23Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -203,7 +204,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			query:       "GET /v1/publishers?to=2018-11-01T09:56:23Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := response["data"].([]any)
 
@@ -233,7 +234,7 @@ func TestPublishersEndpoints(t *testing.T) {
 		{
 			query:               "GET /v1/publishers/15fda7c4-6bbf-4387-8f89-258c1e6fafb1",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.NotEmpty(t, response["codeHosting"])
 
@@ -249,7 +250,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			description:         "GET publisher with alternativeId",
 			query:               "GET /v1/publishers/alternative-id-12345",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "15fda7c4-6bbf-4387-8f89-258c1e6facb0", response["id"])
 				assert.Equal(t, "alternative-id-12345", response["alternativeId"])
@@ -268,7 +269,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.IsType(t, []any{}, response["codeHosting"])
 
@@ -295,7 +296,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.IsType(t, []any{}, response["codeHosting"])
 				assert.Equal(t, 1, len(response["codeHosting"].([]any)))
@@ -353,7 +354,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.IsType(t, []any{}, response["codeHosting"])
 
@@ -388,7 +389,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "foobar@1.example.org", response["email"])
 			},
@@ -402,7 +403,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "foobar@1.example.org", response["email"])
 			},
@@ -416,7 +417,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "new publisher description", response["description"])
 
@@ -530,7 +531,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, false, response["active"])
 			},
@@ -544,7 +545,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.IsType(t, []any{}, response["codeHosting"])
 
@@ -620,7 +621,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "new PATCHed description", response["description"])
 				assert.IsType(t, []any{}, response["codeHosting"])
@@ -649,7 +650,7 @@ func TestPublishersEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "2ded32eb-c45e-4167-9166-a44e18b8adde", response["id"])
 				assert.Equal(t, "new description", response["description"])
@@ -694,7 +695,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "new PATCHed description via alternativeId", response["description"])
 				assert.IsType(t, []any{}, response["codeHosting"])
@@ -810,7 +811,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json-patch+json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "new description via JSON Patch", response["description"])
 				assert.Equal(t, "foobar@1.example.org", response["email"])
@@ -831,7 +832,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json-patch+json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "Publisher description 1", response["description"])
 				codeHosting := response["codeHosting"].([]any)
@@ -907,7 +908,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Authorization": {goodToken},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -946,7 +947,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Authorization": {goodToken},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -960,7 +961,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Authorization": {goodToken},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -994,7 +995,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://new.example.org", response["url"])
 
@@ -1012,7 +1013,7 @@ func TestPublishersEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://new.example.org", response["url"])
 			},
@@ -1116,7 +1117,7 @@ func TestPublishersPostDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1141,7 +1142,7 @@ func TestPublishersPatchDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1230,7 +1231,7 @@ func TestPublishersPatchCodeHostingGroup(t *testing.T) {
 			req, err := newTestRequest(http.MethodGet, publisherPath+italiaPublisherID, nil)
 			require.NoError(t, err)
 
-			res, err := app.Test(req, -1)
+			res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
 
@@ -1269,7 +1270,7 @@ func TestPublishersDeleteDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		assert.Nil(t, err)
 		assert.Equal(t, 204, res.StatusCode)
 
@@ -1285,7 +1286,7 @@ func TestPublishersDeleteDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		req.Header = map[string][]string{"Authorization": {goodToken}}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 204, res.StatusCode)
 
@@ -1319,7 +1320,7 @@ func TestPublishersDeleteDBChecks(t *testing.T) {
 
 				<-start
 
-				res, err := app.Test(req, -1)
+				res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 				if err != nil {
 					statuses <- 0
 
@@ -1386,7 +1387,7 @@ func TestPublishersLogsEndpoints(t *testing.T) {
 			query: "GET /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				data := assertListResponse(t, response)
 
@@ -1409,7 +1410,7 @@ func TestPublishersLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs?from=2020-01-01T00:00:00Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				data := assertListResponse(t, response)
 
@@ -1432,7 +1433,7 @@ func TestPublishersLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde/logs?page[size]=1",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				data := assertListResponse(t, response)
 
@@ -1464,7 +1465,7 @@ func TestPublishersLogsEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assert.Equal(t, "New publisher log from test suite", response["message"])
 

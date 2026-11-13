@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/go-testfixtures/testfixtures/v3"
-	"github.com/gofiber/fiber/v2/utils"
-	_ "github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/utils/v2"
+	_ "github.com/gofiber/utils/v2"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

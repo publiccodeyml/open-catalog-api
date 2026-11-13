@@ -3,13 +3,13 @@ package general
 import (
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 )
 
-func newTestCtx() (*fiber.App, *fiber.Ctx) {
+func newTestCtx() (*fiber.App, fiber.Ctx) {
 	app := fiber.New()
 	ctx := app.AcquireCtx(&fasthttp.RequestCtx{})
 	return app, ctx

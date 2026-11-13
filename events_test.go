@@ -44,7 +44,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -87,7 +87,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?page[size]=3",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -101,7 +101,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?page[after]=WyIyMDE5LTA5LTE1VDAwOjAwOjAwWiIsImIzYzRkNWU2LTdmODAtNGI5Yy04ZDFlLTRmNWE2YjdjOGQ3MyJd",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -115,7 +115,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?from=2019-01-01T00:00:00Z",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -138,7 +138,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?to=2019-01-01T00:00:00Z",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -161,7 +161,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?from=2016-01-01T00:00:00Z&to=2019-01-01T00:00:00Z",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -175,7 +175,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?entityType=publishers",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 				assert.Len(t, data, 3)
@@ -190,7 +190,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?entityId=c353756e-8597-4e46-a99b-7da2e141603b",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 				assert.Len(t, data, 3)
@@ -205,7 +205,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?type=update",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 				assert.Len(t, data, 3)
@@ -220,7 +220,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?actor=crawler",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 				assert.Len(t, data, 4)
@@ -235,7 +235,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?actor=editor&entityType=publishers",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 				assert.Len(t, data, 2)
@@ -264,7 +264,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events/" + eventWithActorID,
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, eventWithActorID, response["id"])
 				assert.Equal(t, "update", response["type"])
@@ -284,7 +284,7 @@ func TestEventsEndpoints(t *testing.T) {
 				assert.True(t, dbNull(t, "events", "actor", "id", eventWithoutActorID))
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, eventWithoutActorID, response["id"])
 				assert.Equal(t, "create", response["type"])

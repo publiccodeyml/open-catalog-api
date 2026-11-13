@@ -10,13 +10,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/caarlos0/env/v6"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cache"
-	"github.com/gofiber/fiber/v2/middleware/healthcheck"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/contrib/v3/prometheus"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cache"
+	"github.com/gofiber/fiber/v3/middleware/healthcheck"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
+	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/publiccodeyml/open-catalog-api/cmd"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/database"
@@ -121,9 +121,11 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 		// With the check on and no trusted proxy configured, Fiber ignores
 		// X-Forwarded-For and c.IP() is the peer of the connection, so a
 		// client can't pick the address it is rate limited by.
-		ProxyHeader:             fiber.HeaderXForwardedFor,
-		EnableTrustedProxyCheck: true,
-		TrustedProxies:          common.EnvironmentConfig.TrustedProxies,
+		ProxyHeader: fiber.HeaderXForwardedFor,
+		TrustProxy:  true,
+		TrustProxyConfig: fiber.TrustProxyConfig{
+			Proxies: common.EnvironmentConfig.TrustedProxies,
+		},
 		// Without validation c.IP() is the whole header value, so a client
 		// behind a trusted proxy could still change it on every request.
 		EnableIPValidation: true,
@@ -132,17 +134,17 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	// Automatically recover panics in handlers
 	app.Use(recover.New())
 
-	app.Use(newHealthcheck(gormDB))
+	registerHealthchecks(app, gormDB)
 
 	// Use Fiber Rate API Limiter
 	if !common.EnvironmentConfig.IsTest() && common.EnvironmentConfig.MaxRequests != 0 {
 		app.Use(limiter.New(limiter.Config{
 			Max:               common.EnvironmentConfig.MaxRequests,
 			LimiterMiddleware: limiter.SlidingWindow{},
-			KeyGenerator: func(ctx *fiber.Ctx) string {
+			KeyGenerator: func(ctx fiber.Ctx) string {
 				return ctx.IP()
 			},
-			LimitReached: func(*fiber.Ctx) error {
+			LimitReached: func(fiber.Ctx) error {
 				return fiber.ErrTooManyRequests
 			},
 		}))
@@ -154,9 +156,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 		common.EnvironmentConfig.PasetoKey = middleware.NewRandomPasetoKey()
 	}
 
-	prometheus := fiberprometheus.New(os.Args[0])
-	prometheus.RegisterAt(app, "/metrics")
-	app.Use(prometheus.Middleware)
+	app.Use(prometheus.New(prometheus.Config{ServiceName: os.Args[0]}))
 
 	app.Use(middleware.NewPasetoMiddleware(common.EnvironmentConfig, requiresAuth))
 
@@ -184,12 +184,13 @@ func newWebhookDebouncer(gormDB *gorm.DB) *webhooks.Debouncer {
 	)
 }
 
-func newHealthcheck(gormDB *gorm.DB) fiber.Handler {
-	return healthcheck.New(healthcheck.Config{
-		ReadinessProbe: func(c *fiber.Ctx) bool {
+func registerHealthchecks(router fiber.Router, gormDB *gorm.DB) {
+	router.Get(healthcheck.LivenessEndpoint, healthcheck.New())
+	router.Get(healthcheck.ReadinessEndpoint, healthcheck.New(healthcheck.Config{
+		Probe: func(fiber.Ctx) bool {
 			return gormDB.Exec("SELECT 1").Error == nil
 		},
-	})
+	}))
 }
 
 // requiresAuth reports whether a request must carry a valid token. Reads
@@ -220,17 +221,13 @@ func requiresAuth(method, requestPath string) bool {
 
 func newResponseCache() fiber.Handler {
 	return cache.New(cache.Config{
-		Next: func(ctx *fiber.Ctx) bool {
+		Next: func(ctx fiber.Ctx) bool {
 			// Don't cache health checks or authenticated resources.
 			return ctx.Path() == "/v1/status" ||
 				requiresAuth(ctx.Method(), ctx.Path())
 		},
-		Methods:      []string{fiber.MethodGet, fiber.MethodHead},
-		CacheControl: true,
-		Expiration:   10 * time.Second,
-		KeyGenerator: func(ctx *fiber.Ctx) string {
-			return ctx.Path() + string(ctx.Context().QueryArgs().QueryString())
-		},
+		Methods:    []string{fiber.MethodGet, fiber.MethodHead},
+		Expiration: 10 * time.Second,
 	})
 }
 

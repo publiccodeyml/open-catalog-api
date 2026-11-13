@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
@@ -25,7 +25,7 @@ func webhookFormatOrDefault(format string) string {
 }
 
 // GetWebhook gets the webhook with the given ID and returns any error encountered.
-func (p *Webhook[T]) GetWebhook(ctx *fiber.Ctx) error {
+func (p *Webhook[T]) GetWebhook(ctx fiber.Ctx) error {
 	webhook, err := findOne[models.Webhook](p.db, ctx.Params("id"), findOptions{
 		title: "can't get Webhook",
 		name:  "Webhook",
@@ -39,7 +39,7 @@ func (p *Webhook[T]) GetWebhook(ctx *fiber.Ctx) error {
 
 // GetResourceWebhooks gets the webhooks associated to resources
 // (fe. Software, Publishers) and returns any error encountered.
-func (p *Webhook[T]) GetResourceWebhooks(ctx *fiber.Ctx) error {
+func (p *Webhook[T]) GetResourceWebhooks(ctx fiber.Ctx) error {
 	var resource T
 
 	stmt := p.db.Where(map[string]any{"entity_type": resource.TableName()})
@@ -50,7 +50,7 @@ func (p *Webhook[T]) GetResourceWebhooks(ctx *fiber.Ctx) error {
 // GetSingleResourceWebhooks gets the webhooks associated to a resource
 // (fe. a specific Software or Publisher) with the given ID and returns any
 // error encountered.
-func (p *Webhook[T]) GetSingleResourceWebhooks(ctx *fiber.Ctx) error {
+func (p *Webhook[T]) GetSingleResourceWebhooks(ctx fiber.Ctx) error {
 	found, err := findOne[T](p.db, ctx.Params("id"), findOptions{
 		title: "can't find resource",
 		name:  "resource",
@@ -70,7 +70,7 @@ func (p *Webhook[T]) GetSingleResourceWebhooks(ctx *fiber.Ctx) error {
 
 // PostResourceWebhook creates a new webhook associated to resources
 // (fe. Software, Publishers) and returns any error encountered.
-func (p *Webhook[T]) PostResourceWebhook(ctx *fiber.Ctx) error {
+func (p *Webhook[T]) PostResourceWebhook(ctx fiber.Ctx) error {
 	const errMsg = "can't create Webhook"
 
 	webhookReq := new(common.Webhook)
@@ -101,7 +101,7 @@ func (p *Webhook[T]) PostResourceWebhook(ctx *fiber.Ctx) error {
 
 // PostSingleResourceWebhook creates a new webhook associated to a resource with the given ID
 // (fe. a specific Software or Publisher) and returns any error encountered.
-func (p *Webhook[T]) PostSingleResourceWebhook(ctx *fiber.Ctx) error {
+func (p *Webhook[T]) PostSingleResourceWebhook(ctx fiber.Ctx) error {
 	const errMsg = "can't create Webhook"
 
 	webhookReq := new(common.Webhook)
@@ -139,7 +139,7 @@ func (p *Webhook[T]) PostSingleResourceWebhook(ctx *fiber.Ctx) error {
 }
 
 // DeleteWebhook deletes the webhook with the given ID.
-func (p *Webhook[T]) DeleteWebhook(ctx *fiber.Ctx) error {
+func (p *Webhook[T]) DeleteWebhook(ctx fiber.Ctx) error {
 	const errMsg = "can't delete Webhook"
 
 	webhook := models.Webhook{ID: ctx.Params("id")}

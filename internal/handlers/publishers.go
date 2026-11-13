@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
@@ -22,7 +22,7 @@ func NewPublisher(db *gorm.DB) *Publisher {
 }
 
 // GetPublishers gets the list of all publishers and returns any error encountered.
-func (p *Publisher) GetPublishers(ctx *fiber.Ctx) error {
+func (p *Publisher) GetPublishers(ctx fiber.Ctx) error {
 	return list[models.Publisher](ctx, p.db.Preload(codeHostingAssociation), listOptions{
 		title:      "can't get Publishers",
 		activeOnly: true,
@@ -31,7 +31,7 @@ func (p *Publisher) GetPublishers(ctx *fiber.Ctx) error {
 }
 
 // GetPublisher gets the publisher with the given ID and returns any error encountered.
-func (p *Publisher) GetPublisher(ctx *fiber.Ctx) error {
+func (p *Publisher) GetPublisher(ctx fiber.Ctx) error {
 	publisher, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
 		title:           "can't get Publisher",
 		name:            publisherEntityName,
@@ -46,13 +46,13 @@ func (p *Publisher) GetPublisher(ctx *fiber.Ctx) error {
 }
 
 // PostPublisher creates a new publisher.
-func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
+func (p *Publisher) PostPublisher(ctx fiber.Ctx) error {
 	return createPublisher(ctx, writeDB(ctx, p.db), nil)
 }
 
 // PatchPublisher updates the publisher with the given ID.
 // Supports both JSON Merge Patch (default) and JSON Patch (application/json-patch+json).
-func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error {
+func (p *Publisher) PatchPublisher(ctx fiber.Ctx) error {
 	// Preload will load all the associated CodeHosting. We'll manually handle that later.
 	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
 		title:           "can't update Publisher",
@@ -70,7 +70,7 @@ func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error {
 // DeletePublisher deletes the publisher with the given ID. The lookup
 // stays because the delete matches the UUID alone, while the id in the
 // path can be an alternative id.
-func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
+func (p *Publisher) DeletePublisher(ctx fiber.Ctx) error {
 	const errMsg = "can't delete Publisher"
 
 	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
@@ -99,7 +99,7 @@ func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
 
 // createPublisher creates a publisher from the request body. catalogID owns
 // it, nil for the root catalog and for the catalog agnostic endpoint.
-func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
+func createPublisher(ctx fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	const errMsg = "can't create Publisher"
 
 	request := new(common.PublisherPost)
@@ -143,7 +143,7 @@ func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 
 // updatePublisher applies the PATCH body to publisher and saves it, keeping
 // its CodeHosting in sync.
-func updatePublisher(ctx *fiber.Ctx, gormdb *gorm.DB, publisher models.Publisher) error {
+func updatePublisher(ctx fiber.Ctx, gormdb *gorm.DB, publisher models.Publisher) error {
 	const errMsg = "can't update Publisher"
 
 	updatedPublisher, err := applyPatch(ctx, &publisher, patchOptions[models.Publisher]{

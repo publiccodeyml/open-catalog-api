@@ -3,7 +3,7 @@ package handlers
 import (
 	"slices"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
@@ -22,7 +22,7 @@ func NewEvent(db *gorm.DB) *Event {
 // ?entityType, ?entityId, ?type and ?actor each narrow the list to an
 // exact match, so the trail of one entity or one actor can be read on
 // its own.
-func (e *Event) GetEvents(ctx *fiber.Ctx) error {
+func (e *Event) GetEvents(ctx fiber.Ctx) error {
 	const errMsg = "can't get Events"
 
 	stmt := e.db
@@ -50,7 +50,7 @@ func (e *Event) GetEvents(ctx *fiber.Ctx) error {
 }
 
 // GetEvent gets the event with the given ID and returns any error encountered.
-func (e *Event) GetEvent(ctx *fiber.Ctx) error {
+func (e *Event) GetEvent(ctx fiber.Ctx) error {
 	event, err := findOne[models.Event](e.db, ctx.Params("id"), findOptions{title: "can't get Event", name: "Event"})
 	if err != nil {
 		return err

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +17,7 @@ func TestLogsEndpoints(t *testing.T) {
 		{
 			query:               "GET /v1/logs",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -67,7 +68,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?page[size]=3",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -81,7 +82,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?from=2010-03-01T09:56:23Z&page[size]=3",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -108,7 +109,7 @@ func TestLogsEndpoints(t *testing.T) {
 			description:         "GET with page[size] bigger than the max of 100 caps the size",
 			query:               "GET /v1/logs?page[size]=200",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			setupFunc:           addLogsForPaginationCapTest,
 			validateFunc: func(t *testing.T, response map[string]any) {
 				items := assertListResponse(t, response)
@@ -120,7 +121,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?page[after]=WyIyMDEwLTA3LTAxVDIzOjU5OjU5WiIsIjg1MWZlMGY0LTA0MmUtMTFlZC05MzNlLWQ4YmJjMTQ2ZDE2NSJd",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -145,7 +146,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?page[before]=WyIyMDEwLTA2LTMwVDIzOjU5OjU5WiIsIjgyNTZmODgwLTA0MmUtMTFlZC04MmI5LWQ4YmJjMTQ2ZDE2NSJd",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -170,7 +171,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?from=2010-03-01T09:56:23Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -182,7 +183,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?from=2010-03-01T11:56:23%2B02:00",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -194,7 +195,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?from=2010-03-01T09:56:23.000000Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -217,7 +218,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?to=2010-03-01T09:56:23Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := response["data"].([]any)
 
@@ -229,7 +230,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?to=2010-03-01T11:56:23%2B02:00",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := response["data"].([]any)
 
@@ -252,7 +253,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?search=bad publiccode.yml",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := response["data"].([]any)
 
@@ -264,7 +265,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?from=2010-03-01T09:56:23Z&to=2010-06-01T09:56:23Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := response["data"].([]any)
 
@@ -276,7 +277,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?to=2010-03-01T09:56:23Z&search=bad publiccode.yml",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := response["data"].([]any)
 
@@ -300,7 +301,7 @@ func TestLogsEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "New log from test suite", response["message"])
 
@@ -413,7 +414,7 @@ func TestLogsEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "log scoped to italia catalog", response["message"])
 				assertUUID(t, response["id"])
@@ -429,7 +430,7 @@ func TestLogsEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "log on the implicit root catalog", response["message"])
 				assertUUID(t, response["id"])
@@ -499,7 +500,7 @@ func TestLogsDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -521,7 +522,7 @@ func TestLogsDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -545,7 +546,7 @@ func TestLogsDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json-patch+json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -569,7 +570,7 @@ func TestLogsDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 

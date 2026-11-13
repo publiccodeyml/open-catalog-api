@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -55,7 +56,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?page[size]=100",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -84,7 +85,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?all=true&page[size]=100",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -110,7 +111,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?url=https://1-a.example.org/code/repo",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -139,7 +140,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?url=https://www.1-a.example.org/code/repo",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -154,7 +155,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?url=https://no.such.url.in.db.example.org/code/repo",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -179,7 +180,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?url=https://31-a.example.org/code/repo",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -191,7 +192,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?page[size]=2",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -216,7 +217,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?page[size]=200",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			setupFunc:           addSoftwareForPaginationCapTest,
 			validateFunc: func(t *testing.T, response map[string]any) {
 				items := assertListResponse(t, response)
@@ -228,7 +229,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?page[after]=WyIyMDE1LTA0LTI2VDAwOjAwOjAwWiIsIjEyNDI4MGQ3LTc1NTItNGZmZS05MzlmLWY0NjY5N2NjMGU4YSJd",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -253,7 +254,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?page[before]=WyIyMDE1LTA1LTExVDAwOjAwOjAwWiIsIjgzZTdhMzVlLTMyOGItNDg5MS1iNjBiLTU5NzkyZTAxYzU5ZSJd",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -278,7 +279,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?from=2015-04-01T09:56:23Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -301,7 +302,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software?to=2014-11-01T09:56:23Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := response["data"].([]any)
 
@@ -331,7 +332,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 		{
 			query:               "GET /v1/software/e7576e7f-9dcf-4979-b9e9-d8cdcad3b60e",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.NotEmpty(t, response["publiccodeYml"])
 
@@ -349,7 +350,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			description:         "GET software with vitality field",
 			query:               "GET /v1/software/9f135268-a37e-4ead-96ec-e4a24bb9344a",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.NotEmpty(t, response["publiccodeYml"])
 
@@ -373,7 +374,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://software.example.org", response["url"])
 				assert.NotEmpty(t, response["publiccodeYml"])
@@ -398,7 +399,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://software.example.org", response["url"])
 				assert.NotEmpty(t, response["publiccodeYml"])
@@ -425,7 +426,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://software.example.org", response["url"])
 
@@ -443,7 +444,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			expectedBody:        "x",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://software.example.net", response["url"])
@@ -558,7 +559,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, false, response["active"])
 			},
@@ -627,7 +628,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://software-new.example.org", response["url"])
@@ -660,7 +661,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			expectedBody:        "",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
@@ -693,7 +694,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://software-new.example.org", response["url"])
@@ -736,7 +737,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, false, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
@@ -768,7 +769,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://18-b.example.org/code/repo", response["url"])
 
@@ -799,7 +800,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
@@ -832,7 +833,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
@@ -863,7 +864,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
@@ -896,7 +897,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, true, response["active"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
@@ -1143,7 +1144,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query: "GET /v1/software/c353756e-8597-4e46-a99b-7da2e141603b/logs",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -1182,7 +1183,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software/c353756e-8597-4e46-a99b-7da2e141603b/logs?from=2020-01-01T00:00:00Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -1194,7 +1195,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software/c353756e-8597-4e46-a99b-7da2e141603b/logs?to=2000-01-01T00:00:00Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -1217,7 +1218,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			query:       "GET /v1/software/c353756e-8597-4e46-a99b-7da2e141603b/logs?page[size]=2",
 
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -1262,7 +1263,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "New software log from test suite", response["message"])
 
@@ -1359,7 +1360,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Authorization": {goodToken},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -1398,7 +1399,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Authorization": {goodToken},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -1412,7 +1413,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Authorization": {goodToken},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -1446,7 +1447,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://new.example.org", response["url"])
 
@@ -1464,7 +1465,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assert.Equal(t, "default", response["format"])
 			},
@@ -1478,7 +1479,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assert.Equal(t, "default", response["format"])
 			},
@@ -1492,7 +1493,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assert.Equal(t, "standard-webhooks", response["format"])
 			},
@@ -1506,7 +1507,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				assert.Equal(t, "github", response["format"])
 			},
@@ -1653,7 +1654,7 @@ func TestSoftwarePostDuplicateAliases(t *testing.T) {
 			req.Header.Set("Authorization", goodToken)
 			req.Header.Set("Content-Type", "application/json")
 
-			res, err := app.Test(req, -1)
+			res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 			require.NoError(t, err)
 			defer res.Body.Close()
 
@@ -1680,7 +1681,7 @@ func TestSoftwarePostDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1700,7 +1701,7 @@ func TestSoftwarePostDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 422, res.StatusCode)
 	})
@@ -1720,7 +1721,7 @@ func TestSoftwarePatchDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1746,7 +1747,7 @@ func TestSoftwarePatchDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 422, res.StatusCode)
 	})
@@ -1788,7 +1789,7 @@ func TestSoftwareAnalysisEndpoints(t *testing.T) {
 			description:         "GET analysis on software with no analysis returns empty object",
 			query:               "GET /v1/software/" + softwareID + "/analysis",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Empty(t, response)
 			},
@@ -1802,7 +1803,7 @@ func TestSoftwareAnalysisEndpoints(t *testing.T) {
 				"Content-Type":  {"application/merge-patch+json"},
 			},
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				badges := response["badges"].(map[string]any)
 
@@ -1882,7 +1883,7 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 			"Content-Type":  {"application/merge-patch+json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res.StatusCode)
 
@@ -1909,7 +1910,7 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 			"Content-Type":  {"application/merge-patch+json"},
 		}
 
-		res1, err := app.Test(req1, -1)
+		res1, err := app.Test(req1, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res1.StatusCode)
 
@@ -1920,7 +1921,7 @@ func TestSoftwareAnalysisDBChecks(t *testing.T) {
 			"Content-Type":  {"application/merge-patch+json"},
 		}
 
-		res2, err := app.Test(req2, -1)
+		res2, err := app.Test(req2, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 200, res2.StatusCode)
 
@@ -2099,7 +2100,7 @@ func sendAnalysisPatch(softwareID, body string) patchResult {
 		"Content-Type":  {"application/merge-patch+json"},
 	}
 
-	res, err := app.Test(req, -1)
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 	if res == nil {
 		return patchResult{err: err}
 	}
@@ -2171,7 +2172,7 @@ func TestSoftwareDeleteDBChecks(t *testing.T) {
 			"Content-Type":  {"application/json"},
 		}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		assert.Nil(t, err)
 		assert.Equal(t, 204, res.StatusCode)
 
@@ -2187,7 +2188,7 @@ func TestSoftwareDeleteDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		req.Header = map[string][]string{"Authorization": {goodToken}}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 204, res.StatusCode)
 
@@ -2207,7 +2208,7 @@ func TestSoftwareDeleteDBChecks(t *testing.T) {
 		require.NoError(t, err)
 		req.Header = map[string][]string{"Authorization": {goodToken}}
 
-		res, err := app.Test(req, -1)
+		res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 		require.NoError(t, err)
 		assert.Equal(t, 404, res.StatusCode)
 
@@ -2240,7 +2241,7 @@ func TestSoftwareDeleteDBChecks(t *testing.T) {
 
 				<-start
 
-				res, err := app.Test(req, -1)
+				res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 				if err != nil {
 					statuses <- 0
 
@@ -2335,7 +2336,7 @@ func TestSoftwareAliasOrder(t *testing.T) {
 				req.Header.Set("Authorization", goodToken)
 				req.Header.Set("Content-Type", contentType)
 
-				res, err := app.Test(req, -1)
+				res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 				require.NoError(t, err)
 				defer res.Body.Close()
 				require.Equal(t, 200, res.StatusCode)
@@ -2405,7 +2406,7 @@ func TestSoftwareURLJSONEscaping(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Authorization", goodToken)
 	req.Header.Set("Content-Type", "application/json")
-	res, err := app.Test(req, -1)
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 	require.NoError(t, err)
 	defer res.Body.Close()
 	require.Equal(t, 200, res.StatusCode)
@@ -2423,7 +2424,7 @@ func TestSoftwareURLJSONEscaping(t *testing.T) {
 		t.Run(path, func(t *testing.T) {
 			req, err := newTestRequest("GET", path, nil)
 			require.NoError(t, err)
-			res, err := app.Test(req, -1)
+			res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 			require.NoError(t, err)
 			defer res.Body.Close()
 			require.Equal(t, 200, res.StatusCode)

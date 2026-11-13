@@ -3,8 +3,8 @@ package handlers
 import (
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
@@ -20,7 +20,7 @@ func NewLog(db *gorm.DB) *Log {
 }
 
 // GetLogs gets the list of all logs and returns any error encountered.
-func (p *Log) GetLogs(ctx *fiber.Ctx) error {
+func (p *Log) GetLogs(ctx fiber.Ctx) error {
 	return list[models.Log](ctx, p.db, listOptions{
 		title:       "can't get Logs",
 		filterField: "message",
@@ -31,7 +31,7 @@ func (p *Log) GetLogs(ctx *fiber.Ctx) error {
 }
 
 // GetLog gets the log with the given ID and returns any error encountered.
-func (p *Log) GetLog(ctx *fiber.Ctx) error {
+func (p *Log) GetLog(ctx fiber.Ctx) error {
 	log, err := findOne[models.Log](p.db, ctx.Params("id"), findOptions{title: "can't get Log", name: "Log"})
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (p *Log) GetLog(ctx *fiber.Ctx) error {
 }
 
 // PostLog creates a new log.
-func (p *Log) PostLog(ctx *fiber.Ctx) error {
+func (p *Log) PostLog(ctx fiber.Ctx) error {
 	const errMsg = "can't create Log"
 
 	logReq := new(common.Log)
@@ -60,7 +60,7 @@ func (p *Log) PostLog(ctx *fiber.Ctx) error {
 }
 
 // PatchLog updates the log with the given ID.
-func (p *Log) PatchLog(ctx *fiber.Ctx) error {
+func (p *Log) PatchLog(ctx fiber.Ctx) error {
 	const errMsg = "can't update Log"
 
 	log, err := findOne[models.Log](p.db, ctx.Params("id"), findOptions{title: errMsg, name: "Log"})
@@ -86,7 +86,7 @@ func (p *Log) PatchLog(ctx *fiber.Ctx) error {
 }
 
 // DeleteLog deletes the log with the given ID.
-func (p *Log) DeleteLog(ctx *fiber.Ctx) error {
+func (p *Log) DeleteLog(ctx fiber.Ctx) error {
 	var log models.Log
 
 	result := p.db.Delete(&log, "id = ?", ctx.Params("id"))
@@ -103,12 +103,12 @@ func (p *Log) DeleteLog(ctx *fiber.Ctx) error {
 }
 
 // GetSoftwareLogs gets the logs associated to a Software with the given ID and returns any error encountered.
-func (p *Log) GetSoftwareLogs(ctx *fiber.Ctx) error {
+func (p *Log) GetSoftwareLogs(ctx fiber.Ctx) error {
 	return p.getEntityLogs(ctx, &models.Software{}, softwareEntityName)
 }
 
 // PostCatalogLog creates a new log associated to a Catalog with the given ID and returns any error encountered.
-func (p *Log) PostCatalogLog(ctx *fiber.Ctx) error {
+func (p *Log) PostCatalogLog(ctx fiber.Ctx) error {
 	const errMsg = "can't create Log"
 
 	logReq := new(common.Log)
@@ -144,23 +144,23 @@ func (p *Log) PostCatalogLog(ctx *fiber.Ctx) error {
 }
 
 // GetPublisherLogs gets the logs associated to a Publisher with the given ID and returns any error encountered.
-func (p *Log) GetPublisherLogs(ctx *fiber.Ctx) error {
+func (p *Log) GetPublisherLogs(ctx fiber.Ctx) error {
 	return p.getEntityLogs(ctx, &models.Publisher{}, publisherEntityName)
 }
 
 // PostPublisherLog creates a new log associated to a Publisher with the given ID and returns any error encountered.
-func (p *Log) PostPublisherLog(ctx *fiber.Ctx) error {
+func (p *Log) PostPublisherLog(ctx fiber.Ctx) error {
 	return p.postEntityLog(ctx, &models.Publisher{}, publisherEntityName)
 }
 
 // PostSoftwareLog creates a new log associated to a Software with the given ID and returns any error encountered.
-func (p *Log) PostSoftwareLog(ctx *fiber.Ctx) error {
+func (p *Log) PostSoftwareLog(ctx fiber.Ctx) error {
 	return p.postEntityLog(ctx, &models.Software{}, softwareEntityName)
 }
 
 // getEntityLogs gets the logs associated to the entity with the ID in the request path.
 // entity must be a pointer, it is filled in with the row loaded from the database.
-func (p *Log) getEntityLogs(ctx *fiber.Ctx, entity models.Model, entityName string) error {
+func (p *Log) getEntityLogs(ctx fiber.Ctx, entity models.Model, entityName string) error {
 	errMsg := "can't get " + entityName
 
 	if err := p.db.First(entity, "id = ?", ctx.Params("id")).Error; err != nil {
@@ -188,7 +188,7 @@ func (p *Log) getEntityLogs(ctx *fiber.Ctx, entity models.Model, entityName stri
 
 // postEntityLog creates a new log associated to the entity with the ID in the request path.
 // entity must be a pointer, it is filled in with the row loaded from the database.
-func (p *Log) postEntityLog(ctx *fiber.Ctx, entity models.Model, entityName string) error {
+func (p *Log) postEntityLog(ctx fiber.Ctx, entity models.Model, entityName string) error {
 	const errMsg = "can't create Log"
 
 	logReq := new(common.Log)

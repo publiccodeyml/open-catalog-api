@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/pilagod/gorm-cursor-paginator/v2/paginator"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/database"
@@ -38,7 +38,7 @@ type listOptions struct {
 // paginate applies opts to stmt and returns one page of T plus the cursor
 // for the pagination links. Errors are Problem JSON errors, ready to be
 // returned from a handler as they are.
-func paginate[T any](ctx *fiber.Ctx, stmt *gorm.DB, opts listOptions) ([]T, paginator.Cursor, error) {
+func paginate[T any](ctx fiber.Ctx, stmt *gorm.DB, opts listOptions) ([]T, paginator.Cursor, error) {
 	var items []T
 
 	stmt, err := general.Clauses(ctx, stmt, opts.filterField, opts.searchField, opts.dateWindow)
@@ -50,7 +50,7 @@ func paginate[T any](ctx *fiber.Ctx, stmt *gorm.DB, opts listOptions) ([]T, pagi
 		)
 	}
 
-	if opts.activeOnly && !ctx.QueryBool("all", false) {
+	if opts.activeOnly && !fiber.Query[bool](ctx, "all", false) {
 		stmt = stmt.Scopes(models.Active)
 	}
 
@@ -82,13 +82,13 @@ func paginate[T any](ctx *fiber.Ctx, stmt *gorm.DB, opts listOptions) ([]T, pagi
 
 // listJSON writes the list envelope every collection endpoint returns:
 // {"data": [...], "links": {...}}.
-func listJSON[T any](ctx *fiber.Ctx, items []T, cursor paginator.Cursor) error {
+func listJSON[T any](ctx fiber.Ctx, items []T, cursor paginator.Cursor) error {
 	return ctx.JSON(fiber.Map{"data": &items, "links": general.NewPaginationLinks(ctx.Queries(), cursor)})
 }
 
 // list is paginate followed by listJSON, for the handlers that have
 // nothing to do in between.
-func list[T any](ctx *fiber.Ctx, stmt *gorm.DB, opts listOptions) error {
+func list[T any](ctx fiber.Ctx, stmt *gorm.DB, opts listOptions) error {
 	items, cursor, err := paginate[T](ctx, stmt, opts)
 	if err != nil {
 		return err
@@ -104,8 +104,8 @@ const (
 
 // writeDB is how the actor reaches the hooks that record an event: the
 // statement context is the only context they get to look at.
-func writeDB(ctx *fiber.Ctx, gormdb *gorm.DB) *gorm.DB {
-	return gormdb.WithContext(ctx.UserContext())
+func writeDB(ctx fiber.Ctx, gormdb *gorm.DB) *gorm.DB {
+	return gormdb.WithContext(ctx.Context())
 }
 
 // findOptions drives findOne.
@@ -173,7 +173,7 @@ type analysisOptions struct {
 // stored document when the patch is empty and merge it into model
 // otherwise. Errors are Problem JSON errors, ready to be returned from a
 // handler as they are.
-func patchAnalysis(ctx *fiber.Ctx, gormdb *gorm.DB, model models.Analyzable, opts analysisOptions) error {
+func patchAnalysis(ctx fiber.Ctx, gormdb *gorm.DB, model models.Analyzable, opts analysisOptions) error {
 	var incoming common.AnalysisData
 	if err := json.Unmarshal(ctx.Body(), &incoming); err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, opts.title, "invalid or malformed JSON")
@@ -248,7 +248,7 @@ type patchOptions[T any] struct {
 // merge patch body, apply the patch, restore the server owned fields and
 // validate the outcome. Errors are Problem JSON errors, ready to be
 // returned from a handler as they are.
-func applyPatch[T any](ctx *fiber.Ctx, current *T, opts patchOptions[T]) (T, error) { //nolint:ireturn
+func applyPatch[T any](ctx fiber.Ctx, current *T, opts patchOptions[T]) (T, error) { //nolint:ireturn
 	var zero T
 
 	contentType := ctx.Get(fiber.HeaderContentType)

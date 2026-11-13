@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +50,7 @@ func patch(t *testing.T, path, contentType, body string) (int, []byte) {
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Authorization", goodToken)
 
-	res, err := app.Test(req, -1)
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
 
@@ -738,7 +739,7 @@ func TestPostAssignsItsOwnIdentifiers(t *testing.T) {
 			body:                `{"description": "new", "codeHosting": [{"url": "https://post-12.example.org"}], "email": "post-12@example.org"}`,
 			headers:             patchHeaders(),
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				t.Helper()
 
@@ -753,7 +754,7 @@ func TestPostAssignsItsOwnIdentifiers(t *testing.T) {
 			body:                `{"publiccodeYml": "-", "url": "https://post-13.example.org"}`,
 			headers:             patchHeaders(),
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				t.Helper()
 
@@ -768,7 +769,7 @@ func TestPostAssignsItsOwnIdentifiers(t *testing.T) {
 			body:                `{"name": "New Catalog", "sources": [{"url": "https://github.com/example/post-14"}]}`,
 			headers:             patchHeaders(),
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 			validateFunc: func(t *testing.T, response map[string]interface{}) {
 				t.Helper()
 

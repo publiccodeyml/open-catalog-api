@@ -4,7 +4,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
@@ -42,7 +42,7 @@ func TestStatusCacheHeaders(t *testing.T) {
 	req, err := newTestRequest("GET", "/v1/status", nil)
 	require.NoError(t, err)
 
-	res, err := app.Test(req, -1)
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 	require.NoError(t, err)
 
 	assert.Equal(t, 204, res.StatusCode)
@@ -58,7 +58,7 @@ func TestHealthEndpointsWhenDatabaseUnavailable(t *testing.T) {
 	require.NoError(t, pool.Close())
 
 	healthApp := fiber.New()
-	healthApp.Use(newHealthcheck(unavailableDB))
+	registerHealthchecks(healthApp, unavailableDB)
 	t.Cleanup(func() { require.NoError(t, healthApp.Shutdown()) })
 
 	tests := []struct {
@@ -86,7 +86,7 @@ func TestHealthEndpointsWhenDatabaseUnavailable(t *testing.T) {
 			req, err := newTestRequest("GET", test.path, nil)
 			require.NoError(t, err)
 
-			res, err := healthApp.Test(req, -1)
+			res, err := healthApp.Test(req, fiber.TestConfig{Timeout: 0})
 			require.NoError(t, err)
 
 			assert.Equal(t, test.expectedCode, res.StatusCode)

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -193,7 +194,7 @@ func TestEventActor(t *testing.T) {
 				"Content-Type":  {"application/json"},
 			}
 
-			res, err := app.Test(req, -1)
+			res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
 			require.NoError(t, err)
 			require.Equal(t, test.expectedCode, res.StatusCode)
 

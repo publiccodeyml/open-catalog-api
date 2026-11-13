@@ -35,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Every `500` carries the same generic detail. A few answered `db error`.
 - The events model no longer has a `deleted_at` column. An existing
   database keeps the column, unused.
+- The API runs on Fiber v3. JSON responses are now
+  `application/json; charset=utf-8`.
+- Behind `TRUSTED_PROXIES`, the rate limit counts the rightmost
+  `X-Forwarded-For` entry that is not a trusted proxy, instead of the
+  first entry, which the client can set.
+- `/metrics` renames `http_requests_in_progress_total` to
+  `http_requests_in_progress` and adds request and response size
+  histograms and `http_requests_status_class_total`.
 
 ### Fixed
 

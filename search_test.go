@@ -14,25 +14,25 @@ func TestSearchIsIgnoredOutsideLogs(t *testing.T) {
 	authHeaders := map[string][]string{"Authorization": {goodToken}}
 
 	tests := []TestCase{
-		{query: "GET /v1/publishers?search=x", expectedCode: 200, expectedContentType: "application/json"},
-		{query: "GET /v1/software?search=x", expectedCode: 200, expectedContentType: "application/json"},
-		{query: "GET /v1/catalogs?search=x", expectedCode: 200, expectedContentType: "application/json"},
-		{query: "GET /v1/bundles?search=x", expectedCode: 200, expectedContentType: "application/json"},
+		{query: "GET /v1/publishers?search=x", expectedCode: 200, expectedContentType: "application/json; charset=utf-8"},
+		{query: "GET /v1/software?search=x", expectedCode: 200, expectedContentType: "application/json; charset=utf-8"},
+		{query: "GET /v1/catalogs?search=x", expectedCode: 200, expectedContentType: "application/json; charset=utf-8"},
+		{query: "GET /v1/bundles?search=x", expectedCode: 200, expectedContentType: "application/json; charset=utf-8"},
 		{
 			query:               "GET /v1/events?search=x",
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 		},
 		{
 			query:               "GET /v1/catalogs/" + italiaID + "/publishers?search=x",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 		},
 		{
 			query:               "GET /v1/catalogs/" + italiaID + "/software?search=x",
 			expectedCode:        200,
-			expectedContentType: "application/json",
+			expectedContentType: "application/json; charset=utf-8",
 		},
 	}
 

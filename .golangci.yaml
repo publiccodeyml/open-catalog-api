@@ -56,7 +56,7 @@ linters:
     wrapcheck:
       ignore-sigs:
         # Fiber takes care of unwrapping the error
-        - func (*github.com/gofiber/fiber/v2.Ctx)
+        - func (github.com/gofiber/fiber/v3.Ctx)
 
         # No point in wrapping these
         - func encoding/json.Marshal(v any)

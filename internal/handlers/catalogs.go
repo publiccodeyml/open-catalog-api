@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"slices"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/utils/v2"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
@@ -71,7 +71,7 @@ func belongsToCatalog(catalog *models.Catalog, catalogID *string) bool {
 }
 
 // GetCatalogs gets the list of all catalogs.
-func (c *Catalog) GetCatalogs(ctx *fiber.Ctx) error {
+func (c *Catalog) GetCatalogs(ctx fiber.Ctx) error {
 	return list[models.Catalog](ctx, c.db.Preload("Sources"), listOptions{
 		title:      "can't get Catalogs",
 		activeOnly: true,
@@ -79,7 +79,7 @@ func (c *Catalog) GetCatalogs(ctx *fiber.Ctx) error {
 }
 
 // GetCatalog gets the catalog with the given id.
-func (c *Catalog) GetCatalog(ctx *fiber.Ctx) error {
+func (c *Catalog) GetCatalog(ctx fiber.Ctx) error {
 	id, _ := url.PathUnescape(ctx.Params("id"))
 
 	catalog, err := resolveCatalogOr404(c.db, id, "can't get Catalog", "Sources")
@@ -100,7 +100,7 @@ func (c *Catalog) GetCatalog(ctx *fiber.Ctx) error {
 // holds the configuration (sources are not allowed; resources are still
 // addressed via catalog_id IS NULL). For any other catalog at least one
 // source is required.
-func (c *Catalog) PostCatalog(ctx *fiber.Ctx) error {
+func (c *Catalog) PostCatalog(ctx fiber.Ctx) error {
 	const errMsg = "can't create Catalog"
 
 	request := new(common.CatalogPost)
@@ -146,7 +146,7 @@ func (c *Catalog) PostCatalog(ctx *fiber.Ctx) error {
 }
 
 // PatchCatalog updates the catalog with the given id.
-func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
+func (c *Catalog) PatchCatalog(ctx fiber.Ctx) error { //nolint:cyclop
 	const errMsg = "can't update Catalog"
 
 	catalogID, _ := url.PathUnescape(ctx.Params("id"))
@@ -229,7 +229,7 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 // Returns 409 if the catalog still has associated publishers or software.
 // On the root (∅) the count of attached resources is taken from rows with
 // catalog_id IS NULL, since root resources are never tied to the row's UUID.
-func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error {
+func (c *Catalog) DeleteCatalog(ctx fiber.Ctx) error {
 	const errMsg = "can't delete Catalog"
 
 	catalogID, _ := url.PathUnescape(ctx.Params("id"))
@@ -292,7 +292,7 @@ func deleteCatalogResources(tran *gorm.DB, catalog *models.Catalog) error {
 }
 
 // GetCatalogPublishers lists publishers belonging to the given catalog.
-func (c *Catalog) GetCatalogPublishers(ctx *fiber.Ctx) error {
+func (c *Catalog) GetCatalogPublishers(ctx fiber.Ctx) error {
 	id := ctx.Params("id")
 
 	catalog, err := resolveCatalogOr404(c.db, id, "can't get Publishers")
@@ -310,7 +310,7 @@ func (c *Catalog) GetCatalogPublishers(ctx *fiber.Ctx) error {
 
 // PostCatalogPublisher creates a publisher belonging to the given catalog.
 // The catalog is resolved from the URL; any catalogId in the body is ignored.
-func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error {
+func (c *Catalog) PostCatalogPublisher(ctx fiber.Ctx) error {
 	const errMsg = "can't create Publisher"
 
 	catalog, err := resolveCatalogOr404(c.db, ctx.Params("id"), errMsg)
@@ -322,7 +322,7 @@ func (c *Catalog) PostCatalogPublisher(ctx *fiber.Ctx) error {
 }
 
 // PatchCatalogPublisher updates a publisher that belongs to the given catalog.
-func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error {
+func (c *Catalog) PatchCatalogPublisher(ctx fiber.Ctx) error {
 	const errMsg = "can't update Publisher"
 
 	catalog, err := resolveCatalogOr404(c.db, ctx.Params("id"), errMsg)
@@ -349,7 +349,7 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error {
 
 // PostCatalogSoftware creates software belonging to the given catalog.
 // The catalog is resolved from the URL; any catalogId in the body is ignored.
-func (c *Catalog) PostCatalogSoftware(ctx *fiber.Ctx) error {
+func (c *Catalog) PostCatalogSoftware(ctx fiber.Ctx) error {
 	const errMsg = "can't create Software"
 
 	catalog, err := resolveCatalogOr404(c.db, ctx.Params("id"), errMsg)
@@ -361,7 +361,7 @@ func (c *Catalog) PostCatalogSoftware(ctx *fiber.Ctx) error {
 }
 
 // PatchCatalogSoftware updates software that belongs to the given catalog.
-func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error {
+func (c *Catalog) PatchCatalogSoftware(ctx fiber.Ctx) error {
 	const errMsg = "can't update Software"
 
 	catalog, err := resolveCatalogOr404(c.db, ctx.Params("id"), errMsg)
@@ -387,7 +387,7 @@ func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error {
 }
 
 // GetCatalogSoftware lists software belonging to the given catalog.
-func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
+func (c *Catalog) GetCatalogSoftware(ctx fiber.Ctx) error {
 	id := ctx.Params("id")
 
 	catalog, err := resolveCatalogOr404(c.db, id, "can't get Software")
@@ -589,7 +589,7 @@ func resolveCatalogOr404(gormdb *gorm.DB, rawID, title string, preloads ...strin
 }
 
 // GetCatalogAnalysis returns the analysis data for the catalog with the given id.
-func (c *Catalog) GetCatalogAnalysis(ctx *fiber.Ctx) error {
+func (c *Catalog) GetCatalogAnalysis(ctx fiber.Ctx) error {
 	const errMsg = "can't get Catalog analysis"
 
 	id, _ := url.PathUnescape(ctx.Params("id"))
@@ -608,7 +608,7 @@ func (c *Catalog) GetCatalogAnalysis(ctx *fiber.Ctx) error {
 
 // PatchCatalogAnalysis merges the incoming analysis namespaces into the stored analysis.
 // The request body is an AnalysisData object (namespace → arbitrary JSON with "v" field).
-func (c *Catalog) PatchCatalogAnalysis(ctx *fiber.Ctx) error {
+func (c *Catalog) PatchCatalogAnalysis(ctx fiber.Ctx) error {
 	const errMsg = "can't update Catalog analysis"
 
 	id, _ := url.PathUnescape(ctx.Params("id"))
