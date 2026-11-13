@@ -2343,9 +2343,9 @@ func TestSoftwareAliasOrder(t *testing.T) {
 
 			var software softwareResponse
 			request("POST", endpoint,
-				`{"url":"https://bb.example.org","publiccodeYml":"-","active":true,"aliases":["https://zz.example.org","https://aa.example.org","https://mm.example.org"]}`,
+				`{"url":"https://bb.example.org","publiccodeYml":"-","active":true,"aliases":["https://zz.example.org/aa","https://zz.example.org/a","https://zz.example.org/B","https://zz.example.org/a-b"]}`,
 				"application/json", &software)
-			want := []string{"https://aa.example.org", "https://mm.example.org", "https://zz.example.org"}
+			want := []string{"https://zz.example.org/B", "https://zz.example.org/a", "https://zz.example.org/a-b", "https://zz.example.org/aa"}
 			require.Equal(t, want, software.Aliases)
 			path := endpoint + "/" + software.ID
 
@@ -2358,7 +2358,7 @@ func TestSoftwareAliasOrder(t *testing.T) {
 
 				for _, listPath := range []string{
 					"/v1/software?url=https://bb.example.org",
-					endpoint + "?url=https://zz.example.org",
+					endpoint + "?url=https://zz.example.org/aa",
 				} {
 					var list struct {
 						Data []softwareResponse `json:"data"`
@@ -2376,12 +2376,12 @@ func TestSoftwareAliasOrder(t *testing.T) {
 			checkReads()
 
 			request("PATCH", path, `[{"op":"remove","path":"/aliases/0"}]`, "application/json-patch+json", &software)
-			want = []string{"https://mm.example.org", "https://zz.example.org"}
+			want = []string{"https://zz.example.org/a", "https://zz.example.org/a-b", "https://zz.example.org/aa"}
 			require.Equal(t, want, software.Aliases)
 			checkReads()
 
 			request("PATCH", path, `[{"op":"replace","path":"/aliases/0","value":"https://cc.example.org"}]`, "application/json-patch+json", &software)
-			want = []string{"https://cc.example.org", "https://zz.example.org"}
+			want = []string{"https://cc.example.org", "https://zz.example.org/a-b", "https://zz.example.org/aa"}
 			require.Equal(t, want, software.Aliases)
 			checkReads()
 		})
