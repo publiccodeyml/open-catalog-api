@@ -2305,3 +2305,85 @@ func addSoftwareForPaginationCapTest(t *testing.T) {
 		_, _ = db.Exec("DELETE FROM software WHERE id LIKE "+placeholder(1), "11111111-1111-1111-1111-%")
 	})
 }
+
+func TestSoftwareAliasOrder(t *testing.T) {
+	for _, endpoint := range []string{"/v1/software", "/v1/catalogs/italia/software"} {
+		t.Run(endpoint, func(t *testing.T) {
+			loadFixtures(t)
+
+			type softwareResponse struct {
+				ID      string   `json:"id"`
+				URL     string   `json:"url"`
+				Aliases []string `json:"aliases"`
+			}
+
+			readCount := 0
+			request := func(method, path, body, contentType string, result any) {
+				t.Helper()
+
+				req, err := newTestRequest(method, path, strings.NewReader(body))
+				require.NoError(t, err)
+				if method == "GET" {
+					// Each read must reach the database rather than the response cache.
+					readCount++
+					query := req.URL.Query()
+					query.Set("aliasOrderRead", fmt.Sprintf("%s-%d", endpoint, readCount))
+					req.URL.RawQuery = query.Encode()
+				}
+
+				req.Header.Set("Authorization", goodToken)
+				req.Header.Set("Content-Type", contentType)
+
+				res, err := app.Test(req, -1)
+				require.NoError(t, err)
+				defer res.Body.Close()
+				require.Equal(t, 200, res.StatusCode)
+				require.NoError(t, json.NewDecoder(res.Body).Decode(result))
+			}
+
+			var software softwareResponse
+			request("POST", endpoint,
+				`{"url":"https://bb.example.org","publiccodeYml":"-","active":true,"aliases":["https://zz.example.org","https://aa.example.org","https://mm.example.org"]}`,
+				"application/json", &software)
+			want := []string{"https://aa.example.org", "https://mm.example.org", "https://zz.example.org"}
+			require.Equal(t, want, software.Aliases)
+			path := endpoint + "/" + software.ID
+
+			checkReads := func() {
+				t.Helper()
+
+				request("GET", "/v1/software/"+software.ID, "", "", &software)
+				assert.Equal(t, want, software.Aliases)
+				assert.Equal(t, "https://bb.example.org", software.URL)
+
+				for _, listPath := range []string{
+					"/v1/software?url=https://bb.example.org",
+					endpoint + "?url=https://zz.example.org",
+				} {
+					var list struct {
+						Data []softwareResponse `json:"data"`
+					}
+					request("GET", listPath, "", "", &list)
+					require.Len(t, list.Data, 1)
+					assert.Equal(t, want, list.Data[0].Aliases)
+					assert.Equal(t, "https://bb.example.org", list.Data[0].URL)
+				}
+			}
+			checkReads()
+
+			request("PATCH", path, `{}`, "application/merge-patch+json", &software)
+			require.Equal(t, want, software.Aliases)
+			checkReads()
+
+			request("PATCH", path, `[{"op":"remove","path":"/aliases/0"}]`, "application/json-patch+json", &software)
+			want = []string{"https://mm.example.org", "https://zz.example.org"}
+			require.Equal(t, want, software.Aliases)
+			checkReads()
+
+			request("PATCH", path, `[{"op":"replace","path":"/aliases/0","value":"https://cc.example.org"}]`, "application/json-patch+json", &software)
+			want = []string{"https://cc.example.org", "https://zz.example.org"}
+			require.Equal(t, want, software.Aliases)
+			checkReads()
+		})
+	}
+}

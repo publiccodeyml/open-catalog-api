@@ -116,7 +116,7 @@ func loadSoftware(gormdb *gorm.DB, software *models.Software, id string) error {
 	}
 
 	if err := gormdb.
-		Where("software_id = ? AND id <> ?", software.ID, software.SoftwareURLID).Find(&software.Aliases).
+		Where("software_id = ? AND id <> ?", software.ID, software.SoftwareURLID).Order("url").Find(&software.Aliases).
 		Error; err != nil {
 		return errLoad
 	}
@@ -149,6 +149,10 @@ func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	for _, u := range softwareReq.Aliases {
 		aliases = append(aliases, models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(u)})
 	}
+
+	sort.Slice(aliases, func(a int, b int) bool {
+		return aliases[a].URL < aliases[b].URL
+	})
 
 	software := &models.Software{
 		ID: utils.UUIDv4(),
@@ -401,6 +405,10 @@ func softwareURLFilter(ctx *fiber.Ctx, gormdb, stmt *gorm.DB, title string) (*go
 // ?from and ?to window is the caller's, GET /software applies it before
 // its ?url short circuit and the catalog software list does not declare it.
 func listSoftware(ctx *fiber.Ctx, stmt *gorm.DB) error {
+	stmt = stmt.Preload("Aliases", func(db *gorm.DB) *gorm.DB {
+		return db.Order("url")
+	})
+
 	software, cursor, err := paginate[models.Software](ctx, stmt, listOptions{
 		title:      "can't get Software",
 		activeOnly: true,
@@ -427,8 +435,7 @@ func detachCanonicalURL(software []models.Software) {
 			if alias.ID == swr.SoftwareURLID {
 				swr.URL = *alias
 
-				swr.Aliases[aliasIdx] = swr.Aliases[len(swr.Aliases)-1]
-				swr.Aliases = swr.Aliases[:len(swr.Aliases)-1]
+				swr.Aliases = slices.Delete(swr.Aliases, aliasIdx, aliasIdx+1)
 
 				break
 			}

@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Software aliases now keep the same URL order in responses and JSON Patch
+  documents, so operations by index affect the expected alias.
 - Deleting a publisher or software now removes its resource webhooks while
   preserving delivery of the final delete event.
 - `token create` now rejects negative `--expiry` durations instead of
