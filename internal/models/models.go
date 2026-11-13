@@ -2,7 +2,6 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
@@ -181,7 +180,7 @@ type SoftwareURL struct {
 }
 
 func (su SoftwareURL) MarshalJSON() ([]byte, error) {
-	return fmt.Appendf(nil, `"%s"`, su.URL), nil
+	return json.Marshal(su.URL)
 }
 
 func (su *SoftwareURL) UnmarshalJSON(data []byte) error {
