@@ -438,6 +438,33 @@ func TestRateLimiterBuckets(t *testing.T) {
 
 		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "2001:db8::1"))
 	})
+
+	t.Run("a rate limited request gets the problem document", func(t *testing.T) {
+		for range maxRequests {
+			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "198.51.100.4"))
+		}
+
+		req, err := newTestRequest("GET", "/v1/status", strings.NewReader(""))
+		require.NoError(t, err)
+
+		req.Header.Set(fiber.HeaderXForwardedFor, "198.51.100.4")
+
+		res, err := proxiedApp.Test(req, -1)
+		require.NoError(t, err)
+
+		defer res.Body.Close()
+
+		body, err := io.ReadAll(res.Body)
+		require.NoError(t, err)
+
+		assert.Equal(t, statusRateLimited, res.StatusCode)
+		assert.Equal(t, "application/problem+json", res.Header.Get(fiber.HeaderContentType))
+		assert.NotEmpty(t, res.Header.Get(fiber.HeaderRetryAfter))
+		assert.JSONEq(t,
+			`{"title":"Too Many Requests","detail":"Too Many Requests","status":429}`,
+			string(body),
+		)
+	})
 }
 
 func TestSetupRejectsNegativeDurations(t *testing.T) {

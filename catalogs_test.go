@@ -217,7 +217,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			body:                `{"name": "Unauth"}`,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 		{
 			description: "POST catalog with mixed scopes",
@@ -297,7 +297,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			body:                `{"name": "x"}`,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 
 		// DELETE /catalogs/:id
@@ -326,7 +326,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			query:               "DELETE /v1/catalogs/" + italiaID,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 
 		// POST /catalogs/:id/publishers
@@ -377,7 +377,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			body:                `{"description":"x","codeHosting":[{"url":"https://example.org/x"}]}`,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 
 		// PATCH /catalogs/:id/publishers/:publisherId
@@ -440,7 +440,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			body:                `{"description":"x"}`,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 
 		// GET /catalogs/:id/publishers
@@ -573,7 +573,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			body:                `{"url": "https://example.org/x", "publiccodeYml": "-"}`,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 
 		// PATCH /catalogs/:id/software/:softwareId
@@ -662,7 +662,7 @@ func TestCatalogEndpoints(t *testing.T) {
 			body:                `{"publiccodeYml": "x"}`,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 
 		// GET /catalogs/:id/software
@@ -1443,7 +1443,7 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			body:                `{"badges": {"v": 1}}`,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 	}
 

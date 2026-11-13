@@ -171,7 +171,7 @@ func TestBundleEndpoints(t *testing.T) {
 			body:                `{"name": "Unauth"}`,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 
 		{
@@ -261,7 +261,7 @@ func TestBundleEndpoints(t *testing.T) {
 			query:               "DELETE /v1/bundles/" + municipalitiesID,
 			expectedCode:        401,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"token authentication failed","status":401}`,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
 		},
 	}
 

@@ -38,7 +38,11 @@ func CustomErrorHandler(ctx *fiber.Ctx, err error) error {
 	}
 
 	if errors.Is(err, ErrAuthentication) {
-		problemJSON = &ProblemJSONError{Status: fiber.StatusUnauthorized, Title: err.Error()}
+		problemJSON = &ProblemJSONError{
+			Status: fiber.StatusUnauthorized,
+			Title:  err.Error(),
+			Detail: "a valid PASETO token is required in the Authorization header",
+		}
 	}
 
 	if problemJSON == nil {

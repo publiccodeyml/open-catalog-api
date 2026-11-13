@@ -38,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rate limited requests got a plain text `429` body. They now get the
+  `application/problem+json` document the OpenAPI spec declares, and the
+  `401` problem document carries the required `detail`.
 - Software creation rejects aliases that normalize to the canonical URL or
   to another alias with `422` naming the alias, instead of `409`.
 - Catalog POST and PATCH requests reject duplicate source URLs after
