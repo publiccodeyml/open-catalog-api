@@ -264,6 +264,30 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 			 {"op": "replace", "path": "/name", "value": "patched"}`,
 			"can't update Catalog", "catalogs", "name", "Italian Catalog",
 		},
+		{
+			"catalog add /analysis", catalogPath, italiaID,
+			`{"op": "add", "path": "/analysis", "value": {"scanner": {"v": 1}}},
+			 {"op": "replace", "path": "/name", "value": "patched"}`,
+			"can't update Catalog", "catalogs", "name", "Italian Catalog",
+		},
+		{
+			"catalog replace /analysis", catalogPath, italiaID,
+			`{"op": "replace", "path": "/analysis", "value": {}},
+			 {"op": "replace", "path": "/name", "value": "patched"}`,
+			"can't update Catalog", "catalogs", "name", "Italian Catalog",
+		},
+		{
+			"catalog remove /analysis", catalogPath, italiaID,
+			`{"op": "remove", "path": "/analysis"},
+			 {"op": "replace", "path": "/name", "value": "patched"}`,
+			"can't update Catalog", "catalogs", "name", "Italian Catalog",
+		},
+		{
+			"catalog add /analysis/scanner", catalogPath, italiaID,
+			`{"op": "add", "path": "/analysis/scanner", "value": {"v": 1}},
+			 {"op": "replace", "path": "/name", "value": "patched"}`,
+			"can't update Catalog", "catalogs", "name", "Italian Catalog",
+		},
 	}
 
 	for _, test := range tests {
