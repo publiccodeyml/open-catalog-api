@@ -14,7 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var errInvalidKeyLength = errors.New("invalid key length")
+var (
+	errInvalidKeyLength = errors.New("invalid key length")
+	errNegativeExpiry   = errors.New("token expiry must not be negative")
+)
 
 func NewTokenCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -49,6 +52,10 @@ func runTokenCreate(cmd *cobra.Command, _ []string) error {
 	keyStr, _ := cmd.Flags().GetString("key")
 	expiry, _ := cmd.Flags().GetDuration("expiry")
 	subject, _ := cmd.Flags().GetString("sub")
+
+	if expiry < 0 {
+		return errNegativeExpiry
+	}
 
 	var key []byte
 

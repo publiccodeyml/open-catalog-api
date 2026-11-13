@@ -76,6 +76,36 @@ func TestTokenCreateCreatesDecryptableTokens(t *testing.T) {
 	}
 }
 
+func TestTokenCreateRejectsNegativeExpiry(t *testing.T) {
+	key := common.Base64Key([]byte("test-paseto-key-dont-use-in-prod"))
+
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "generated key",
+			args: []string{"--expiry=-1h"},
+		},
+		{
+			name: "provided key",
+			args: []string{"--key", base64.StdEncoding.EncodeToString(key[:]), "--expiry", "-1ns"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			stdout, stderr, err := runTokenCreateForTest(t, test.args...)
+
+			require.ErrorIs(t, err, errNegativeExpiry)
+			assert.Empty(t, stdout)
+			assert.NotContains(t, stderr, "generating random PASETO secret key")
+			assert.NotContains(t, stderr, "claims:")
+			assert.NotContains(t, stderr, "token:")
+		})
+	}
+}
+
 func TestTokenCreateRejectsInvalidKeys(t *testing.T) {
 	tests := []struct {
 		name        string

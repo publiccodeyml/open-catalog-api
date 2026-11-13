@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `token create` now rejects negative `--expiry` durations instead of
+  creating a token without expiration. Zero still means never expires.
 - Rate limited requests got a plain text `429` body. They now get the
   `application/problem+json` document the OpenAPI spec declares, and the
   `401` problem document carries the required `detail`.
