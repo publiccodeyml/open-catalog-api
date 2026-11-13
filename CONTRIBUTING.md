@@ -48,7 +48,7 @@ To run against PostgreSQL, the way CI does, start the database from the
 compose file and point `DATABASE_DSN` at it:
 
 ```sh
-docker compose up -d db
+docker compose up -d --wait db
 DATABASE_DSN='postgres://postgres:postgres@localhost:5432/test?sslmode=disable' \
   go test -race ./...
 ```
