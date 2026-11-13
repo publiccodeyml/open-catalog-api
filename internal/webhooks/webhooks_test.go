@@ -41,6 +41,13 @@ func setupDB(t *testing.T, webhooks []models.Webhook) *gorm.DB {
 	})
 	require.NoError(t, err)
 
+	// Closing the pool drops the in-memory database and stops the
+	// database/sql goroutine, which the goroutine leak test would
+	// otherwise report when it runs after a dispatch test.
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+
 	require.NoError(t, db.AutoMigrate(&models.Webhook{}, &models.Event{}))
 
 	for i := range webhooks {
