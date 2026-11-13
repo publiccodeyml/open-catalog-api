@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -70,4 +71,74 @@ func TestTransactionSendsTheEventOnlyAfterTheCommit(t *testing.T) {
 	event := <-EventChan
 	assert.Equal(t, publisherID, event.EntityID)
 	assert.Equal(t, common.EventTypeCreate, event.Type)
+}
+
+func TestResourceWebhookDeletionRollsBack(t *testing.T) {
+	loadFixtures(t, "publishers.yml")
+	drainEventChan()
+	t.Cleanup(drainEventChan)
+
+	var publisher Publisher
+	require.NoError(t, db.First(&publisher).Error)
+	webhook := Webhook{
+		ID: utils.UUIDv4(), URL: "https://example.org/rollback", Secret: "retained-secret",
+		EntityType: publisher.TableName(), EntityID: publisher.ID,
+	}
+	require.NoError(t, db.Create(&webhook).Error)
+	t.Cleanup(func() { db.Session(&gorm.Session{SkipHooks: true}).Delete(&Webhook{ID: webhook.ID}) })
+	drainEventChan()
+
+	errRollback := errors.New("rollback after deletion")
+	err := Transaction(db, func(tran *gorm.DB) error {
+		if err := tran.Delete(&publisher).Error; err != nil {
+			return err
+		}
+
+		var count int64
+		require.NoError(t, tran.Model(&Webhook{}).Where("id = ?", webhook.ID).Count(&count).Error)
+		assert.Zero(t, count)
+
+		return errRollback
+	})
+	require.ErrorIs(t, err, errRollback)
+
+	var retained Webhook
+	require.NoError(t, db.First(&retained, "id = ?", webhook.ID).Error)
+	assert.Equal(t, webhook.Secret, retained.Secret)
+	require.NoError(t, db.First(&publisher, "id = ?", publisher.ID).Error)
+	assert.Empty(t, EventChan)
+}
+
+func TestResourceDeletionRetainsFinalRecipients(t *testing.T) {
+	loadFixtures(t, "publishers.yml")
+	drainEventChan()
+	t.Cleanup(drainEventChan)
+
+	var publisher Publisher
+	require.NoError(t, db.First(&publisher).Error)
+	webhook := Webhook{
+		ID: utils.UUIDv4(), URL: "https://example.org/final", Secret: "final-secret",
+		EntityType: publisher.TableName(), EntityID: publisher.ID,
+	}
+	require.NoError(t, db.Create(&webhook).Error)
+	drainEventChan()
+
+	require.NoError(t, Transaction(db, func(tran *gorm.DB) error {
+		return tran.Delete(&publisher).Error
+	}))
+
+	select {
+	case event := <-EventChan:
+		assert.Equal(t, common.EventTypeDelete, event.Type)
+		assert.Equal(t, publisher.ID, event.EntityID)
+		require.Len(t, event.DeletedWebhooks, 1)
+		assert.Equal(t, webhook.ID, event.DeletedWebhooks[0].ID)
+		assert.Equal(t, webhook.Secret, event.DeletedWebhooks[0].Secret)
+		body, err := json.Marshal(event)
+		require.NoError(t, err)
+		assert.NotContains(t, string(body), webhook.Secret)
+		assert.NotContains(t, string(body), webhook.URL)
+	default:
+		t.Fatal("missing final delete event")
+	}
 }

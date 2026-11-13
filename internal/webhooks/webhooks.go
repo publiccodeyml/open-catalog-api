@@ -175,7 +175,7 @@ func DispatchWebhooksAndWait(event models.Event, gorm *gorm.DB) error {
 }
 
 func dispatchWebhooks(event models.Event, gorm *gorm.DB, wait bool) error {
-	var webhooks []models.Webhook
+	var stored []models.Webhook
 
 	subject := "/" + event.EntityType
 	if event.EntityID != "" {
@@ -191,9 +191,13 @@ func dispatchWebhooks(event models.Event, gorm *gorm.DB, wait bool) error {
 			event.EntityID,
 		)
 
-	if err := stmt.Select("url, secret, format").Find(&webhooks).Error; err != nil {
+	if err := stmt.Select("url, secret, format").Find(&stored).Error; err != nil {
 		return fmt.Errorf("error finding webhooks for %s: %w", subject, err)
 	}
+
+	webhooks := make([]models.Webhook, 0, len(stored)+len(event.DeletedWebhooks))
+	webhooks = append(webhooks, stored...)
+	webhooks = append(webhooks, event.DeletedWebhooks...)
 
 	var deliveries sync.WaitGroup
 

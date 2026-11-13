@@ -589,3 +589,42 @@ func TestDispatchDefaultFormatNoSecret(t *testing.T) {
 	_, present := received.headers["X-Webhook-Signature"]
 	assert.False(t, present, "X-Webhook-Signature must be absent when the secret is empty")
 }
+
+func TestDispatchDeletedResourceWebhooks(t *testing.T) {
+	dialGuardDisabled.Store(true)
+	t.Cleanup(func() { dialGuardDisabled.Store(false) })
+
+	received := make(chan receivedRequest, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		body, err := io.ReadAll(request.Body)
+		assert.NoError(t, err)
+		received <- receivedRequest{headers: request.Header, body: body}
+		writer.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	webhook := models.Webhook{ID: "global", URL: server.URL, EntityType: "software", Secret: "global-secret"}
+	database := setupDB(t, []models.Webhook{webhook})
+	event := models.Event{
+		ID: "deleted", Type: "delete", EntityType: "software", EntityID: "resource",
+		DeletedWebhooks: []models.Webhook{{URL: server.URL, Secret: "resource-secret"}},
+	}
+
+	require.NoError(t, DispatchWebhooksAndWait(event, database))
+	require.Len(t, received, 2)
+
+	signatures := make([]string, 0, 2)
+	for range 2 {
+		request := <-received
+		var payload map[string]any
+		require.NoError(t, json.Unmarshal(request.body, &payload))
+		assert.Equal(t, "delete", payload["event"])
+		assert.Equal(t, "/software/resource", payload["subject"])
+		signatures = append(signatures, request.headers.Get("X-Webhook-Signature"))
+		assert.Contains(t, []string{
+			expectedSignature("global-secret", request.body),
+			expectedSignature("resource-secret", request.body),
+		}, request.headers.Get("X-Webhook-Signature"))
+	}
+	assert.NotEqual(t, signatures[0], signatures[1])
+}

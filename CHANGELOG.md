@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Deleting a publisher or software now removes its resource webhooks while
+  preserving delivery of the final delete event.
 - `token create` now rejects negative `--expiry` durations instead of
   creating a token without expiration. Zero still means never expires.
 - Rate limited requests got a plain text `429` body. They now get the

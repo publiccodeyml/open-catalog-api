@@ -124,6 +124,19 @@ func emit(trx *gorm.DB, eventType string, model Model) error {
 		return err
 	}
 
+	if eventType == common.EventTypeDelete && (event.EntityType == "publishers" || event.EntityType == "software") {
+		stmt := trx.Where("entity_type = ? AND entity_id = ?", event.EntityType, event.EntityID)
+		if err := stmt.Find(&event.DeletedWebhooks).Error; err != nil {
+			return err
+		}
+
+		// These subscriptions end with the resource. Keep their delivery
+		// credentials only in the live event, which is sent after commit.
+		if err := stmt.Session(&gorm.Session{SkipHooks: true}).Delete(&Webhook{}).Error; err != nil {
+			return err
+		}
+	}
+
 	if pending, ok := pendingFrom(trx); ok {
 		pending.events = append(pending.events, event)
 
