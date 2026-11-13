@@ -104,7 +104,7 @@ useExistingSecret:
 # -- Database connection string, e.g. "host= port=5432 dbname= user= password= sslmode=require".
 databaseDSN: ""
 
-# -- Base64 encoded Paseto Key.
+# -- Base64 encoded Paseto Key. When empty, the API runs in read-only mode.
 pasetoKey: ""
 
 serviceMonitor:

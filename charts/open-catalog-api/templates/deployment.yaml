@@ -59,11 +59,13 @@ spec:
             - name: MAX_REQUESTS
               value: {{ .Values.maxRequests | quote }}
             {{- end }}
+            {{- if or .Values.pasetoKey .Values.useExistingSecret }}
             - name: PASETO_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ default (include "open-catalog-api.fullname" .) .Values.useExistingSecret }}
                   key: pasetoKey
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
