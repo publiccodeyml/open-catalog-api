@@ -1615,6 +1615,58 @@ func TestSoftwareEndpoints(t *testing.T) {
 	runTestCases(t, tests)
 }
 
+func TestSoftwarePostDuplicateAliases(t *testing.T) {
+	tests := []struct {
+		name    string
+		aliases []string
+		detail  string
+	}{
+		{
+			name:    "alias repeats the canonical URL",
+			aliases: []string{"https://alias.example.org", "https://software.example.org"},
+			detail:  "alias https://software.example.org repeats url",
+		},
+		{
+			name:    "alias normalizes to the canonical URL",
+			aliases: []string{"https://www.software.example.org/"},
+			detail:  "alias https://www.software.example.org/ repeats url",
+		},
+		{
+			name:    "alias normalizes to another alias",
+			aliases: []string{"https://alias.example.org", "https://other.example.org", "https://www.alias.example.org/"},
+			detail:  "alias https://www.alias.example.org/ repeats another alias",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			loadFixtures(t)
+
+			body, err := json.Marshal(map[string]any{
+				"url": "https://www.software.example.org/", "publiccodeYml": "-", "aliases": tt.aliases,
+			})
+			require.NoError(t, err)
+
+			req, err := newTestRequest("POST", "/v1/software", strings.NewReader(string(body)))
+			require.NoError(t, err)
+			req.Header.Set("Authorization", goodToken)
+			req.Header.Set("Content-Type", "application/json")
+
+			res, err := app.Test(req, -1)
+			require.NoError(t, err)
+			defer res.Body.Close()
+
+			var response map[string]any
+			require.NoError(t, json.NewDecoder(res.Body).Decode(&response))
+			assert.Equal(t, 422, res.StatusCode)
+			assert.Equal(t, "can't create Software", response["title"])
+			assert.Equal(t, tt.detail, response["detail"])
+			assert.Equal(t, 0, dbCount(t, "software_urls", "url", "https://software.example.org"))
+			assert.Equal(t, 0, dbCount(t, "software_urls", "url", "https://alias.example.org"))
+		})
+	}
+}
+
 func TestSoftwarePostDBChecks(t *testing.T) {
 	t.Run("POST software persists changes to DB", func(t *testing.T) {
 		loadFixtures(t)
