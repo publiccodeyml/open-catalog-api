@@ -62,6 +62,11 @@ linters:
         - func encoding/json.Marshal(v any)
         - func encoding/json.UnmarshalJSON(v any)
 
+        # Problem JSON errors are returned to Fiber as they are
+        - open-catalog-api/internal/common.Error(
+        - open-catalog-api/internal/common.ErrorWithValidationErrors(
+        - open-catalog-api/internal/common.InternalServerError(
+
         # Defaults
         - .Errorf(
         - errors.New(
