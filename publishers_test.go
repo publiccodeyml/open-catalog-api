@@ -811,6 +811,27 @@ func TestPublishersEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "PATCH a publisher with JSON Patch - replace description with charset",
+			query:       "PATCH /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde",
+			body:        `[{"op": "replace", "path": "/description", "value": "new description via JSON Patch"}]`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json-patch+json; charset=utf-8"},
+			},
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, "new description via JSON Patch", response["description"])
+				assert.Equal(t, "foobar@1.example.org", response["email"])
+				assert.Equal(t, "2ded32eb-c45e-4167-9166-a44e18b8adde", response["id"])
+				codeHosting := response["codeHosting"].([]any)
+				assert.Equal(t, 2, len(codeHosting))
+				created := assertRFC3339(t, response["createdAt"])
+				updated := assertRFC3339(t, response["updatedAt"])
+				assert.Greater(t, updated, created)
+			},
+		},
+		{
 			description: "PATCH a publisher with JSON Patch - add codeHosting",
 			query:       "PATCH /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde",
 			body:        `[{"op": "add", "path": "/codeHosting/-", "value": {"url": "https://new-code-host.example.org", "group": false}}]`,
