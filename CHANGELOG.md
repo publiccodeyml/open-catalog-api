@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Event creation times are indexed to speed up retention purges and date filters.
+
 - The Helm chart runs the API as UID/GID 10001 with the security defaults
   required by the restricted Pod Security Standard. SQLite storage must
   be writable by that user.
