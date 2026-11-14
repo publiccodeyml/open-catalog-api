@@ -131,6 +131,44 @@ func TestPaginateSearchField(t *testing.T) {
 	assert.Len(t, items, 3)
 }
 
+// The search string matches literally on every backend: % and _ are
+// LIKE wildcards and PostgreSQL also reads a backslash as an escape.
+func TestPaginateSearchFieldLiteralCharacters(t *testing.T) {
+	db := newCrudDB(t)
+	seedCrudItems(t, db)
+
+	base := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	require.NoError(t, db.Create(&[]crudItem{
+		{ID: "percent", Message: "100% valid", CreatedAt: base},
+		{ID: "underscore", Message: "snake_case key", CreatedAt: base.Add(time.Hour)},
+		{ID: "backslash", Message: `C:\path`, CreatedAt: base.Add(2 * time.Hour)},
+	}).Error)
+
+	tests := []struct {
+		search string
+		want   []string
+	}{
+		{"%25", []string{"percent"}},
+		{"_", []string{"underscore"}},
+		{"f_rst", nil},
+		{"snake_case", []string{"underscore"}},
+		{`%5C`, []string{"backslash"}},
+		{`%5C%25`, nil},
+	}
+
+	for _, tt := range tests {
+		items, _, err := paginate[crudItem](newCrudCtx(t, "search="+tt.search), db, listOptions{title: "t", searchField: "message"})
+		require.NoError(t, err)
+
+		var ids []string
+		for _, item := range items {
+			ids = append(ids, item.ID)
+		}
+
+		assert.Equal(t, tt.want, ids, "search=%s", tt.search)
+	}
+}
+
 func TestPaginateDateWindow(t *testing.T) {
 	db := newCrudDB(t)
 	seedCrudItems(t, db)
