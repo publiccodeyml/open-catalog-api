@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mime"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -34,6 +35,12 @@ type PatchError struct {
 func (e *PatchError) Error() string { return e.Err.Error() }
 func (e *PatchError) Unwrap() error { return e.Err }
 
+func IsJSONPatch(contentType string) bool {
+	mediaType, _, err := mime.ParseMediaType(contentType)
+
+	return err == nil && mediaType == ContentTypeJSONPatch
+}
+
 func ApplyPatch[T any](entity *T, contentType string, body []byte) (T, *PatchError) { //nolint:ireturn
 	var zero T
 
@@ -44,7 +51,7 @@ func ApplyPatch[T any](entity *T, contentType string, body []byte) (T, *PatchErr
 
 	var updatedJSON []byte
 
-	if contentType == ContentTypeJSONPatch { //nolint:nestif
+	if IsJSONPatch(contentType) { //nolint:nestif
 		patch, err := jsonpatch.DecodePatch(body)
 		if err != nil {
 			return zero, &PatchError{Code: http.StatusBadRequest, Err: err}

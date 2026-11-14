@@ -252,7 +252,7 @@ func applyPatch[T any](ctx *fiber.Ctx, current *T, opts patchOptions[T]) (T, err
 	var zero T
 
 	contentType := ctx.Get(fiber.HeaderContentType)
-	if contentType != common.ContentTypeJSONPatch {
+	if !common.IsJSONPatch(contentType) {
 		if err := common.ValidateRequestEntity(ctx, opts.request, opts.title); err != nil {
 			return zero, err //nolint:wrapcheck
 		}

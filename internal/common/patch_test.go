@@ -55,3 +55,20 @@ func TestApplyPatchRejectsMalformedMergePatch(t *testing.T) {
 
 	assert.Equal(t, 400, err.Code)
 }
+
+func TestApplyPatchMediaType(t *testing.T) {
+	for _, contentType := range []string{
+		common.ContentTypeJSONPatch,
+		"application/json-patch+json; charset=utf-8",
+		"Application/JSON-Patch+JSON",
+		`Application/JSON-Patch+JSON; charset="UTF-8"`,
+	} {
+		t.Run(contentType, func(t *testing.T) {
+			entity := sampleEntity()
+			updated, err := common.ApplyPatch(&entity, contentType,
+				[]byte(`[{"op":"replace","path":"/name","value":"changed"}]`))
+			assert.Nil(t, err)
+			assert.Equal(t, "changed", updated.Name)
+		})
+	}
+}

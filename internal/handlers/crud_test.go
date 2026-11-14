@@ -336,14 +336,23 @@ func TestApplyPatchJSONPatch(t *testing.T) {
 		validate: validateCrudItem,
 	}
 
-	updated, err := applyPatch(
-		newPatchCtx(t, common.ContentTypeJSONPatch, `[{"op":"replace","path":"/message","value":"changed"}]`),
-		&current, opts,
-	)
-	require.NoError(t, err)
-	assert.Equal(t, "changed", updated.Message)
+	for _, contentType := range []string{
+		common.ContentTypeJSONPatch,
+		"application/json-patch+json; charset=utf-8",
+		"Application/JSON-Patch+JSON",
+		`Application/JSON-Patch+JSON; charset="UTF-8"`,
+	} {
+		t.Run(contentType, func(t *testing.T) {
+			updated, err := applyPatch(
+				newPatchCtx(t, contentType, `[{"op":"replace","path":"/message","value":"changed"}]`),
+				&current, opts,
+			)
+			require.NoError(t, err)
+			assert.Equal(t, "changed", updated.Message)
+		})
+	}
 
-	_, err = applyPatch(
+	_, err := applyPatch(
 		newPatchCtx(t, common.ContentTypeJSONPatch, `[{"op":"replace","path":"/message","value":"x"}]`),
 		&current, opts,
 	)
