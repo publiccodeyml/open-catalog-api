@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -1710,6 +1711,68 @@ func TestCatalogDuplicateSources(t *testing.T) {
 				assert.Equal(t, "sources must have unique URLs", response["detail"])
 				assert.Equal(t, 1, dbCount(t, "catalog_sources", "catalog_id", italiaID))
 				assert.Equal(t, italiaSourceURL, dbValue(t, "catalog_sources", "url", "id", italiaSourceID))
+			})
+		}
+	}
+}
+
+func TestCatalogEscapedAlternativeID(t *testing.T) {
+	for _, alternativeID := range []string{"rate-100%41", "rate-100%", "rate-100%2F"} {
+		path := catalogPath + url.PathEscape(alternativeID)
+
+		for _, endpoint := range []struct {
+			query string
+			body  string
+			code  int
+		}{
+			{"GET " + path, "", 200},
+			{"PATCH " + path, `{"name":"Updated"}`, 200},
+			{"DELETE " + path, "", 204},
+			{"GET " + path + "/analysis", "", 200},
+			{"PATCH " + path + "/analysis", `{"scanner":{"v":1,"score":90}}`, 200},
+			{"GET " + path + "/publishers", "", 200},
+			{"GET " + path + "/software", "", 200},
+		} {
+			t.Run(endpoint.query, func(t *testing.T) {
+				runTestCases(t, []TestCase{{
+					query: endpoint.query,
+					body:  endpoint.body,
+					headers: map[string][]string{
+						"Authorization": {goodToken},
+						"Content-Type":  {"application/merge-patch+json"},
+					},
+					expectedCode: endpoint.code,
+					validateFunc: func() func(*testing.T, map[string]any) {
+						if endpoint.code == 204 {
+							return nil
+						}
+
+						return func(t *testing.T, response map[string]any) {
+							if endpoint.query == "GET "+path || endpoint.query == "PATCH "+path {
+								assert.Equal(t, alternativeID, response["alternativeId"])
+							}
+						}
+					}(),
+					expectedContentType: func() string {
+						if endpoint.code == 204 {
+							return ""
+						}
+
+						return "application/json"
+					}(),
+					setupFunc: func(t *testing.T) {
+						body := fmt.Sprintf(`{"name":"Escaped","alternativeId":%q,"sources":[{"url":"https://example.org/catalog"}]}`, alternativeID)
+						req, err := newTestRequest("POST", "/v1/catalogs", strings.NewReader(body))
+						require.NoError(t, err)
+						req.Header.Set("Content-Type", "application/json")
+						req.Header.Set("Authorization", goodToken)
+
+						res, err := app.Test(req, -1)
+						require.NoError(t, err)
+						defer res.Body.Close()
+						require.Equal(t, 200, res.StatusCode)
+					},
+				}})
 			})
 		}
 	}

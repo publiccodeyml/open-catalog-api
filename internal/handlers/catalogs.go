@@ -80,7 +80,7 @@ func (c *Catalog) GetCatalogs(ctx *fiber.Ctx) error {
 
 // GetCatalog gets the catalog with the given id.
 func (c *Catalog) GetCatalog(ctx *fiber.Ctx) error {
-	id, _ := url.PathUnescape(ctx.Params("id"))
+	id := ctx.Params("id")
 
 	catalog, err := resolveCatalogOr404(c.db, id, "can't get Catalog", "Sources")
 	if err != nil {
@@ -149,7 +149,7 @@ func (c *Catalog) PostCatalog(ctx *fiber.Ctx) error {
 func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 	const errMsg = "can't update Catalog"
 
-	catalogID, _ := url.PathUnescape(ctx.Params("id"))
+	catalogID := ctx.Params("id")
 
 	resolved, err := resolveCatalogOr404(c.db, catalogID, errMsg, "Sources")
 	if err != nil {
@@ -232,7 +232,7 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error {
 	const errMsg = "can't delete Catalog"
 
-	catalogID, _ := url.PathUnescape(ctx.Params("id"))
+	catalogID := ctx.Params("id")
 
 	resolved, err := resolveCatalogOr404(c.db, catalogID, errMsg)
 	if err != nil {
@@ -543,6 +543,7 @@ func syncSources( //nolint:cyclop,funlen
 }
 
 // resolveCatalog looks up a catalog by id or alternativeId.
+// rawID is the escaped route parameter, decoded here exactly once.
 // If id is rootCatalogID and no catalog with that id exists, it returns nil
 // (meaning: filter by catalog_id IS NULL).
 // Optional preloads (e.g. "Sources") are applied to the query.
@@ -592,7 +593,7 @@ func resolveCatalogOr404(gormdb *gorm.DB, rawID, title string, preloads ...strin
 func (c *Catalog) GetCatalogAnalysis(ctx *fiber.Ctx) error {
 	const errMsg = "can't get Catalog analysis"
 
-	id, _ := url.PathUnescape(ctx.Params("id"))
+	id := ctx.Params("id")
 
 	catalog, err := resolveCatalogOr404(c.db, id, errMsg)
 	if err != nil {
@@ -611,7 +612,7 @@ func (c *Catalog) GetCatalogAnalysis(ctx *fiber.Ctx) error {
 func (c *Catalog) PatchCatalogAnalysis(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Catalog analysis"
 
-	id, _ := url.PathUnescape(ctx.Params("id"))
+	id := ctx.Params("id")
 
 	catalog, err := resolveCatalogOr404(c.db, id, errMsg)
 	if err != nil {

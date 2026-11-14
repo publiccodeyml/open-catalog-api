@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Catalog reads, updates, deletions and analysis requests now resolve
+  alternative IDs containing percent escapes correctly.
 - Software URLs containing quotes or backslashes now round trip correctly
   in JSON responses.
 - JSON Patch writes to software and catalog `analysis` now return `422`
