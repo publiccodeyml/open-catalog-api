@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/publiccodeyml/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/handlers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
@@ -57,8 +59,9 @@ func TestHealthEndpointsWhenDatabaseUnavailable(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, pool.Close())
 
-	healthApp := fiber.New()
+	healthApp := fiber.New(fiber.Config{ErrorHandler: common.CustomErrorHandler})
 	healthApp.Use(newHealthcheck(unavailableDB))
+	healthApp.Get("/v1/status", handlers.NewStatus(unavailableDB).GetStatus)
 	t.Cleanup(func() { require.NoError(t, healthApp.Shutdown()) })
 
 	tests := []struct {
@@ -79,6 +82,12 @@ func TestHealthEndpointsWhenDatabaseUnavailable(t *testing.T) {
 			expectedBody:        "Service Unavailable",
 			expectedContentType: "text/plain; charset=utf-8",
 		},
+		{
+			path:                "/v1/status",
+			expectedCode:        500,
+			expectedBody:        `{"title":"can't connect to database","detail":"Internal Server Error","status":500}`,
+			expectedContentType: "application/problem+json",
+		},
 	}
 
 	for _, test := range tests {
@@ -89,10 +98,17 @@ func TestHealthEndpointsWhenDatabaseUnavailable(t *testing.T) {
 			res, err := healthApp.Test(req, -1)
 			require.NoError(t, err)
 
+			t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
+
 			assert.Equal(t, test.expectedCode, res.StatusCode)
 			body, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
-			assert.Equal(t, test.expectedBody, string(body))
+			if test.path == "/v1/status" {
+				assert.JSONEq(t, test.expectedBody, string(body))
+				assert.Equal(t, "no-cache", res.Header.Get("Cache-Control"))
+			} else {
+				assert.Equal(t, test.expectedBody, string(body))
+			}
 			assert.Equal(t, test.expectedContentType, res.Header.Get("Content-Type"))
 		})
 	}
