@@ -95,7 +95,11 @@ func TestValidateWebhookURLStruct(t *testing.T) {
 			if tt.valid {
 				assert.Empty(t, errs, "expected URL to be valid: %s", tt.url)
 			} else {
-				assert.NotEmpty(t, errs, "expected URL to be invalid: %s", tt.url)
+				require.NotEmpty(t, errs, "expected URL to be invalid: %s", tt.url)
+				if tt.url != "" {
+					assert.Equal(t, "invalid format: url must be a public https URL without credentials",
+						GenerateErrorDetails(errs))
+				}
 			}
 		})
 	}

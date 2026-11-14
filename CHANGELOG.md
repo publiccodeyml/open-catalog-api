@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rejected webhook URLs now explain that HTTPS, a public address and no
+  credentials are required. The OpenAPI spec documents these restrictions.
 - Request validation now follows the OpenAPI length and list size limits.
   Log messages can be a single character.
 - The OpenAPI `Software` schema now allows a null `vitality` and an empty
