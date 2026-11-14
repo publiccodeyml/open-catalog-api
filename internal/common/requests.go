@@ -42,40 +42,40 @@ type CatalogPatch struct {
 }
 
 type PublisherPost struct {
-	CodeHosting   []CodeHosting `json:"codeHosting" validate:"required,gt=0,dive"`
-	Description   string        `json:"description" validate:"required"`
-	Email         *string       `json:"email" validate:"omitempty,email"`
+	CodeHosting   []CodeHosting `json:"codeHosting" validate:"required,gt=0,max=255,dive"`
+	Description   string        `json:"description" validate:"required,max=255"`
+	Email         *string       `json:"email" validate:"omitempty,max=255,email"`
 	Active        *bool         `json:"active"`
 	AlternativeID *string       `json:"alternativeId" validate:"omitempty,min=1,max=255"`
 }
 
 type PublisherPatch struct {
-	CodeHosting   *[]CodeHosting `json:"codeHosting" validate:"omitempty,gt=0,dive"`
-	Description   *string        `json:"description"`
-	Email         *string        `json:"email" validate:"omitempty,email"`
+	CodeHosting   *[]CodeHosting `json:"codeHosting" validate:"omitempty,gt=0,max=255,dive"`
+	Description   *string        `json:"description" validate:"omitempty,max=255"`
+	Email         *string        `json:"email" validate:"omitempty,max=255,email"`
 	Active        *bool          `json:"active"`
 	AlternativeID *string        `json:"alternativeId" validate:"omitempty,max=255"`
 }
 
 type CodeHosting struct {
-	URL   string `json:"url" validate:"required,http_url,code_hosting_url"`
+	URL   string `json:"url" validate:"required,max=255,http_url,code_hosting_url"`
 	Group *bool  `json:"group"`
 }
 
 type SoftwarePost struct {
-	URL           string   `json:"url" validate:"required,url"`
-	Aliases       []string `json:"aliases" validate:"dive,url"`
-	PubliccodeYml string   `json:"publiccodeYml" validate:"required"`
+	URL           string   `json:"url" validate:"required,max=255,url"`
+	Aliases       []string `json:"aliases" validate:"max=255,dive,max=255,url"`
+	PubliccodeYml string   `json:"publiccodeYml" validate:"required,max=99999"`
 	Active        *bool    `json:"active"`
-	Vitality      *string  `json:"vitality"`
+	Vitality      *string  `json:"vitality" validate:"omitempty,max=99999"`
 }
 
 type SoftwarePatch struct {
-	URL           *string   `json:"url" validate:"omitempty,url"`
-	Aliases       *[]string `json:"aliases" validate:"omitempty,dive,url"`
-	PubliccodeYml *string   `json:"publiccodeYml"`
+	URL           *string   `json:"url" validate:"omitempty,max=255,url"`
+	Aliases       *[]string `json:"aliases" validate:"omitempty,max=255,dive,max=255,url"`
+	PubliccodeYml *string   `json:"publiccodeYml" validate:"omitempty,max=99999"`
 	Active        *bool     `json:"active"`
-	Vitality      *string   `json:"vitality"`
+	Vitality      *string   `json:"vitality" validate:"omitempty,max=99999"`
 }
 
 type BundlePost struct {
@@ -93,11 +93,11 @@ type BundlePatch struct {
 }
 
 type Log struct {
-	Message string `json:"message" validate:"required,gt=1"`
+	Message string `json:"message" validate:"required,max=2048"`
 }
 
 type Webhook struct {
-	URL    string `json:"url" validate:"required,url,webhook_url"`
+	URL    string `json:"url" validate:"required,max=255,url,webhook_url"`
 	Secret string `json:"secret" validate:"omitempty,min=16,max=256"`
 	Format string `json:"format" validate:"omitempty,oneof=default github standard-webhooks"`
 }

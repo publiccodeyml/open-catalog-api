@@ -357,7 +357,7 @@ func TestJSONPatchValidatesPatchedEntity(t *testing.T) {
 		},
 		{
 			"log message", logPath + fixtureLogID,
-			`{"op": "replace", "path": "/message", "value": "x"}`,
+			`{"op": "replace", "path": "/message", "value": ""}`,
 			"logs", "message", fixtureLogID, "A log message",
 		},
 	}
