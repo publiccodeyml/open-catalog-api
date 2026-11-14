@@ -272,7 +272,7 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error {
 	}
 
 	if conflictErr != nil {
-		return conflictErr //nolint:wrapcheck
+		return conflictErr
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)
@@ -416,7 +416,7 @@ func validateSourceURLs(inputs []common.SourceInput, title string) error {
 	for _, source := range inputs {
 		normalized := common.NormalizeURL(source.URL)
 		if _, exists := seen[normalized]; exists {
-			return common.Error(fiber.StatusUnprocessableEntity, title, "sources must have unique URLs") //nolint:wrapcheck
+			return common.Error(fiber.StatusUnprocessableEntity, title, "sources must have unique URLs")
 		}
 
 		seen[normalized] = struct{}{}

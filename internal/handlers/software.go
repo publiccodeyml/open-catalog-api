@@ -190,12 +190,12 @@ func validateAliasURLs(url string, aliases []string, title string) error {
 	for _, alias := range aliases {
 		normalized := common.NormalizeURL(alias)
 		if normalized == url {
-			return common.Error(fiber.StatusUnprocessableEntity, title, //nolint:wrapcheck
+			return common.Error(fiber.StatusUnprocessableEntity, title,
 				fmt.Sprintf("alias %s repeats url", alias))
 		}
 
 		if _, exists := seen[normalized]; exists {
-			return common.Error(fiber.StatusUnprocessableEntity, title, //nolint:wrapcheck
+			return common.Error(fiber.StatusUnprocessableEntity, title,
 				fmt.Sprintf("alias %s repeats another alias", alias))
 		}
 

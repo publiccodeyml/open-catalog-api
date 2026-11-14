@@ -16,7 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cache"
 	"github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	recovermw "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/publiccodeyml/open-catalog-api/cmd"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/database"
@@ -130,7 +130,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	})
 
 	// Automatically recover panics in handlers
-	app.Use(recover.New())
+	app.Use(recovermw.New())
 
 	app.Use(newHealthcheck(gormDB))
 
