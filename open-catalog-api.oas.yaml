@@ -2827,7 +2827,7 @@ components:
             This is useful to keep track, for example, of previous addresses that redirect
             to the current one.
           example: ['https://github.com/example/old-repo']
-          minItems: 1
+          minItems: 0
           maxItems: 255
           items:
             type: string
@@ -2856,6 +2856,7 @@ components:
           maxLength: 99999
           pattern: '.*'
           example: "90,100,94,12"
+          nullable: true
         catalogId:
           type: string
           maxLength: 36
