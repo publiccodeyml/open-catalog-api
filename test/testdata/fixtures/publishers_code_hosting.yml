@@ -294,7 +294,7 @@
   created_at: '2014-10-28T00:00:00+00:00'
   updated_at: '2014-10-28T00:00:00+00:00'
 - id: 37ac7039-998b-478a-84ff-43fb65e78882
-  publisher_id: 15fda7c4-6bbf-4387-8f89-258c1e6fafa3
+  publisher_id: 15fda7c4-6bbf-4387-8f89-258c1e6fafa2
   url: https://25-b.example.org/code/repo
   group: true
   created_at: '2014-10-28T00:00:00+00:00'
