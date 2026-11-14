@@ -14,9 +14,9 @@ import (
 var errUnsupportedDialect = errors.New("unsupported database dialect for analysis merge")
 
 // MergeAnalysis atomically replaces the namespaces in patch while preserving
-// every namespace that is already stored but absent from patch. It writes
-// the row the model's primary key addresses and reads the merged document
-// back from the same statement.
+// every namespace that is already stored but absent from patch. Null values
+// remove namespaces. It writes the row the model's primary key addresses
+// and reads the merged document back from the same statement.
 func MergeAnalysis(
 	gormdb *gorm.DB,
 	model models.Analyzable,
@@ -79,14 +79,17 @@ func analysisMergeExpression(dialect Dialect, patch common.AnalysisData) (clause
 		// Postgres refuses to delete a key from a jsonb scalar, so when
 		// either side is not an object the incoming value is taken as is.
 		return gorm.Expr(
-			`COALESCE(analysis, '{}'::jsonb) || (
+			`(
+				WITH patch AS MATERIALIZED (SELECT key, value FROM jsonb_each(CAST(? AS jsonb)))
+				SELECT (COALESCE(analysis, '{}'::jsonb) || (
 				SELECT COALESCE(jsonb_object_agg(patch.key, CASE
 					WHEN jsonb_typeof(analysis -> patch.key) <> 'object'
 						OR jsonb_typeof(patch.value) <> 'object' THEN patch.value
 					WHEN (analysis -> patch.key) - 't' = patch.value - 't' THEN analysis -> patch.key
 					ELSE patch.value
 				END), '{}'::jsonb)
-				FROM jsonb_each(CAST(? AS jsonb)) AS patch
+				FROM patch WHERE patch.value <> 'null'::jsonb
+				)) - ARRAY(SELECT key FROM patch WHERE value = 'null'::jsonb)
 			)`,
 			string(patchJSON),
 		), nil
@@ -119,6 +122,7 @@ func analysisMergeExpression(dialect Dialect, patch common.AnalysisData) (clause
 						ELSE patch.value
 					END
 					FROM patch LEFT JOIN stored ON stored.key = patch.key
+					WHERE patch.value <> 'null'
 				) AS merged
 			)`,
 			string(patchJSON),

@@ -12,6 +12,12 @@ import (
 func TestWithTimestamps(t *testing.T) {
 	now := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 
+	t.Run("null requests deletion without a timestamp", func(t *testing.T) {
+		result, err := WithTimestamps(AnalysisData{"retired": json.RawMessage(" \nnull \t")}, now)
+		require.NoError(t, err)
+		assert.JSONEq(t, "null", string(result["retired"]))
+	})
+
 	t.Run("nil returns nil", func(t *testing.T) {
 		result, err := WithTimestamps(nil, now)
 

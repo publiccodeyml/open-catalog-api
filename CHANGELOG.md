@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Analysis PATCH requests can remove a namespace by setting it to null.
+
 - Bundle requests with duplicate `softwareIds` now return 422 with an
   error saying the list contains duplicates.
 - Rejected webhook URLs now explain that HTTPS, a public address and no
