@@ -135,6 +135,12 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 			"can't update Software", "software", "publiccode_yml", "-",
 		},
 		{
+			"software root replace with a new createdAt", softwarePath, italiaSoftwareID,
+			`{"op": "replace", "path": "/publiccodeYml", "value": "patched"},
+			 {"op": "replace", "path": "", "value": {"id": "` + italiaSoftwareID + `", "createdAt": "` + forgedCreated + `"}}`,
+			"can't update Software", "software", "publiccode_yml", "-",
+		},
+		{
 			"software createdAt", softwarePath, italiaSoftwareID,
 			`{"op": "replace", "path": "/createdAt", "value": "` + forgedCreated + `"},
 			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
@@ -229,6 +235,34 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 			"can't update Publisher", "publishers", "description", "Publisher description 1",
 		},
 		{
+			"publisher root replace with a new id", publisherPath, italiaPublisherID,
+			`{"op": "replace", "path": "", "value": {"id": "` + unusedID + `", "description": "patched"}}`,
+			"can't update Publisher", "publishers", "description", "Publisher description 1",
+		},
+		{
+			"publisher root add with a new createdAt", publisherPath, italiaPublisherID,
+			`{"op": "replace", "path": "/description", "value": "patched"},
+			 {"op": "add", "path": "", "value": {"id": "` + italiaPublisherID + `", "createdAt": "` + forgedCreated + `"}}`,
+			"can't update Publisher", "publishers", "description", "Publisher description 1",
+		},
+		{
+			"publisher root replace without id", publisherPath, italiaPublisherID,
+			`{"op": "replace", "path": "", "value": {"description": "patched"}}`,
+			"can't update Publisher", "publishers", "description", "Publisher description 1",
+		},
+		{
+			"publisher code hosting replace with a createdAt", publisherPath, italiaPublisherID,
+			`{"op": "replace", "path": "/codeHosting/0", "value": {"url": "https://forged.example.org", "createdAt": "` + forgedCreated + `"}},
+			 {"op": "replace", "path": "/description", "value": "patched"}`,
+			"can't update Publisher", "publishers", "description", "Publisher description 1",
+		},
+		{
+			"publisher code hosting add with an updatedAt", publisherPath, italiaPublisherID,
+			`{"op": "add", "path": "/codeHosting/-", "value": {"url": "https://forged.example.org", "updatedAt": "` + forgedCreated + `"}},
+			 {"op": "replace", "path": "/description", "value": "patched"}`,
+			"can't update Publisher", "publishers", "description", "Publisher description 1",
+		},
+		{
 			"catalog publisher id", catalogPubPath, italiaPublisherID,
 			`{"op": "replace", "path": "/id", "value": "` + unusedID + `"},
 			 {"op": "replace", "path": "/description", "value": "patched"}`,
@@ -250,6 +284,11 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 			"catalog id", catalogPath, italiaID,
 			`{"op": "replace", "path": "/id", "value": "` + unusedID + `"},
 			 {"op": "replace", "path": "/name", "value": "patched"}`,
+			"can't update Catalog", "catalogs", "name", "Italian Catalog",
+		},
+		{
+			"catalog root replace with a new id", catalogPath, italiaID,
+			`{"op": "replace", "path": "", "value": {"id": "` + unusedID + `", "name": "patched"}}`,
 			"can't update Catalog", "catalogs", "name", "Italian Catalog",
 		},
 		{
@@ -301,6 +340,52 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 
 			assert.Equal(t, test.want, dbValue(t, test.table, test.column, "id", test.id))
 			assert.Equal(t, 0, dbCount(t, test.table, "id", unusedID))
+		})
+	}
+}
+
+// TestPatchRootReplaceKeepingServerFieldsIsAllowed replaces the whole
+// document with the one GET returned, changed in one field. The server owned
+// fields carry their stored values, so the patch goes through.
+func TestPatchRootReplaceKeepingServerFieldsIsAllowed(t *testing.T) {
+	tests := []struct {
+		path   string
+		field  string
+		table  string
+		column string
+	}{
+		{publisherPath + italiaPublisherID, "description", "publishers", "description"},
+		{catalogPath + italiaID, "name", "catalogs", "name"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.path, func(t *testing.T) {
+			loadFixtures(t)
+
+			// The query keeps this read out of the response cache, where it
+			// would serve stale documents to later tests on the same id.
+			req, err := newTestRequest(http.MethodGet, test.path+"?rootReplace=1", nil)
+			require.NoError(t, err)
+
+			res, err := app.Test(req, -1)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
+
+			var document map[string]any
+			require.NoError(t, json.NewDecoder(res.Body).Decode(&document))
+			require.Equal(t, http.StatusOK, res.StatusCode)
+
+			document[test.field] = "patched"
+
+			value, err := json.Marshal(document)
+			require.NoError(t, err)
+
+			code, body := patchJSON(t, test.path, `[{"op": "replace", "path": "", "value": `+string(value)+`}]`)
+
+			assert.Equal(t, http.StatusOK, code, "body: %s", body)
+
+			id := test.path[strings.LastIndex(test.path, "/")+1:]
+			assert.Equal(t, "patched", dbValue(t, test.table, test.column, "id", id))
 		})
 	}
 }
