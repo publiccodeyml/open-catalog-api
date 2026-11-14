@@ -19,9 +19,14 @@ spec:
       {{- include "open-catalog-api.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- if or .Values.podAnnotations (not .Values.useExistingSecret) }}
       annotations:
+        {{- if not .Values.useExistingSecret }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}
       labels:
         {{- include "open-catalog-api.selectorLabels" . | nindent 8 }}
