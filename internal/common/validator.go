@@ -236,31 +236,36 @@ func validateCodeHostingURL(fl validator.FieldLevel) bool {
 }
 
 func GenerateErrorDetails(validationErrors []ValidationError) string {
-	var errors []string
+	errors := make([]string, 0, len(validationErrors))
 
 	for _, validationError := range validationErrors {
-		switch validationError.Rule {
-		case "required":
-			errors = append(errors, validationError.Field+" is required")
-		case "email":
-			errors = append(errors, validationError.Field+" is not a valid email")
-		case "min":
-			errors = append(errors, validationError.Field+" does not meet its size limits (too short)")
-		case "max":
-			errors = append(errors, validationError.Field+" does not meet its size limits (too long)")
-		case "gt":
-			errors = append(errors, validationError.Field+" does not meet its size limits (too few items)")
-		case "code_hosting_url":
-			errors = append(errors, validationError.Field+" is not a valid public http(s) URL")
-		case "github_api_url":
-			errors = append(errors, validationError.Field+
-				" must be https://api.github.com/repos/{owner}/{repo}/dispatches for the github format")
-		default:
-			errors = append(errors, validationError.Field+" is invalid")
-		}
+		errors = append(errors, validationErrorDetail(validationError))
 	}
 
 	errorDetails := "invalid format: " + strings.Join(errors, ", ")
 
 	return errorDetails
+}
+
+func validationErrorDetail(validationError ValidationError) string {
+	switch validationError.Rule {
+	case "required":
+		return validationError.Field + " is required"
+	case "email":
+		return validationError.Field + " is not a valid email"
+	case "min":
+		return validationError.Field + " does not meet its size limits (too short)"
+	case "max":
+		return validationError.Field + " does not meet its size limits (too long)"
+	case "gt":
+		return validationError.Field + " does not meet its size limits (too few items)"
+	case "code_hosting_url":
+		return validationError.Field + " is not a valid public http(s) URL"
+	case "webhook_url":
+		return validationError.Field + " must be a public https URL without credentials"
+	case "github_api_url":
+		return validationError.Field + " must be https://api.github.com/repos/{owner}/{repo}/dispatches for the github format"
+	default:
+		return validationError.Field + " is invalid"
+	}
 }

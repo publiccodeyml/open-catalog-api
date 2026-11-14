@@ -3383,7 +3383,13 @@ components:
           format: uri
           maxLength: 255
           example: 'https://example.org/my-webhook-endpoint'
-          description: URL where the webhook payload will be delivered to
+          description: |
+            URL where the webhook payload will be delivered to. Must use HTTPS,
+            contain no credentials and target a public address. Private, loopback,
+            link-local, unspecified and shared address space targets are rejected.
+            Hostnames resolving to a forbidden address are also rejected.
+            DNS resolution is best effort at registration and checked again
+            before every delivery.
         secret:
           type: string
           minLength: 16

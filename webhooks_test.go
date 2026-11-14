@@ -194,6 +194,27 @@ func TestWebhooksEndpoints(t *testing.T) {
 		},
 	}
 
+	for _, target := range []string{
+		"http://example.com/hook",
+		"https://user:pass@example.com/hook",
+		"https://10.0.0.1/hook",
+	} {
+		tests = append(tests, TestCase{
+			description: "POST webhook rejects " + target,
+			query:       "POST /v1/software/webhooks",
+			body:        `{"url":"` + target + `"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, "invalid format: url must be a public https URL without credentials", response["detail"])
+			},
+		})
+	}
+
 	runTestCases(t, tests)
 }
 
