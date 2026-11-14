@@ -375,7 +375,8 @@ paths:
         Merge incoming namespaces into the stored analysis for a Software.
         Only namespaces included in the request body are updated; existing
         namespaces not in the request are left unchanged.
-        Each namespace must be a JSON object with an integer "v" field.
+        A null namespace removes that namespace. Otherwise its value must be
+        a JSON object with an integer "v" field.
         A "t" timestamp (RFC 3339) is injected automatically for every
         namespace that was added or changed.
       tags:
@@ -403,7 +404,7 @@ paths:
         content:
           application/merge-patch+json:
             schema:
-              $ref: '#/components/schemas/AnalysisData'
+              $ref: '#/components/schemas/AnalysisPatch'
   '/software/{softwareId}/logs':
     parameters:
       - schema:
@@ -1484,7 +1485,8 @@ paths:
         Merge incoming namespaces into the stored analysis for a Catalog.
         Only namespaces included in the request body are updated; existing
         namespaces not in the request are left unchanged.
-        Each namespace must be a JSON object with an integer "v" field.
+        A null namespace removes that namespace. Otherwise its value must be
+        a JSON object with an integer "v" field.
         A "t" timestamp (RFC 3339) is injected automatically for every
         namespace that was added or changed.
       tags:
@@ -1512,7 +1514,7 @@ paths:
         content:
           application/merge-patch+json:
             schema:
-              $ref: '#/components/schemas/AnalysisData'
+              $ref: '#/components/schemas/AnalysisPatch'
   '/catalogs/{catalogId}/publishers':
     parameters:
       - schema:
@@ -2621,6 +2623,39 @@ components:
         with at least a required version field "v".
       additionalProperties:
         type: object
+        required:
+          - v
+        properties:
+          v:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 999
+            description: Schema version of this namespace.
+            example: 1
+          t:
+            type: string
+            format: date-time
+            readOnly: true
+            description: Timestamp of the last write (RFC 3339 datetime).
+            example: '2024-01-15T10:30:00Z'
+        additionalProperties: true
+      example:
+        acme-security-scanner:
+          v: 1
+          t: "2024-01-15T10:30:00Z"
+          vulnerabilities: 0
+          grade: "A"
+    AnalysisPatch:
+      title: AnalysisPatch
+      type: object
+      nullable: true
+      description: >
+        Namespaces to replace in the stored analysis. A null value removes
+        the namespace. Namespaces absent from the patch are preserved.
+      additionalProperties:
+        type: object
+        nullable: true
         required:
           - v
         properties:

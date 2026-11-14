@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -66,7 +67,7 @@ type namespaceMeta struct {
 }
 
 // WithTimestamps checks that each namespace is a JSON object with an integer "v",
-// then injects "t" (current time, RFC 3339).
+// then injects "t" (current time, RFC 3339). Null values request namespace deletion.
 func WithTimestamps(analysis AnalysisData, now time.Time) (AnalysisData, error) {
 	if analysis == nil {
 		return nil, nil //nolint:nilnil
@@ -79,6 +80,12 @@ func WithTimestamps(analysis AnalysisData, now time.Time) (AnalysisData, error) 
 	result := make(AnalysisData, len(analysis))
 
 	for namespace, raw := range analysis {
+		if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+			result[namespace] = json.RawMessage("null")
+
+			continue
+		}
+
 		var meta namespaceMeta
 
 		if err := json.Unmarshal(raw, &meta); err != nil {
