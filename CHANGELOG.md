@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The Helm chart runs the API as UID/GID 10001 with the security defaults
+  required by the restricted Pod Security Standard. SQLite storage must
+  be writable by that user.
 - Requests must finish sending within 30 seconds. Idle keep-alive
   connections close after 120 seconds.
 - Container builds now use GoReleaser's `dockers_v2` configuration.
