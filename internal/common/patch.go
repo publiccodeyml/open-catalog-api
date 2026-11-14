@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
+	"strconv"
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
@@ -54,6 +56,10 @@ func ApplyPatch[T any](entity *T, contentType string, body []byte) (T, *PatchErr
 
 		updatedJSON, err = patch.Apply(entityJSON)
 		if err != nil {
+			return zero, &PatchError{Code: http.StatusUnprocessableEntity, Err: err}
+		}
+
+		if err := checkProtectedFields(entityJSON, updatedJSON); err != nil {
 			return zero, &PatchError{Code: http.StatusUnprocessableEntity, Err: err}
 		}
 	} else {
@@ -136,4 +142,100 @@ func isProtectedPath(path string) bool {
 
 	return len(parts) == 4 && parts[1] == "codeHosting" && parts[2] != "" &&
 		(parts[3] == "createdAt" || parts[3] == "updatedAt")
+}
+
+const (
+	fieldCreatedAt = "createdAt"
+	fieldUpdatedAt = "updatedAt"
+)
+
+// checkProtectedFields compares the server owned fields of the patched
+// document with the original. The path check misses an operation on a
+// parent of a protected field, such as a replace of the root "" or of
+// /codeHosting/0, which can carry a new id or createdAt in its value.
+func checkProtectedFields(originalJSON, updatedJSON []byte) error {
+	var original, updated map[string]any
+
+	if err := json.Unmarshal(originalJSON, &original); err != nil {
+		return err //nolint:wrapcheck
+	}
+
+	if err := json.Unmarshal(updatedJSON, &updated); err != nil {
+		return err //nolint:wrapcheck
+	}
+
+	for _, field := range [...]string{"id", "catalogId", fieldCreatedAt, fieldUpdatedAt} {
+		before, hadField := original[field]
+		after, hasField := updated[field]
+
+		// Every serialized resource carries these fields, so a document
+		// without one asked for its removal.
+		if hadField != hasField || !reflect.DeepEqual(before, after) {
+			return fmt.Errorf("%w: /%s", errPatchProtected, field)
+		}
+	}
+
+	return checkCodeHostingTimestamps(original["codeHosting"], updated["codeHosting"])
+}
+
+// checkCodeHostingTimestamps refuses a code hosting timestamp that differs
+// from the stored entry with the same URL, which is how the publisher handler
+// matches entries, and from the stored entry at the same index, which an
+// operation on /codeHosting/0/url leaves in place. An entry without
+// timestamps is fine: clients list code hosting by URL and group alone.
+func checkCodeHostingTimestamps(original, updated any) error {
+	updatedEntries, ok := updated.([]any)
+	if !ok {
+		return nil
+	}
+
+	originalEntries, _ := original.([]any)
+	byURL := map[string]map[string]any{}
+
+	for _, entry := range originalEntries {
+		if fields, ok := entry.(map[string]any); ok {
+			if url, ok := fields["url"].(string); ok {
+				byURL[url] = fields
+			}
+		}
+	}
+
+	for index, entry := range updatedEntries {
+		fields, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		url, _ := fields["url"].(string)
+
+		var atIndex map[string]any
+		if index < len(originalEntries) {
+			atIndex, _ = originalEntries[index].(map[string]any)
+		}
+
+		if field := changedTimestamp(fields, byURL[url], atIndex); field != "" {
+			return fmt.Errorf("%w: /codeHosting/%s/%s", errPatchProtected, strconv.Itoa(index), field)
+		}
+	}
+
+	return nil
+}
+
+// changedTimestamp names the first timestamp of entry that matches neither
+// stored entry, or returns "" when there is none.
+func changedTimestamp(entry, sameURL, sameIndex map[string]any) string {
+	for _, field := range [...]string{fieldCreatedAt, fieldUpdatedAt} {
+		value, present := entry[field]
+		if present && !storedValue(sameURL, field, value) && !storedValue(sameIndex, field, value) {
+			return field
+		}
+	}
+
+	return ""
+}
+
+func storedValue(entry map[string]any, field string, value any) bool {
+	stored, ok := entry[field]
+
+	return ok && reflect.DeepEqual(stored, value)
 }
