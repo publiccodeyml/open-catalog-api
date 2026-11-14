@@ -114,6 +114,10 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: common.CustomErrorHandler,
+		// Bound request reads and keep-alive waits. Writes stay unlimited
+		// so large list responses can finish on slow connections.
+		ReadTimeout: 30 * time.Second,
+		IdleTimeout: 120 * time.Second,
 		// Fiber doesn't set DisallowUnknownFields by default
 		// (https://github.com/gofiber/fiber/issues/2601)
 		JSONDecoder: jsondecoder.UnmarshalDisallowUnknownFields,
