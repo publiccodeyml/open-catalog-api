@@ -205,3 +205,26 @@ func TestMigrationKeepsTheGeneratedEntityColumn(t *testing.T) {
 
 	assert.Equal(t, "/"+entityType+"/"+entityID, stored.Entity)
 }
+
+func TestMigrationCreatesEventCreatedAtIndex(t *testing.T) {
+	connection := testConnection(t)
+	database := openDatabase(t, connection)
+
+	const index = "idx_events_created_at"
+
+	require.True(t, database.Migrator().HasIndex(&models.Event{}, index))
+	require.NoError(t, database.Migrator().DropIndex(&models.Event{}, index))
+	require.False(t, database.Migrator().HasIndex(&models.Event{}, index))
+
+	event := models.Event{ID: "event-before-migration", Type: "create"}
+	require.NoError(t, database.Create(&event).Error)
+
+	migrated := openDatabase(t, connection)
+
+	assert.True(t, migrated.Migrator().HasIndex(&models.Event{}, index))
+
+	var stored models.Event
+
+	require.NoError(t, migrated.First(&stored, "id = ?", event.ID).Error)
+	assert.Equal(t, event.Type, stored.Type)
+}

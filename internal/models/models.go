@@ -249,6 +249,6 @@ type Event struct {
 	EntityType string    `json:"entityType"`
 	EntityID   string    `json:"entityId"`
 	Actor      string    `json:"actor,omitempty"`
-	CreatedAt  time.Time `json:"createdAt"`
+	CreatedAt  time.Time `json:"createdAt" gorm:"index"`
 	UpdatedAt  time.Time `json:"updatedAt"`
 }
