@@ -11,5 +11,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "open-catalog-api.fullname" . }}:{{ .Values.service.port }}']
+      args: ['{{ include "open-catalog-api.fullname" . }}:{{ .Values.service.port }}/readyz']
   restartPolicy: Never
