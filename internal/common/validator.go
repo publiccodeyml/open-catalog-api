@@ -248,24 +248,21 @@ func GenerateErrorDetails(validationErrors []ValidationError) string {
 }
 
 func validationErrorDetail(validationError ValidationError) string {
-	switch validationError.Rule {
-	case "required":
-		return validationError.Field + " is required"
-	case "email":
-		return validationError.Field + " is not a valid email"
-	case "min":
-		return validationError.Field + " does not meet its size limits (too short)"
-	case "max":
-		return validationError.Field + " does not meet its size limits (too long)"
-	case "gt":
-		return validationError.Field + " does not meet its size limits (too few items)"
-	case "code_hosting_url":
-		return validationError.Field + " is not a valid public http(s) URL"
-	case "webhook_url":
-		return validationError.Field + " must be a public https URL without credentials"
-	case "github_api_url":
-		return validationError.Field + " must be https://api.github.com/repos/{owner}/{repo}/dispatches for the github format"
-	default:
-		return validationError.Field + " is invalid"
+	details := map[string]string{
+		"required":         " is required",
+		"email":            " is not a valid email",
+		"min":              " does not meet its size limits (too short)",
+		"max":              " does not meet its size limits (too long)",
+		"gt":               " does not meet its size limits (too few items)",
+		"unique":           " contains duplicate items",
+		"code_hosting_url": " is not a valid public http(s) URL",
+		"webhook_url":      " must be a public https URL without credentials",
+		"github_api_url":   " must be https://api.github.com/repos/{owner}/{repo}/dispatches for the github format",
 	}
+
+	if detail, ok := details[validationError.Rule]; ok {
+		return validationError.Field + detail
+	}
+
+	return validationError.Field + " is invalid"
 }

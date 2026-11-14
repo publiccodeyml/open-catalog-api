@@ -38,6 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A bundle request that lists the same software twice in `softwareIds`
+  now gets a 422 saying the list has duplicate items, instead of a
+  message that the software does not exist. The OpenAPI spec marks
+  the list as unique.
 - Rejected webhook URLs now explain that HTTPS, a public address and no
   credentials are required. The OpenAPI spec documents these restrictions.
 - Request validation now follows the OpenAPI length and list size limits.

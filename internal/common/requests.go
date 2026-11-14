@@ -82,14 +82,14 @@ type BundlePost struct {
 	Name        string   `json:"name" validate:"required,min=1,max=255"`
 	Description *string  `json:"description" validate:"omitempty,max=1000"`
 	Active      *bool    `json:"active"`
-	SoftwareIDs []string `json:"softwareIds" validate:"required,gt=0,dive,uuid4"`
+	SoftwareIDs []string `json:"softwareIds" validate:"required,gt=0,unique,dive,uuid4"`
 }
 
 type BundlePatch struct {
 	Name        *string   `json:"name" validate:"omitempty,min=1,max=255"`
 	Description *string   `json:"description" validate:"omitempty,max=1000"`
 	Active      *bool     `json:"active"`
-	SoftwareIDs *[]string `json:"softwareIds" validate:"omitempty,gt=0,dive,uuid4"`
+	SoftwareIDs *[]string `json:"softwareIds" validate:"omitempty,gt=0,unique,dive,uuid4"`
 }
 
 type Log struct {

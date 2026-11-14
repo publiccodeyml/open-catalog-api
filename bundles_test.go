@@ -142,6 +142,18 @@ func TestBundleEndpoints(t *testing.T) {
 			expectedBody:        `{"title":"can't create Bundle","detail":"invalid format: softwareIds does not meet its size limits (too few items)","status":422,"validationErrors":[{"field":"softwareIds","rule":"gt","value":""}]}`,
 		},
 		{
+			description: "POST bundle with a repeated software ID",
+			query:       "POST /v1/bundles",
+			body:        `{"name": "Repeated refs", "softwareIds": ["` + existingSoftwareID + `", "` + existingSoftwareID + `"]}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Bundle","detail":"invalid format: softwareIds contains duplicate items","status":422,"validationErrors":[{"field":"softwareIds","rule":"unique","value":""}]}`,
+		},
+		{
 			description: "POST bundle with nonexistent software",
 			query:       "POST /v1/bundles",
 			body:        `{"name": "Bad refs", "softwareIds": ["00000000-0000-4000-a000-000000000000"]}`,
@@ -214,6 +226,15 @@ func TestBundleEndpoints(t *testing.T) {
 			expectedCode:        404,
 			expectedContentType: "application/problem+json",
 			expectedBody:        `{"title":"can't update Bundle","detail":"Bundle was not found","status":404}`,
+		},
+		{
+			description:         "PATCH bundle with a repeated software ID",
+			query:               "PATCH /v1/bundles/" + municipalitiesID,
+			body:                `{"softwareIds": ["` + existingSoftwareID + `", "` + existingSoftwareID + `"]}`,
+			headers:             map[string][]string{"Authorization": {goodToken}, "Content-Type": {"application/json"}},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't update Bundle","detail":"invalid format: softwareIds contains duplicate items","status":422,"validationErrors":[{"field":"softwareIds","rule":"unique","value":""}]}`,
 		},
 		{
 			description:         "PATCH bundle with nonexistent software",
