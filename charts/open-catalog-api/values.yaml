@@ -92,7 +92,8 @@ maxRequests:
 
 # -- (string) Name of existing Kubernetes secret containing keys 'databaseDSN'
 # and 'pasetoKey'. If not provided, a secret will be generated using values
-# from 'databaseDSN' and 'pasetoKey'.
+# from 'databaseDSN' and 'pasetoKey'. Pods read the secret at startup, so
+# restart them after changing an existing secret.
 useExistingSecret:
 
 # -- Database connection string, e.g. "host= port=5432 dbname= user= password= sslmode=require".
