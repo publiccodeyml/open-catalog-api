@@ -3,6 +3,7 @@ package general
 import (
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -31,6 +32,13 @@ func QueryErrorDetail(err error) string {
 
 		return unknownQueryDetail
 	}
+}
+
+// escapeLike makes s match its characters literally in a LIKE pattern
+// with ESCAPE '\'. The ESCAPE clause is spelled out because PostgreSQL
+// reads a backslash as an escape by default and SQLite has none.
+func escapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }
 
 // Clauses applies the ?filter, ?from, ?to and ?search query parameters
@@ -62,8 +70,8 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string, dat
 	if searchField != "" {
 		if search := ctx.Query("search", ""); search != "" {
 			ret = ret.Where(clause.Expr{
-				SQL:  "LOWER(?) LIKE ?",
-				Vars: []any{clause.Column{Name: searchField}, "%" + utils.ToLower(search) + "%"},
+				SQL:  `LOWER(?) LIKE ? ESCAPE '\'`,
+				Vars: []any{clause.Column{Name: searchField}, "%" + escapeLike(utils.ToLower(search)) + "%"},
 			})
 		}
 	}

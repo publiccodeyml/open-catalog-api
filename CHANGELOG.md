@@ -80,6 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fuzz test functions (`Fuzz...`).
 - `?search` on a list other than the logs answered `500`. The parameter
   is now ignored there.
+- `%`, `_` and `\` in `?search` on the logs now match literally. `%` and
+  `_` matched any characters, so `search=%` returned every log.
 - The Helm chart now renders a valid `autoscaling/v2` HPA and quotes the
   numeric `MAX_REQUESTS` environment value.
 - Concurrent `PATCH` requests to the `analysis` endpoint of the same software
