@@ -142,8 +142,8 @@ func (b *Bundle) DeleteBundle(ctx *fiber.Ctx) error {
 	return ctx.SendStatus(fiber.StatusNoContent)
 }
 
-// findSoftwareByIDs resolves ids to their software rows. Duplicate ids
-// come back short and count as missing.
+// findSoftwareByIDs resolves ids to their software rows. Request
+// validation rejects duplicate ids, so a short result means a missing id.
 func findSoftwareByIDs(gormdb *gorm.DB, ids []string) ([]models.Software, error) {
 	var software []models.Software
 
