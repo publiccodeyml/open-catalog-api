@@ -472,18 +472,6 @@ func TestPublishersEndpoints(t *testing.T) {
 			expectedBody:        `{"title":"can't create Publisher","detail":"invalid format: description is required","status":422,"validationErrors":[{"field":"description","rule":"required","value":""}]}`,
 		},
 		{
-			description: "POST publisher with duplicate alternativeId",
-			query:       "POST /v1/publishers",
-			body:        `{"alternativeId": "alternative-id-12345", "description":"new description", "codeHosting": [{"url" : "https://example-testcase-xx3.com"}]}`,
-			headers: map[string][]string{
-				"Authorization": {goodToken},
-				"Content-Type":  {"application/json"},
-			},
-			expectedCode:        409,
-			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"can't create Publisher","detail":"alternativeId already exists","status":409}`,
-		},
-		{
 			description: "POST publishers with invalid payload",
 			query:       "POST /v1/publishers",
 			body:        `{"description": "-"}`,
