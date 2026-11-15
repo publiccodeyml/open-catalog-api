@@ -108,6 +108,7 @@ You can configure the API with environment variables:
   event recording the entity, the kind of change, who made it and
   when, readable at `GET /v1/events`. Older events are deleted at
   startup and once a day. Set to `0` to keep them forever.
+  Values must be between `0` and `106751` days.
   Default: `365`.
 
 ## Contributing
