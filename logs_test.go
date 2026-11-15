@@ -398,6 +398,18 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "POST log with a wrong field type",
+			query:       "POST /v1/logs",
+			body:        `{"message": 5}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Log","detail":"wrong type for /message","status":400}`,
+		},
+		{
 			description: "POST /v1/logs with JSON with extra fields",
 			query:       "POST /v1/logs",
 			body:        `{"message": "new log", "EXTRA_FIELD": "extra field not in schema"}`,

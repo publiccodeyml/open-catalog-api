@@ -3,6 +3,7 @@ package common
 import (
 	"bytes"
 	"context"
+	"encoding/json/v2"
 	"errors"
 	"net"
 	"net/url"
@@ -208,6 +209,12 @@ func ValidateRequestEntity(ctx *fiber.Ctx, request any, errorMessage string) err
 	if err := ctx.BodyParser(request); err != nil {
 		if errors.Is(err, jsondecoder.ErrUnknownField) {
 			return Error(fiber.StatusUnprocessableEntity, errorMessage, err.Error())
+		}
+
+		// The detail names the field by its pointer and leaves out the
+		// decoder text, which describes Go types.
+		if semErr, ok := errors.AsType[*json.SemanticError](err); ok && semErr.JSONPointer != "" {
+			return Error(fiber.StatusBadRequest, errorMessage, "wrong type for "+string(semErr.JSONPointer))
 		}
 
 		return Error(fiber.StatusBadRequest, errorMessage, "invalid or malformed JSON")

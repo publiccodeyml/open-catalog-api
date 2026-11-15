@@ -538,6 +538,18 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "POST software with a wrong field type",
+			query:       "POST /v1/software",
+			body:        `{"url": "https://example.org/repo", "aliases": "https://example.org/alias"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Software","detail":"wrong type for /aliases","status":400}`,
+		},
+		{
 			description: "POST /v1/software with JSON with extra fields",
 			query:       "POST /v1/software",
 			body:        `{"publiccodeYml": "-", "EXTRA_FIELD": "extra field not in schema"}`,
@@ -1037,6 +1049,18 @@ func TestSoftwareEndpoints(t *testing.T) {
 				assert.Equal(t, `can't update Software`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
+		},
+		{
+			description: "PATCH software with a wrong field type",
+			query:       "PATCH /v1/software/59803fb7-8eec-4fe5-a354-8926009c364a",
+			body:        `{"active": "true"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't update Software","detail":"wrong type for /active","status":400}`,
 		},
 		{
 			description: "PATCH software with JSON with extra fields",
