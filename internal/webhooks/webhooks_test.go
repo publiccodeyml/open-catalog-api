@@ -1,6 +1,7 @@
 package webhooks
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -8,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -307,6 +309,12 @@ func TestDispatchWebhooks_RotatedSecretTakesEffect(t *testing.T) {
 func TestDispatchWebhooks_SSRFLoopbackBlocked(t *testing.T) {
 	dialGuardDisabled.Store(false)
 
+	var logged bytes.Buffer
+
+	originalOutput := log.Writer()
+	log.SetOutput(&logged)
+	t.Cleanup(func() { log.SetOutput(originalOutput) })
+
 	var hitCount atomic.Int64
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -321,12 +329,11 @@ func TestDispatchWebhooks_SSRFLoopbackBlocked(t *testing.T) {
 
 	event := models.Event{Type: "created", EntityType: "software", EntityID: ""}
 
-	err := DispatchWebhooks(event, db)
+	err := DispatchWebhooksAndWait(event, db)
 	require.NoError(t, err)
 
-	// post() runs in a goroutine; give it time to attempt (and fail) the dial.
-	// The guard must block before the server handler executes.
-	time.Sleep(200 * time.Millisecond)
+	assert.Contains(t, logged.String(), srv.URL)
+	assert.Contains(t, logged.String(), "not publicly routable")
 
 	assert.Equal(t, int64(0), hitCount.Load(), "server must not be hit when dial guard blocks loopback")
 }
