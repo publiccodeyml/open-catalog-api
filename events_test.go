@@ -303,6 +303,39 @@ func TestEventsEndpoints(t *testing.T) {
 		},
 	}
 
+	for _, entityType := range []string{"publisher", "Software", "unknown"} {
+		tests = append(tests, TestCase{
+			description:         "GET events with invalid entityType " + entityType,
+			query:               "GET /v1/events?entityType=" + entityType,
+			headers:             authHeaders,
+			expectedCode:        422,
+			expectedBody:        `{"title":"can't get Events","detail":"entityType must be one of bundles, catalogs, publishers, software, webhooks","status":422}`,
+			expectedContentType: "application/problem+json",
+		})
+	}
+
+	for entityType, count := range map[string]int{
+		"": eventCount, "bundles": 0, "catalogs": 0, "software": 5, "webhooks": 0,
+	} {
+		tests = append(tests, TestCase{
+			description:         "GET events with valid entityType " + entityType,
+			query:               "GET /v1/events?entityType=" + entityType,
+			headers:             authHeaders,
+			expectedCode:        200,
+			expectedContentType: "application/json; charset=utf-8",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+				assert.Len(t, data, count)
+
+				if entityType != "" {
+					for _, event := range data {
+						assert.Equal(t, entityType, event["entityType"])
+					}
+				}
+			},
+		})
+	}
+
 	runTestCases(t, tests)
 }
 

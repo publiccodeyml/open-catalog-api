@@ -28,13 +28,22 @@ func (e *Event) GetEvents(ctx *fiber.Ctx) error {
 	stmt := e.db
 
 	for param, column := range map[string]string{
-		"entityType": "entity_type",
-		"entityId":   "entity_id",
-		"actor":      "actor",
+		"entityId": "entity_id",
+		"actor":    "actor",
 	} {
 		if value := ctx.Query(param); value != "" {
 			stmt = stmt.Where(map[string]any{column: value})
 		}
+	}
+
+	if entityType := ctx.Query("entityType"); entityType != "" {
+		known := []string{"bundles", "catalogs", "publishers", "software", "webhooks"}
+		if !slices.Contains(known, entityType) {
+			return common.Error(fiber.StatusUnprocessableEntity, errMsg,
+				"entityType must be one of bundles, catalogs, publishers, software, webhooks")
+		}
+
+		stmt = stmt.Where(map[string]any{"entity_type": entityType})
 	}
 
 	if eventType := ctx.Query("type"); eventType != "" {

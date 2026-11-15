@@ -56,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Unknown `entityType` filters on `GET /v1/events` now return `422`.
+
 - Event and webhook reads require a token with any path casing.
 
 - `token create` uses `PASETO_KEY` when `--key` is empty instead of
