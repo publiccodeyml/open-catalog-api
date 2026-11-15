@@ -89,7 +89,7 @@ func createdAtWindow(ctx *fiber.Ctx, stmt *gorm.DB) (*gorm.DB, error) {
 			return nil, common.ErrInvalidDateTime
 		}
 
-		ret = ret.Where("created_at > ?", at)
+		ret = ret.Where(createdAtCompare(ret, ">"), at)
 	}
 
 	if to := ctx.Query("to", ""); to != "" {
@@ -98,8 +98,21 @@ func createdAtWindow(ctx *fiber.Ctx, stmt *gorm.DB) (*gorm.DB, error) {
 			return nil, common.ErrInvalidDateTime
 		}
 
-		ret = ret.Where("created_at < ?", at)
+		ret = ret.Where(createdAtCompare(ret, "<"), at)
 	}
 
 	return ret, nil
+}
+
+// createdAtCompare returns the condition comparing created_at with a
+// bound time using op. SQLite stores a time as text carrying the offset
+// it was written with and compares text, so two spellings of the same
+// instant can sort apart: julianday reads both sides as instants, at
+// the millisecond precision of SQLite's date functions.
+func createdAtCompare(stmt *gorm.DB, op string) string {
+	if stmt.Name() == "sqlite" {
+		return "julianday(created_at) " + op + " julianday(?)"
+	}
+
+	return "created_at " + op + " ?"
 }
