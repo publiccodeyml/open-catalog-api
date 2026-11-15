@@ -1208,7 +1208,12 @@ paths:
         - schema:
             type: string
             maxLength: 255
-            pattern: '.*'
+            enum:
+              - bundles
+              - catalogs
+              - publishers
+              - software
+              - webhooks
             example: 'software'
           in: query
           name: entityType
@@ -3247,7 +3252,12 @@ components:
         entityType:
           type: string
           maxLength: 255
-          pattern: '.*'
+          enum:
+            - bundles
+            - catalogs
+            - publishers
+            - software
+            - webhooks
           description: The resource collection the changed entity belongs to
           example: 'software'
           readOnly: true
