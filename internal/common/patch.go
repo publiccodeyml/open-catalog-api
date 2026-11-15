@@ -78,7 +78,12 @@ func ApplyPatch[T any](entity *T, contentType string, body []byte) (T, *PatchErr
 
 	var updated T
 	if err := json.Unmarshal(updatedJSON, &updated); err != nil {
-		return zero, &PatchError{Code: http.StatusInternalServerError, Err: err}
+		code := http.StatusInternalServerError
+		if IsJSONPatch(contentType) {
+			code = http.StatusUnprocessableEntity
+		}
+
+		return zero, &PatchError{Code: code, Err: err}
 	}
 
 	return updated, nil

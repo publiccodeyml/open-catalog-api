@@ -1603,3 +1603,35 @@ func TestPublishersLogsEndpoints(t *testing.T) {
 
 	runTestCases(t, tests)
 }
+
+func TestPublishersJSONPatchWrongValueTypes(t *testing.T) {
+	for index, patch := range []string{
+		`[{"op":"replace","path":"/description","value":42}]`,
+		`[{"op":"replace","path":"/active","value":"true"}]`,
+		`[{"op":"replace","path":"/codeHosting/0/url","value":42}]`,
+	} {
+		t.Run(patch, func(t *testing.T) {
+			loadFixtures(t)
+			path := publisherPath + italiaPublisherID
+			read := func(query string) []byte {
+				req, err := newTestRequest(http.MethodGet, path+query+"&case="+fmt.Sprint(index), nil)
+				require.NoError(t, err)
+				res, err := app.Test(req, -1)
+				require.NoError(t, err)
+				defer res.Body.Close()
+				body, err := io.ReadAll(res.Body)
+				require.NoError(t, err)
+				require.Equal(t, 200, res.StatusCode, "body: %s", body)
+				return body
+			}
+			before := read("?wrongPatchType=before")
+			code, body := patchJSON(t, path, patch)
+			require.Equal(t, 422, code, "body: %s", body)
+			problem := decodeJSON(t, body)
+			assert.Equal(t, "can't update Publisher", problem["title"])
+			assert.Equal(t, float64(422), problem["status"])
+			assert.NotEmpty(t, problem["detail"])
+			assert.JSONEq(t, string(before), string(read("?wrongPatchType=after")))
+		})
+	}
+}
