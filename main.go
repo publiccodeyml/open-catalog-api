@@ -163,7 +163,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 		common.EnvironmentConfig.PasetoKey = middleware.NewRandomPasetoKey()
 	}
 
-	prometheus := fiberprometheus.New(os.Args[0])
+	prometheus := fiberprometheus.New("open-catalog-api")
 	prometheus.RegisterAt(app, "/metrics")
 	app.Use(prometheus.Middleware)
 
