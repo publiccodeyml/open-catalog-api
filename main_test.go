@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	"github.com/o1egl/paseto"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/database"
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -489,6 +491,37 @@ func TestSetupRejectsNegativeDurations(t *testing.T) {
 			assert.PanicsWithError(t, tt.panic, func() { Setup() })
 		})
 	}
+}
+
+func TestSetupRejectsRetentionOverflowBeforePurging(t *testing.T) {
+	savedConfig := common.EnvironmentConfig
+	t.Cleanup(func() { common.EnvironmentConfig = savedConfig })
+
+	dsn := "file:" + filepath.Join(t.TempDir(), "retention-test.db")
+	eventDB, err := database.NewDatabase(dsn)
+	require.NoError(t, err)
+	sqlDB, err := eventDB.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
+
+	event := models.Event{
+		ID:         "retention-overflow-event",
+		Type:       common.EventTypeCreate,
+		EntityType: "software",
+		EntityID:   "recent-software",
+		CreatedAt:  time.Now().Add(-24 * time.Hour),
+	}
+	require.NoError(t, eventDB.Create(&event).Error)
+
+	t.Setenv("DATABASE_DSN", dsn)
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("EVENT_RETENTION_DAYS", "213504")
+	common.EnvironmentConfig = common.Environment{}
+	require.PanicsWithError(t, "EVENT_RETENTION_DAYS must not exceed 106751", func() { Setup() })
+
+	var count int64
+	require.NoError(t, eventDB.Model(&models.Event{}).Where("id = ?", event.ID).Count(&count).Error)
+	assert.Equal(t, int64(1), count)
 }
 
 func TestRequiresAuth(t *testing.T) {

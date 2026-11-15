@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"math"
+	"time"
 )
 
 type Base64Key [SymmetricKeyLen]byte
@@ -15,6 +17,7 @@ var (
 	errWebhookDebounceNegative    = errors.New("WEBHOOK_DEBOUNCE_MS must not be negative")
 	errWebhookDebounceMaxNegative = errors.New("WEBHOOK_DEBOUNCE_MAX_MS must not be negative")
 	errEventRetentionNegative     = errors.New("EVENT_RETENTION_DAYS must not be negative")
+	errEventRetentionOverflow     = fmt.Errorf("EVENT_RETENTION_DAYS must not exceed %d", math.MaxInt64/(24*time.Hour))
 )
 
 type Environment struct {
@@ -64,8 +67,7 @@ func (k *Base64Key) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// Validate rejects configuration values that reserve zero as the disabled
-// state.
+// Validate rejects negative settings and retention windows that overflow a duration.
 func (e *Environment) Validate() error {
 	// The rate limiter replaces a non positive limit with its own default
 	// of 5 requests, so a negative value would not disable it.
@@ -83,6 +85,10 @@ func (e *Environment) Validate() error {
 
 	if e.EventRetentionDays < 0 {
 		return errEventRetentionNegative
+	}
+
+	if e.EventRetentionDays > int(math.MaxInt64/(24*time.Hour)) {
+		return errEventRetentionOverflow
 	}
 
 	return nil
