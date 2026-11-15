@@ -19,7 +19,7 @@ Kubernetes: `>=1.23.0-0`
 | autoscaling.targetCPUUtilizationPercentage | int | `80` |  |
 | databaseDSN | string | `""` | Database connection string, e.g. "host= port=5432 dbname= user= password= sslmode=require". |
 | deploymentAnnotations | object | `{}` |  |
-| extraEnv | list | `[]` | Additional environment variables for the API container, as Kubernetes EnvVar objects, e.g. TRUSTED_PROXIES or EVENT_RETENTION_DAYS. |
+| extraEnv | list | `[]` | Additional environment variables for the API container, as Kubernetes EnvVar objects, e.g. DATABASE_MAX_CONNECTIONS, TRUSTED_PROXIES or EVENT_RETENTION_DAYS. |
 | extraVolumeMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `""` |  |

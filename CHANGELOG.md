@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be writable by that user.
 - Requests must finish sending within 30 seconds. Idle keep-alive
   connections close after 120 seconds.
+- PostgreSQL connections are limited to 10 per replica and kept open for
+  reuse. Set `DATABASE_MAX_CONNECTIONS` to change the limit, and size it
+  across all replicas within PostgreSQL's `max_connections`.
 - Container builds now use GoReleaser's `dockers_v2` configuration.
 - Webhooks targeting RFC 6598 shared address space are now refused.
 - Webhooks targeting a NAT64 (`64:ff9b::/96`) or 6to4 (`2002::/16`)

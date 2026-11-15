@@ -85,7 +85,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 		panic(err)
 	}
 
-	gormDB, err := database.NewDatabase(common.EnvironmentConfig.Database)
+	gormDB, err := database.NewDatabase(common.EnvironmentConfig.Database, common.EnvironmentConfig.DatabaseMaxConnections)
 	if err != nil {
 		panic(err)
 	}

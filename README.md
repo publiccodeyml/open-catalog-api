@@ -60,6 +60,19 @@ You can configure the API with environment variables:
   fe `postgres://user:password@host:5432/dbname`.
   Supports PostgreSQL and SQLite.
 
+* `DATABASE_MAX_CONNECTIONS` (optional): positive maximum number of
+  PostgreSQL connections per API replica. The pool keeps up to this many
+  idle connections for reuse. Default: `10`. SQLite pooling is unchanged.
+  Size this across all replicas, including HPA scaling, leaving room in
+  PostgreSQL's connection budget for migrations and other clients.
+  Set it in the Helm chart through `extraEnv`, fe:
+
+  ```yaml
+  extraEnv:
+    - name: DATABASE_MAX_CONNECTIONS
+      value: "10"
+  ```
+
 * `PASETO_KEY` (optional): Base64 encoded 32 bytes key used to check the
   [PASETO](https://paseto.io/) authentication tokens. You can generate a key
   and a token with the built-in subcommand:

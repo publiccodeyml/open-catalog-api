@@ -18,7 +18,7 @@ const day = 24 * time.Hour
 func newEventDatabase(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	gormdb, err := NewDatabase("file:" + filepath.Join(t.TempDir(), "events.db") + "?_busy_timeout=5000")
+	gormdb, err := NewDatabase("file:"+filepath.Join(t.TempDir(), "events.db")+"?_busy_timeout=5000", 10)
 	require.NoError(t, err)
 
 	return gormdb
