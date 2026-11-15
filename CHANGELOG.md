@@ -50,6 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Software URLs and aliases are unique within each catalog instead of
   globally, so several catalogs can list the same repository.
   `GET /v1/software?url=` returns every match across catalogs.
+- Prometheus metrics carry `service="open-catalog-api"` instead of the
+  path of the running executable, which changed between builds and
+  restarts. Update queries and alerts that select the old value.
 
 ### Fixed
 
