@@ -419,3 +419,60 @@ func TestBundleDeleteDBChecks(t *testing.T) {
 		assert.Equal(t, 1, dbCount(t, "bundles", "id", schoolsID))
 	})
 }
+
+func TestBundlePatchWithoutSoftware(t *testing.T) {
+	// existingSoftwareID3 is the only software of schoolsID, so deleting
+	// it leaves the bundle with an empty softwareIds list.
+	deleteLastSoftware := func(t *testing.T) {
+		t.Helper()
+
+		loadFixtures(t)
+
+		req, err := newTestRequest(http.MethodDelete, "/v1/software/"+existingSoftwareID3, nil)
+		require.NoError(t, err)
+		req.Header = map[string][]string{"Authorization": {goodToken}}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		require.Equal(t, 204, res.StatusCode)
+	}
+
+	t.Run("merge patch renames the bundle", func(t *testing.T) {
+		deleteLastSoftware(t)
+
+		code, body := patchMerge(t, "/v1/bundles/"+schoolsID, `{"name": "Renamed"}`)
+
+		require.Equal(t, 200, code, "body: %s", body)
+		response := decodeJSON(t, body)
+		assert.Equal(t, "Renamed", response["name"])
+		assert.Equal(t, []any{}, response["softwareIds"])
+		assert.Equal(t, "Renamed", dbValue(t, "bundles", "name", "id", schoolsID))
+	})
+
+	t.Run("JSON Patch disables the bundle", func(t *testing.T) {
+		deleteLastSoftware(t)
+
+		code, body := patchJSON(t, "/v1/bundles/"+schoolsID,
+			`[{"op": "replace", "path": "/active", "value": false}]`)
+
+		require.Equal(t, 200, code, "body: %s", body)
+		assert.Equal(t, false, decodeJSON(t, body)["active"])
+	})
+
+	t.Run("a patch setting an empty list is still rejected", func(t *testing.T) {
+		deleteLastSoftware(t)
+
+		code, body := patchMerge(t, "/v1/bundles/"+schoolsID, `{"softwareIds": []}`)
+
+		assert.Equal(t, 422, code, "body: %s", body)
+	})
+
+	t.Run("JSON Patch removing the last software is rejected", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchJSON(t, "/v1/bundles/"+schoolsID,
+			`[{"op": "remove", "path": "/softwareIds/0"}]`)
+
+		assert.Equal(t, 422, code, "body: %s", body)
+	})
+}

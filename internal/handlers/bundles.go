@@ -92,10 +92,12 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 	}
 
 	updatedBundle, err := applyPatch(ctx, bundle, patchOptions[models.Bundle]{
-		title:    errMsg,
-		request:  new(common.BundlePatch),
-		restore:  restoreBundle,
-		validate: validatePatchedBundle,
+		title:   errMsg,
+		request: new(common.BundlePatch),
+		restore: restoreBundle,
+		validate: func(updated models.Bundle, title string) error {
+			return validatePatchedBundle(updated, *bundle, title)
+		},
 	})
 	if err != nil {
 		return err
