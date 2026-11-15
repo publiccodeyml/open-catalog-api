@@ -2,9 +2,12 @@ package common
 
 import (
 	"math"
+	"os"
 	"testing"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestEnvironmentValidate(t *testing.T) {
@@ -34,6 +37,26 @@ func TestEnvironmentValidate(t *testing.T) {
 			}
 
 			assert.EqualError(t, err, tt.err)
+		})
+	}
+}
+
+func TestDatabasePoolEnvironment(t *testing.T) {
+	for _, test := range []struct {
+		value string
+		want  int
+	}{
+		{"", 10}, {"3", 3},
+	} {
+		t.Run(test.value, func(t *testing.T) {
+			t.Setenv("DATABASE_MAX_CONNECTIONS", test.value)
+			if test.value == "" {
+				require.NoError(t, os.Unsetenv("DATABASE_MAX_CONNECTIONS"))
+			}
+
+			var config Environment
+			require.NoError(t, env.Parse(&config))
+			assert.Equal(t, test.want, config.DatabaseMaxConnections)
 		})
 	}
 }

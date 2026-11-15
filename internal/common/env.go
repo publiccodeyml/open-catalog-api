@@ -21,10 +21,11 @@ var (
 )
 
 type Environment struct {
-	MaxRequests        int        `env:"MAX_REQUESTS" envDefault:"0"`
-	CurrentEnvironment string     `env:"ENVIRONMENT" envDefault:"production"`
-	Database           string     `env:"DATABASE_DSN"`
-	PasetoKey          *Base64Key `env:"PASETO_KEY"`
+	MaxRequests            int        `env:"MAX_REQUESTS" envDefault:"0"`
+	CurrentEnvironment     string     `env:"ENVIRONMENT" envDefault:"production"`
+	DatabaseMaxConnections int        `env:"DATABASE_MAX_CONNECTIONS" envDefault:"10"`
+	Database               string     `env:"DATABASE_DSN"`
+	PasetoKey              *Base64Key `env:"PASETO_KEY"`
 
 	// TrustedProxies is the list of addresses or CIDRs of the reverse
 	// proxies in front of the API. X-Forwarded-For is trusted only on

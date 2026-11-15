@@ -1,6 +1,8 @@
 package database
 
 import (
+	"context"
+	"database/sql"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -74,7 +76,7 @@ func TestDialectFromDSN(t *testing.T) {
 }
 
 func TestNewDatabaseRejectsUnsupportedDSN(t *testing.T) {
-	database, err := NewDatabase("mysql://localhost/catalog")
+	database, err := NewDatabase("mysql://localhost/catalog", 10)
 
 	assert.Nil(t, database)
 	require.ErrorIs(t, err, ErrUnknownDialect)
@@ -139,7 +141,7 @@ func postgresTestConnection(t *testing.T, adminConnection string) string {
 func openDatabase(t *testing.T, connection string) *gorm.DB {
 	t.Helper()
 
-	database, err := NewDatabase(connection)
+	database, err := NewDatabase(connection, 10)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -227,4 +229,51 @@ func TestMigrationCreatesEventCreatedAtIndex(t *testing.T) {
 
 	require.NoError(t, migrated.First(&stored, "id = ?", event.ID).Error)
 	assert.Equal(t, event.Type, stored.Type)
+}
+
+func TestNewDatabaseConnectionPool(t *testing.T) {
+	connection := testConnection(t)
+	dialect, err := DialectFromDSN(connection)
+	require.NoError(t, err)
+
+	const limit = 4
+	database, err := NewDatabase(connection, limit)
+	require.NoError(t, err)
+	pool, err := database.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, pool.Close()) })
+
+	if dialect == SQLite {
+		assert.Zero(t, pool.Stats().MaxOpenConnections, "SQLite pooling stays unchanged")
+		return
+	}
+
+	require.Equal(t, limit, pool.Stats().MaxOpenConnections)
+	connections := make([]*sql.Conn, 0, limit)
+	t.Cleanup(func() {
+		for _, connection := range connections {
+			_ = connection.Close()
+		}
+	})
+	for range limit {
+		connection, err := pool.Conn(context.Background())
+		require.NoError(t, err)
+		connections = append(connections, connection)
+	}
+	assert.Equal(t, limit, pool.Stats().InUse)
+	for _, connection := range connections {
+		require.NoError(t, connection.Close())
+	}
+	stats := pool.Stats()
+	assert.Equal(t, limit, stats.OpenConnections)
+	assert.Equal(t, limit, stats.Idle)
+	assert.Zero(t, stats.MaxIdleClosed)
+}
+
+func TestNewDatabaseRejectsNonPositivePoolSize(t *testing.T) {
+	for _, limit := range []int{0, -1} {
+		database, err := NewDatabase("postgres://localhost/catalog", limit)
+		assert.Nil(t, database)
+		require.EqualError(t, err, "DATABASE_MAX_CONNECTIONS must be positive")
+	}
 }

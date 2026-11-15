@@ -25,7 +25,10 @@ var ErrUnknownDialect = errors.New(
 	`unrecognized database DSN: expected a "file:" SQLite DSN, a "postgres://" URL or a key=value connection string`,
 )
 
-var errUnknownGormDialect = errors.New("unrecognized gorm driver name")
+var (
+	errUnknownGormDialect = errors.New("unrecognized gorm driver name")
+	errInvalidPoolSize    = errors.New("DATABASE_MAX_CONNECTIONS must be positive")
+)
 
 // DialectFromDSN reports which database a DSN points at. Everything that
 // opens a connection goes through here, so the application and the test
@@ -58,31 +61,29 @@ func DialectOf(gormdb *gorm.DB) (Dialect, error) {
 	}
 }
 
-func NewDatabase(connection string) (*gorm.DB, error) {
+func NewDatabase(connection string, maxConnections int) (*gorm.DB, error) {
 	dialect, err := DialectFromDSN(connection)
 	if err != nil {
 		return nil, err
 	}
 
-	var database *gorm.DB
-
-	switch dialect {
-	case SQLite:
-		log.Println("using SQLite database")
-
-		database, err = gorm.Open(sqlite.Open(connection), &gorm.Config{})
-	case Postgres:
-		log.Println("using Postgres database")
-
-		database, err = gorm.Open(postgres.Open(connection), &gorm.Config{
-			PrepareStmt: true,
-			// Disable logging in production
-			Logger: logger.Default.LogMode(logger.Silent),
-		})
+	if maxConnections <= 0 {
+		return nil, errInvalidPoolSize
 	}
 
+	database, err := openDatabaseConnection(connection, dialect)
 	if err != nil {
-		return nil, fmt.Errorf("can't open database: %w", err)
+		return nil, err
+	}
+
+	if dialect == Postgres {
+		pool, err := database.DB()
+		if err != nil {
+			return nil, fmt.Errorf("can't get database pool: %w", err)
+		}
+
+		pool.SetMaxOpenConns(maxConnections)
+		pool.SetMaxIdleConns(maxConnections)
 	}
 
 	if err := migrateModels(database); err != nil {
@@ -101,6 +102,35 @@ func NewDatabase(connection string) (*gorm.DB, error) {
 		if err := database.Exec(sql).Error; err != nil {
 			return nil, fmt.Errorf("can't create catalog analysis GIN index: %w", err)
 		}
+	}
+
+	return database, nil
+}
+
+func openDatabaseConnection(connection string, dialect Dialect) (*gorm.DB, error) {
+	var (
+		database *gorm.DB
+		err      error
+	)
+
+	switch dialect {
+	case SQLite:
+		log.Println("using SQLite database")
+
+		database, err = gorm.Open(sqlite.Open(connection), &gorm.Config{})
+	case Postgres:
+		log.Println("using Postgres database")
+
+		database, err = gorm.Open(postgres.Open(connection), &gorm.Config{
+			PrepareStmt: true,
+			Logger:      logger.Default.LogMode(logger.Silent),
+		})
+	default:
+		return nil, ErrUnknownDialect
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("can't open database: %w", err)
 	}
 
 	return database, nil

@@ -498,7 +498,7 @@ func TestSetupRejectsRetentionOverflowBeforePurging(t *testing.T) {
 	t.Cleanup(func() { common.EnvironmentConfig = savedConfig })
 
 	dsn := "file:" + filepath.Join(t.TempDir(), "retention-test.db")
-	eventDB, err := database.NewDatabase(dsn)
+	eventDB, err := database.NewDatabase(dsn, 10)
 	require.NoError(t, err)
 	sqlDB, err := eventDB.DB()
 	require.NoError(t, err)
@@ -554,6 +554,29 @@ func TestRequiresAuth(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, test.required, requiresAuth(test.method, test.path))
+		})
+	}
+}
+
+func TestSetupRejectsInvalidPoolSize(t *testing.T) {
+	savedConfig := common.EnvironmentConfig
+	t.Cleanup(func() { common.EnvironmentConfig = savedConfig })
+	for _, tt := range []struct {
+		value string
+		panic string
+	}{
+		{"0", "DATABASE_MAX_CONNECTIONS must be positive"},
+		{"-1", "DATABASE_MAX_CONNECTIONS must be positive"},
+		{
+			"not-a-number",
+			`env: parse error on field "DatabaseMaxConnections" of type "int": strconv.ParseInt: parsing "not-a-number": invalid syntax`,
+		},
+	} {
+		t.Run(tt.value, func(t *testing.T) {
+			t.Setenv("DATABASE_MAX_CONNECTIONS", tt.value)
+			t.Setenv("DATABASE_DSN", "postgres://localhost/catalog")
+			common.EnvironmentConfig = common.Environment{}
+			assert.PanicsWithError(t, tt.panic, func() { Setup() })
 		})
 	}
 }
