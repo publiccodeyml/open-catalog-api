@@ -467,6 +467,42 @@ func TestBundlePatchWithoutSoftware(t *testing.T) {
 		assert.Equal(t, 422, code, "body: %s", body)
 	})
 
+	t.Run("merge patch setting the list to null is rejected", func(t *testing.T) {
+		deleteLastSoftware(t)
+
+		code, body := patchMerge(t, "/v1/bundles/"+schoolsID, `{"softwareIds": null}`)
+
+		assert.Equal(t, 422, code, "body: %s", body)
+	})
+
+	t.Run("JSON Patch removing the empty list is rejected", func(t *testing.T) {
+		deleteLastSoftware(t)
+
+		code, body := patchJSON(t, "/v1/bundles/"+schoolsID,
+			`[{"op": "remove", "path": "/softwareIds"}]`)
+
+		assert.Equal(t, 422, code, "body: %s", body)
+	})
+
+	t.Run("merge patch setting a non empty list to null is rejected", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchMerge(t, "/v1/bundles/"+schoolsID, `{"softwareIds": null}`)
+
+		assert.Equal(t, 422, code, "body: %s", body)
+		assert.Equal(t, 1, dbCount(t, "bundles_software", "bundle_id", schoolsID))
+	})
+
+	t.Run("JSON Patch removing a non empty list is rejected", func(t *testing.T) {
+		loadFixtures(t)
+
+		code, body := patchJSON(t, "/v1/bundles/"+schoolsID,
+			`[{"op": "remove", "path": "/softwareIds"}]`)
+
+		assert.Equal(t, 422, code, "body: %s", body)
+		assert.Equal(t, 1, dbCount(t, "bundles_software", "bundle_id", schoolsID))
+	})
+
 	t.Run("JSON Patch removing the last software is rejected", func(t *testing.T) {
 		loadFixtures(t)
 

@@ -95,6 +95,13 @@ func validatePatchedBundle(bundle, current models.Bundle, title string) error {
 		return err
 	}
 
+	// A null or removed list reaches here as a nil slice, which the
+	// omitempty rule skips. The bundle would then lose all its software
+	// and answer null where the schema requires an array.
+	if bundle.SoftwareIDs == nil {
+		return common.Error(fiber.StatusUnprocessableEntity, title, "softwareIds cannot be null")
+	}
+
 	request := common.BundlePatch{
 		Name:        &bundle.Name,
 		Description: bundle.Description,
