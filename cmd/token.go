@@ -38,7 +38,7 @@ func newTokenCreateCmd() *cobra.Command {
 		RunE:         runTokenCreate,
 	}
 
-	cmd.Flags().String("key", "", "base64-encoded 32-byte symmetric key (generates one if empty)")
+	cmd.Flags().String("key", "", "base64-encoded 32-byte symmetric key (defaults to PASETO_KEY, then a random key)")
 	cmd.Flags().Duration("expiry", 365*24*time.Hour, "token expiry duration (0 = never expires)")
 
 	cmd.Flags().Lookup("expiry").DefValue = "1 year"
@@ -57,6 +57,10 @@ func runTokenCreate(cmd *cobra.Command, _ []string) error {
 		return errNegativeExpiry
 	}
 
+	if keyStr == "" {
+		keyStr = os.Getenv("PASETO_KEY")
+	}
+
 	var key []byte
 
 	if keyStr == "" {
@@ -68,7 +72,7 @@ func runTokenCreate(cmd *cobra.Command, _ []string) error {
 
 		encoded := base64.StdEncoding.EncodeToString(key)
 
-		fmt.Fprintf(os.Stderr, "No --key passed, generating random PASETO secret key: %s\n\n", encoded)
+		fmt.Fprintf(os.Stderr, "No --key or PASETO_KEY set, generating random PASETO secret key: %s\n\n", encoded)
 	} else {
 		var err error
 

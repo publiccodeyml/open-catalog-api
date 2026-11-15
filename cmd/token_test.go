@@ -21,12 +21,14 @@ func TestTokenCreateCreatesDecryptableTokens(t *testing.T) {
 	tests := []struct {
 		name           string
 		args           []string
+		envKey         string
 		key            []byte
 		expectedSub    string
 		expectedExpiry time.Duration
 	}{
 		{
-			name: "provided key with claims",
+			name:   "provided key overrides environment with claims",
+			envKey: base64.StdEncoding.EncodeToString(make([]byte, common.SymmetricKeyLen)),
 			args: []string{
 				"--key", base64.StdEncoding.EncodeToString(key[:]),
 				"--sub", "catalog-writer",
@@ -35,6 +37,12 @@ func TestTokenCreateCreatesDecryptableTokens(t *testing.T) {
 			key:            key[:],
 			expectedSub:    "catalog-writer",
 			expectedExpiry: 2 * time.Hour,
+		},
+		{
+			name:           "environment key",
+			envKey:         base64.StdEncoding.EncodeToString(key[:]),
+			key:            key[:],
+			expectedExpiry: 365 * 24 * time.Hour,
 		},
 		{
 			name: "generated key without optional claims",
@@ -46,6 +54,8 @@ func TestTokenCreateCreatesDecryptableTokens(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("PASETO_KEY", test.envKey)
+
 			stdout, stderr, err := runTokenCreateForTest(t, test.args...)
 			require.NoError(t, err)
 			assert.True(t, strings.HasSuffix(stderr, "\npermissions:\n"+
@@ -59,6 +69,11 @@ func TestTokenCreateCreatesDecryptableTokens(t *testing.T) {
 				key, err = base64.StdEncoding.DecodeString(matches[1])
 				require.NoError(t, err)
 				assert.Len(t, key, common.SymmetricKeyLen)
+			}
+
+			if test.key != nil {
+				assert.NotContains(t, stderr, "generating random")
+				assert.NotContains(t, stderr, base64.StdEncoding.EncodeToString(test.key))
 			}
 
 			var payload paseto.JSONToken
@@ -126,9 +141,21 @@ func TestTokenCreateRejectsInvalidKeys(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, _, err := runTokenCreateForTest(t, "--key", test.key)
+			for _, source := range []string{"flag", "environment"} {
+				t.Run(source, func(t *testing.T) {
+					t.Setenv("PASETO_KEY", "")
+					args := []string{"--key", test.key}
+					if source == "environment" {
+						t.Setenv("PASETO_KEY", test.key)
+						args = nil
+					}
 
-			require.ErrorContains(t, err, test.expectedErr)
+					stdout, stderr, err := runTokenCreateForTest(t, args...)
+					require.ErrorContains(t, err, test.expectedErr)
+					assert.Empty(t, stdout)
+					assert.NotContains(t, stderr, "generating random")
+				})
+			}
 		})
 	}
 }

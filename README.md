@@ -72,9 +72,10 @@ You can configure the API with environment variables:
   open-catalog-api token create
   ```
 
-  Pass `--key` to use an existing key, `--sub` to identify the caller,
-  and `--expiry` to set a custom duration (default: 1 year, `0` = never
-  expires).
+  The command uses `PASETO_KEY` when set. Pass `--key` to override it.
+  If both are empty, it generates a random key and prints it to stderr.
+  Use `--sub` to identify the caller and `--expiry` to set a custom
+  duration (default: 1 year, `0` = never expires).
 
   If not set, the API will run in read only mode.
 
