@@ -508,9 +508,51 @@ func TestLogsEndpoints(t *testing.T) {
 			expectedContentType: "application/problem+json",
 			expectedBody:        `{"title":"can't create Log","detail":"Catalog was not found","status":404}`,
 		},
+		// DELETE /logs/:id
+		{
+			description: "DELETE non-existent log",
+			query:       "DELETE /v1/logs/eea19c82-0449-11ed-bd84-d8bbc146d165",
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+			},
+			expectedCode:        404,
+			expectedBody:        `{"title":"can't delete Log","detail":"Log was not found","status":404}`,
+			expectedContentType: "application/problem+json",
+		},
+		{
+			description:         "DELETE log without a token",
+			query:               "DELETE /v1/logs/4f95b0d0-042e-11ed-8253-d8bbc146d165",
+			expectedCode:        401,
+			expectedBody:        `{"title":"token authentication failed","detail":"a valid PASETO token is required in the Authorization header","status":401}`,
+			expectedContentType: "application/problem+json",
+		},
 	}
 
 	runTestCases(t, tests)
+
+	t.Run("DELETE log removes it", func(t *testing.T) {
+		loadFixtures(t)
+
+		const logID = "4f95b0d0-042e-11ed-8253-d8bbc146d165"
+
+		req, err := newTestRequest("DELETE", "/v1/logs/"+logID, nil)
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 204, res.StatusCode)
+
+		// The query string keeps the read out of the shared response cache.
+		req, err = newTestRequest("GET", "/v1/logs/"+logID+"?deleteLogRead=1", nil)
+		require.NoError(t, err)
+
+		res, err = app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 404, res.StatusCode)
+	})
 }
 
 func addLogsForPaginationCapTest(t *testing.T) {
