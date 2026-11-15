@@ -90,7 +90,7 @@ func validatePatchedLog(log models.Log, title string) error {
 	return validatePatchedEntity(common.Log{Message: log.Message}, title)
 }
 
-func validatePatchedBundle(bundle models.Bundle, title string) error {
+func validatePatchedBundle(bundle, current models.Bundle, title string) error {
 	if err := refuseNullActive(bundle.Active, title); err != nil {
 		return err
 	}
@@ -100,6 +100,13 @@ func validatePatchedBundle(bundle models.Bundle, title string) error {
 		Description: bundle.Description,
 		Active:      bundle.Active,
 		SoftwareIDs: &bundle.SoftwareIDs,
+	}
+
+	// Deleting a software removes it from its bundles, so a bundle can
+	// be stored with no software at all. A patch that leaves the empty
+	// list alone must still be able to rename or disable the bundle.
+	if len(bundle.SoftwareIDs) == 0 && len(current.SoftwareIDs) == 0 {
+		request.SoftwareIDs = nil
 	}
 
 	return validatePatchedEntity(request, title)
