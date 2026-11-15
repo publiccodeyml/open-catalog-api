@@ -11,6 +11,11 @@ on:
       - 'Dockerfile*'
       - '.goreleaser*.yaml'
 
+# Serialize writes to the moving :main tag without interrupting a publish.
+concurrency:
+  group: publish-staging-docker-image
+  cancel-in-progress: false
+
 permissions: {}
 
 jobs:
