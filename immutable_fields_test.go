@@ -59,10 +59,6 @@ func patch(t *testing.T, path, contentType, body string) (int, []byte) {
 	return res.StatusCode, out
 }
 
-func problem(title, detail string) string {
-	return `{"title":"` + title + `","detail":"` + detail + `","status":422}`
-}
-
 // TestPatchRejectsProtectedPaths covers every endpoint that runs an incoming
 // patch over the whole entity. An operation on a field the API never lets a
 // client choose is refused as a whole: the second, harmless operation in each
