@@ -6,6 +6,7 @@ import (
 
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestApplyPatchJSONPatchValidation(t *testing.T) {
@@ -71,4 +72,29 @@ func TestApplyPatchMediaType(t *testing.T) {
 			assert.Equal(t, "changed", updated.Name)
 		})
 	}
+}
+
+func TestApplyPatchRejectsWrongValueTypes(t *testing.T) {
+	for _, body := range []string{
+		`[{"op":"replace","path":"/name","value":42}]`,
+		`[{"op":"replace","path":"/active","value":"true"}]`,
+		`[{"op":"replace","path":"/aliases/0","value":false}]`,
+		`[{"op":"add","path":"/aliases/-","value":{}}]`,
+	} {
+		t.Run(body, func(t *testing.T) {
+			entity := sampleEntity()
+			_, err := common.ApplyPatch(&entity, common.ContentTypeJSONPatch, []byte(body))
+			require.NotNil(t, err)
+			assert.Equal(t, 422, err.Code)
+			assert.Equal(t, sampleEntity(), entity)
+		})
+	}
+}
+
+func TestApplyPatchEncodingFailure(t *testing.T) {
+	entity := make(chan int)
+	_, err := common.ApplyPatch(&entity, common.ContentTypeJSONPatch,
+		[]byte(`[{"op":"add","path":"/name","value":"bar"}]`))
+	require.NotNil(t, err)
+	assert.Equal(t, 500, err.Code)
 }
