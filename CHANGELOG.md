@@ -87,6 +87,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   normalization with `422`, preventing sources that cannot be fully removed
   by a later patch.
 - Deleting a catalog did not delete its logs.
+- Requests whose path and query joined to the same text, like
+  `/v1/publishers/a?b` and `/v1/publishers/ab`, could get each other's
+  cached response.
 - `PATCH /v1/publishers/{publisherId}` ignored the `group` flag of
   `codeHosting` entries, and new entries always became groups.
 - Token creation output now states that a token authorizes every authenticated

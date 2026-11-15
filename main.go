@@ -233,7 +233,7 @@ func newResponseCache() fiber.Handler {
 		CacheControl: true,
 		Expiration:   10 * time.Second,
 		KeyGenerator: func(ctx *fiber.Ctx) string {
-			return ctx.Path() + string(ctx.Context().QueryArgs().QueryString())
+			return ctx.Path() + "?" + string(ctx.Context().QueryArgs().QueryString())
 		},
 	})
 }
