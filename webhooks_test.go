@@ -258,6 +258,56 @@ func TestWebhookReadsRequireAuthenticationAndBypassCache(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode)
 }
 
+func TestResourceWebhookListsReturnOnlyTheirType(t *testing.T) {
+	loadFixtures(t)
+
+	lists := map[string][]string{
+		"/v1/software/webhooks": {
+			"007bc84a-7e2d-43a0-b7e1-a256d4114aa7",
+			"e7f6dbda-c3f5-4b2f-b3d8-39a34026e60a",
+			"d6334000-69a8-43a1-ab43-50bb04e14eed",
+			"527383e7-87a0-4bb2-a9bb-e4ed6bfe22c3",
+		},
+		"/v1/software/9f135268-a37e-4ead-96ec-e4a24bb9344a/webhooks": {
+			"e7f6dbda-c3f5-4b2f-b3d8-39a34026e60a",
+			"d6334000-69a8-43a1-ab43-50bb04e14eed",
+		},
+		"/v1/publishers/webhooks": {
+			"1702cd06-fffb-4d20-8f55-73e2a00ee052",
+			"8f373a8c-1f55-45e4-8549-05cd632a2add",
+			"6ee145e3-f517-476e-81ed-4a2e468ae665",
+			"24bc1b5d-fe81-47be-9d55-910f820bdd04",
+		},
+		"/v1/publishers/d6ddc11a-ff85-4f0f-bb87-df38b2a9b394/webhooks": {
+			"8f373a8c-1f55-45e4-8549-05cd632a2add",
+			"6ee145e3-f517-476e-81ed-4a2e468ae665",
+		},
+	}
+
+	for path, want := range lists {
+		t.Run(path, func(t *testing.T) {
+			request, err := newTestRequest(http.MethodGet, path, nil)
+			require.NoError(t, err)
+			request.Header.Set("Authorization", goodToken)
+
+			response, err := app.Test(request, fiber.TestConfig{Timeout: 0})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, response.Body.Close()) })
+			require.Equal(t, http.StatusOK, response.StatusCode)
+
+			var body map[string]any
+			require.NoError(t, json.NewDecoder(response.Body).Decode(&body))
+
+			got := []string{}
+			for _, webhook := range assertListResponse(t, body) {
+				got = append(got, webhook["id"].(string))
+			}
+
+			assert.ElementsMatch(t, want, got)
+		})
+	}
+}
+
 func TestWebhooksPostDBChecks(t *testing.T) {
 	t.Run("POST webhook persists URL and entity fields to DB", func(t *testing.T) {
 		loadFixtures(t)
