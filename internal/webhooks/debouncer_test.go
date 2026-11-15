@@ -13,12 +13,16 @@ type fakeTimer struct {
 	fire    func()
 	wait    time.Duration
 	stopped bool
+	fired   bool
 }
 
+// Stop reports false once the timer has fired, like time.Timer, even
+// when its callback has not run yet.
 func (f *fakeTimer) Stop() bool {
+	active := !f.stopped && !f.fired
 	f.stopped = true
 
-	return true
+	return active
 }
 
 type fakeClock struct {
@@ -125,6 +129,59 @@ func TestDebouncerCoalescesBurstByKey(t *testing.T) {
 
 	assert.Len(t, received, 1, "burst on same key collapses to one dispatch")
 	assert.Equal(t, "e", received[0].ID, "the latest event in the burst is the one dispatched")
+}
+
+func TestDebouncerIgnoresTimerThatFiredBeforeResubmit(t *testing.T) {
+	var (
+		mu       sync.Mutex
+		received []models.Event
+	)
+
+	dispatch := func(e models.Event) {
+		mu.Lock()
+		received = append(received, e)
+		mu.Unlock()
+	}
+
+	d, clock := newDebouncerWithClock(time.Second, 10*time.Second, dispatch)
+
+	submit := func(id string) *fakeTimer {
+		d.Submit(models.Event{EntityType: "Software", EntityID: "abc", Type: "Updated", ID: id})
+
+		clock.mu.Lock()
+		defer clock.mu.Unlock()
+
+		return clock.timers[len(clock.timers)-1]
+	}
+
+	timerA := submit("a")
+	timerA.fired = true
+	timerB := submit("b")
+
+	timerA.fire()
+
+	mu.Lock()
+	assert.Empty(t, received, "a timer that fired before the resubmit must not flush the new event")
+	mu.Unlock()
+
+	clock.Advance(100 * time.Millisecond)
+	timerB.fired = true
+	timerC := submit("c")
+
+	timerB.fire()
+
+	mu.Lock()
+	assert.Empty(t, received, "an older timer must not flush a later event early")
+	mu.Unlock()
+
+	timerC.fired = true
+	timerC.fire()
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	assert.Len(t, received, 1)
+	assert.Equal(t, "c", received[0].ID)
 }
 
 func TestDebouncerCapCeilingFiresBeforeIndefiniteDefer(t *testing.T) {
