@@ -1405,6 +1405,9 @@ paths:
           application/merge-patch+json:
             schema:
               $ref: '#/components/schemas/Catalog'
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/JsonPatchRequest'
       responses:
         '200':
           description: OK
@@ -2064,6 +2067,9 @@ paths:
           application/merge-patch+json:
             schema:
               $ref: '#/components/schemas/Publisher'
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/JsonPatchRequest'
     delete:
       summary: Delete a Publisher
       description: Delete a Publisher by its id or alternativeId

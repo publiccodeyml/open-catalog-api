@@ -293,6 +293,21 @@ func TestCatalogEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "PATCH catalog with JSON Patch",
+			query:       "PATCH /v1/catalogs/" + italiaID,
+			body:        `[{"op": "replace", "path": "/name", "value": "Catalog renamed via JSON Patch"}]`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json-patch+json"},
+			},
+			expectedCode:        200,
+			expectedContentType: "application/json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, italiaID, response["id"])
+				assert.Equal(t, "Catalog renamed via JSON Patch", response["name"])
+			},
+		},
+		{
 			description: "PATCH catalog - root returns 404",
 			query:       "PATCH /v1/catalogs/%E2%88%85",
 			body:        `{"name": "x"}`,
