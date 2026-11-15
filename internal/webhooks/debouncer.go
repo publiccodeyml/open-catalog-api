@@ -32,6 +32,10 @@ type pendingEvent struct {
 	timer    Timer
 	deadline time.Time
 	event    models.Event
+	// generation identifies the timer armed last. Stop cannot cancel a
+	// timer whose callback already started and waits on the mutex, so
+	// flush ignores a callback armed for an earlier generation.
+	generation uint64
 }
 
 type Timer interface {
@@ -98,7 +102,9 @@ func (d *Debouncer) Submit(event models.Event) {
 		}
 	}
 
-	prev.timer = d.newTimer(wait, func() { d.flush(key) })
+	prev.generation++
+	entry, generation := prev, prev.generation
+	prev.timer = d.newTimer(wait, func() { d.flush(key, entry, generation) })
 
 	d.mu.Unlock()
 }
@@ -131,11 +137,11 @@ func (d *Debouncer) Drain() {
 	deliveries.Wait()
 }
 
-func (d *Debouncer) flush(key string) {
+func (d *Debouncer) flush(key string, entry *pendingEvent, generation uint64) {
 	d.mu.Lock()
 
 	pending, ok := d.pending[key]
-	if !ok {
+	if !ok || pending != entry || pending.generation != generation {
 		d.mu.Unlock()
 
 		return
