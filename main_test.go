@@ -553,7 +553,9 @@ func TestRequiresAuth(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, test.required, requiresAuth(test.method, test.path))
+			for _, path := range []string{test.path, strings.ToUpper(test.path), strings.ReplaceAll(strings.ReplaceAll(test.path, "events", "Events"), "webhooks", "Webhooks")} {
+				assert.Equal(t, test.required, requiresAuth(test.method, path), path)
+			}
 		})
 	}
 }

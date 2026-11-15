@@ -56,6 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Event and webhook reads require a token with any path casing.
+
 - `token create` uses `PASETO_KEY` when `--key` is empty instead of
   generating a random key that the running API cannot use. Invalid
   environment keys are rejected with an error naming `PASETO_KEY`.
