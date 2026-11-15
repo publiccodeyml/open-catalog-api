@@ -209,7 +209,8 @@ func requiresAuth(method, requestPath string) bool {
 		return true
 	}
 
-	normalizedPath := "/" + strings.Trim(requestPath, "/")
+	// Match Fiber's default case insensitive routing.
+	normalizedPath := "/" + strings.ToLower(strings.Trim(requestPath, "/"))
 	for _, pattern := range [...]string{
 		"/v1/events",
 		"/v1/events/*",

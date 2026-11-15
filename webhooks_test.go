@@ -218,15 +218,28 @@ func TestWebhooksEndpoints(t *testing.T) {
 	runTestCases(t, tests)
 }
 
-func TestWebhookReadsRequireAuthenticationAndBypassCache(t *testing.T) {
+func TestSensitiveReadsRequireAuthenticationAndBypassCache(t *testing.T) {
 	loadFixtures(t)
 
 	paths := []string{
+		"/v1/events",
+		"/v1/events/0ab7b216-d819-4a2a-8258-65c7dbe3af4d",
 		"/v1/software/webhooks",
 		"/v1/software/c5dec6fa-8a01-4881-9e7d-132770d4214d/webhooks",
 		"/v1/publishers/webhooks",
 		"/v1/publishers/47807e0c-0613-4aea-9917-5455cc6eddad/webhooks",
 		"/v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",
+	}
+
+	for _, path := range append([]string(nil), paths...) {
+		upperPath := strings.NewReplacer(
+			"/v1/", "/V1/",
+			"events", "EVENTS",
+			"software", "SOFTWARE",
+			"publishers", "PUBLISHERS",
+			"webhooks", "WEBHOOKS",
+		).Replace(path)
+		paths = append(paths, upperPath, strings.ReplaceAll(strings.ReplaceAll(path, "events", "Events"), "webhooks", "Webhooks"))
 	}
 
 	for _, path := range paths {
