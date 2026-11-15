@@ -35,7 +35,13 @@ const eventPurgeInterval = 24 * time.Hour
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:          "open-catalog-api",
+		Use:   "open-catalog-api",
+		Short: "Serve the Open Catalog API",
+		Long: `Serve the Open Catalog API on port 3000.
+
+Configure it with environment variables such as DATABASE_DSN and
+PASETO_KEY. See the Configuration section of the README for the full list:
+https://github.com/publiccodeyml/open-catalog-api#configuration`,
 		SilenceUsage: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			app, debouncer, stopEventPurge, _ := Setup()
