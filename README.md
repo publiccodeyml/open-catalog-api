@@ -79,8 +79,8 @@ You can configure the API with environment variables:
   Default `production`.
 
 * `MAX_REQUESTS` (optional): number of requests per minute after which
-  responses will be ratelimited.
-  Default: no limit.
+  responses will be ratelimited. Set to 0 to disable rate limiting.
+  Default: `0`.
 
 * `TRUSTED_PROXIES` (optional): comma separated list of addresses or
   CIDRs of the reverse proxies in front of the API,

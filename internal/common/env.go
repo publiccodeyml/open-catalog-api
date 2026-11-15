@@ -11,6 +11,7 @@ type Base64Key [SymmetricKeyLen]byte
 var EnvironmentConfig Environment //nolint:gochecknoglobals
 
 var (
+	errMaxRequestsNegative        = errors.New("MAX_REQUESTS must not be negative")
 	errWebhookDebounceNegative    = errors.New("WEBHOOK_DEBOUNCE_MS must not be negative")
 	errWebhookDebounceMaxNegative = errors.New("WEBHOOK_DEBOUNCE_MAX_MS must not be negative")
 	errEventRetentionNegative     = errors.New("EVENT_RETENTION_DAYS must not be negative")
@@ -66,6 +67,12 @@ func (k *Base64Key) UnmarshalText(text []byte) error {
 // Validate rejects configuration values that reserve zero as the disabled
 // state.
 func (e *Environment) Validate() error {
+	// The rate limiter replaces a non positive limit with its own default
+	// of 5 requests, so a negative value would not disable it.
+	if e.MaxRequests < 0 {
+		return errMaxRequestsNegative
+	}
+
 	if e.WebhookDebounceMS < 0 {
 		return errWebhookDebounceNegative
 	}
