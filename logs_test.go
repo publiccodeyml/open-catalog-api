@@ -237,6 +237,54 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: `GET with "from" just before a log, in UTC`,
+			query:       "GET /v1/logs?from=2010-03-01T23:00:00Z",
+
+			expectedCode:        200,
+			expectedContentType: "application/json; charset=utf-8",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+
+				assert.Equal(t, 20, len(data))
+			},
+		},
+		{
+			description: `GET with "from" just before a log, as the same instant with an offset`,
+			query:       "GET /v1/logs?from=2010-03-02T01:00:00%2B02:00",
+
+			expectedCode:        200,
+			expectedContentType: "application/json; charset=utf-8",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := assertListResponse(t, response)
+
+				assert.Equal(t, 20, len(data))
+			},
+		},
+		{
+			description: `GET with "to" just after a log, in UTC`,
+			query:       "GET /v1/logs?to=2010-03-02T00:30:00Z",
+
+			expectedCode:        200,
+			expectedContentType: "application/json; charset=utf-8",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := response["data"].([]any)
+
+				assert.Equal(t, 7, len(data))
+			},
+		},
+		{
+			description: `GET with "to" just after a log, as the same instant with an offset`,
+			query:       "GET /v1/logs?to=2010-03-01T22:30:00-02:00",
+
+			expectedCode:        200,
+			expectedContentType: "application/json; charset=utf-8",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				data := response["data"].([]any)
+
+				assert.Equal(t, 7, len(data))
+			},
+		},
+		{
 			description: `GET with invalid "to" query param`,
 			query:       "GET /v1/logs?to=3",
 
