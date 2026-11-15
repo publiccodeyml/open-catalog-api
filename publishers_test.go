@@ -510,6 +510,18 @@ func TestPublishersEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "POST publishers with a wrong field type",
+			query:       "POST /v1/publishers",
+			body:        `{"description": "new description", "codeHosting": [{"url": 5}]}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Publisher","detail":"wrong type for /codeHosting/0/url","status":400}`,
+		},
+		{
 			description: "POST publishers with optional boolean field set to false",
 			query:       "POST /v1/publishers",
 			body:        `{"active": false, "description": "new description", "codeHosting": [{"url" : "https://www.example.com"}]}`,
@@ -751,6 +763,18 @@ func TestPublishersEndpoints(t *testing.T) {
 				assert.Equal(t, `can't update Publisher`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
+		},
+		{
+			description: "PATCH publishers with a wrong field type",
+			query:       "PATCH /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde",
+			body:        `{"active": "true"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't update Publisher","detail":"wrong type for /active","status":400}`,
 		},
 		{
 			description: "PATCH publishers with JSON with extra fields",
@@ -1052,6 +1076,18 @@ func TestPublishersEndpoints(t *testing.T) {
 				assert.Equal(t, `can't create Webhook`, response["title"])
 				assert.Equal(t, "invalid or malformed JSON", response["detail"])
 			},
+		},
+		{
+			description: "POST webhook with a wrong field type",
+			query:       "POST /v1/publishers/98a069f7-57b0-464d-b300-4b4b336297a0/webhooks",
+			body:        `{"url": 5}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Webhook","detail":"wrong type for /url","status":400}`,
 		},
 		{
 			description: "POST /v1/publishers/98a069f7-57b0-464d-b300-4b4b336297a0/webhooks with JSON with extra fields",

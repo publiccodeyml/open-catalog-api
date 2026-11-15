@@ -106,6 +106,18 @@ func TestBundleEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "POST bundle with a wrong field type",
+			query:       "POST /v1/bundles",
+			body:        `{"name": "Test", "softwareIds": "x"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Bundle","detail":"wrong type for /softwareIds","status":400}`,
+		},
+		{
 			description: "POST bundle missing name",
 			query:       "POST /v1/bundles",
 			body:        `{"softwareIds": ["` + existingSoftwareID + `"]}`,

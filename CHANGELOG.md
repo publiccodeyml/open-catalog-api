@@ -56,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   error saying the list contains duplicates.
 - Rejected webhook URLs now explain that HTTPS, a public address and no
   credentials are required. The OpenAPI spec documents these restrictions.
+- A request body with a field of the wrong type now gets a `400` that
+  names the field, like `wrong type for /active`, instead of `invalid or
+  malformed JSON`.
 - Request validation now follows the OpenAPI length and list size limits.
   Log messages can be a single character.
 - The OpenAPI `Software` schema now allows a null `vitality` and an empty

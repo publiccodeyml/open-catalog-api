@@ -189,6 +189,18 @@ func TestCatalogEndpoints(t *testing.T) {
 			expectedBody:        `{"title":"can't create Catalog","detail":"alternativeId already exists","status":409}`,
 		},
 		{
+			description: "POST catalog with a wrong field type",
+			query:       "POST /v1/catalogs",
+			body:        `{"name": "Typed", "sources": [{"url": "https://github.com/example/typed"}], "scopes": "x"}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        400,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Catalog","detail":"wrong type for /scopes","status":400}`,
+		},
+		{
 			description: "POST catalog missing name",
 			query:       "POST /v1/catalogs",
 			body:        `{}`,
