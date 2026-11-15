@@ -151,7 +151,17 @@ func TestTokenCreateRejectsInvalidKeys(t *testing.T) {
 					}
 
 					stdout, stderr, err := runTokenCreateForTest(t, args...)
-					require.ErrorContains(t, err, test.expectedErr)
+					expectedErr := test.expectedErr
+					if source == "environment" {
+						expectedErr = strings.ReplaceAll(expectedErr, "can't decode key", "can't decode PASETO_KEY")
+					}
+					require.ErrorContains(t, err, expectedErr)
+					if source == "environment" {
+						assert.ErrorContains(t, err, "PASETO_KEY")
+					} else {
+						assert.NotContains(t, err.Error(), "PASETO_KEY")
+					}
+					assert.NotContains(t, err.Error(), test.key)
 					assert.Empty(t, stdout)
 					assert.NotContains(t, stderr, "generating random")
 				})

@@ -57,8 +57,11 @@ func runTokenCreate(cmd *cobra.Command, _ []string) error {
 		return errNegativeExpiry
 	}
 
+	keySource := "key"
+
 	if keyStr == "" {
 		keyStr = os.Getenv("PASETO_KEY")
+		keySource = "PASETO_KEY"
 	}
 
 	var key []byte
@@ -78,11 +81,12 @@ func runTokenCreate(cmd *cobra.Command, _ []string) error {
 
 		key, err = base64.StdEncoding.DecodeString(keyStr)
 		if err != nil {
-			return fmt.Errorf("can't decode key: %w", err)
+			return fmt.Errorf("can't decode %s: %w", keySource, err)
 		}
 
 		if len(key) != common.SymmetricKeyLen {
-			return fmt.Errorf("%w: must be %d bytes, got %d", errInvalidKeyLength, common.SymmetricKeyLen, len(key))
+			return fmt.Errorf("%w: must be %d bytes, got %d (%s)",
+				errInvalidKeyLength, common.SymmetricKeyLen, len(key), keySource)
 		}
 	}
 

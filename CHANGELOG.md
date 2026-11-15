@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `token create` uses `PASETO_KEY` when `--key` is empty instead of
+  generating a random key that the running API cannot use. Invalid
+  environment keys are rejected with an error naming `PASETO_KEY`.
+
 - Pagination links preserve encoded query names instead of turning them
   into extra filters.
 
