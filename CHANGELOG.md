@@ -77,6 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Webhook events from requests still running during shutdown are drained before exit.
+
 - Publisher PATCH responses include stored timestamps and the default group flag
   for newly added code hosting entries.
 
