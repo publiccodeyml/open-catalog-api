@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/publiccodeyml/open-catalog-api/internal/jsondecoder"
 )
 
 const (
@@ -77,7 +78,7 @@ func ApplyPatch[T any](entity *T, contentType string, body []byte) (T, *PatchErr
 	}
 
 	var updated T
-	if err := json.Unmarshal(updatedJSON, &updated); err != nil {
+	if err := jsondecoder.UnmarshalDisallowUnknownFields(updatedJSON, &updated); err != nil {
 		code := http.StatusInternalServerError
 		if IsJSONPatch(contentType) {
 			code = http.StatusUnprocessableEntity
