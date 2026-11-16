@@ -117,11 +117,20 @@ func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 		AlternativeID: request.AlternativeID,
 	}
 
+	seenURLs := make(map[string]struct{}, len(request.CodeHosting))
 	for _, codeHost := range request.CodeHosting {
+		url := common.NormalizeURL(codeHost.URL)
+		if _, exists := seenURLs[url]; exists {
+			return common.Error(fiber.StatusUnprocessableEntity, errMsg,
+				fmt.Sprintf("codeHosting url %s repeats another entry", codeHost.URL))
+		}
+
+		seenURLs[url] = struct{}{}
+
 		publisher.CodeHosting = append(publisher.CodeHosting,
 			models.CodeHosting{
 				ID:    utils.UUIDv4(),
-				URL:   common.NormalizeURL(codeHost.URL),
+				URL:   url,
 				Group: codeHost.Group,
 			})
 	}

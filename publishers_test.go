@@ -1172,6 +1172,35 @@ func TestPublishersPostDBChecks(t *testing.T) {
 	})
 }
 
+func TestPublishersPostDuplicateCodeHosting(t *testing.T) {
+	loadFixtures(t)
+
+	body := `{"description":"publisher with repeated URLs","codeHosting":[
+		{"url":"https://publisher-repeat.example.org/repo","group":false},
+		{"url":"https://publisher-repeat.example.org/other"},
+		{"url":"https://www.PUBLISHER-REPEAT.example.org/repo/","group":true}
+	]}`
+	req, err := newTestRequest(http.MethodPost, publisherPath, strings.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Authorization", goodToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	out, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, 422, res.StatusCode, "body: %s", out)
+
+	response := decodeJSON(t, out)
+	assert.Equal(t, "can't create Publisher", response["title"])
+	assert.Equal(t, "codeHosting url https://www.PUBLISHER-REPEAT.example.org/repo/ repeats another entry",
+		response["detail"])
+	assert.Equal(t, 0, dbCount(t, "publishers_code_hosting", "url", "https://publisher-repeat.example.org/repo"))
+	assert.Equal(t, 0, dbCount(t, "publishers", "description", "publisher with repeated URLs"))
+}
+
 func TestPublishersPatchDBChecks(t *testing.T) {
 	t.Run("PATCH publisher persists changes to DB", func(t *testing.T) {
 		loadFixtures(t)
