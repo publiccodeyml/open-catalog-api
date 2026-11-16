@@ -2784,10 +2784,12 @@ components:
         createdAt:
           type: string
           format: date-time
+          description: The time the bundle was created (RFC 3339 datetime)
           readOnly: true
         updatedAt:
           type: string
           format: date-time
+          description: The time the bundle was updated (RFC 3339 datetime)
           readOnly: true
       required:
         - id
@@ -2926,13 +2928,13 @@ components:
           type: string
           format: date-time
           example: '2022-06-07T14:56:23Z'
-          description: The time the log was created (RFC 3339 datetime)
+          description: The time the software was created (RFC 3339 datetime)
           readOnly: true
         updatedAt:
           type: string
           format: date-time
           example: '2022-06-07T14:56:23Z'
-          description: The time the log was updated (RFC 3339 datetime)
+          description: The time the software was updated (RFC 3339 datetime)
           readOnly: true
       required:
         - id
@@ -3109,13 +3111,13 @@ components:
                 type: string
                 format: date-time
                 example: '2022-06-07T14:56:23Z'
-                description: The time the log was created (RFC 3339 datetime)
+                description: The time the code hosting entry was created (RFC 3339 datetime)
                 readOnly: true
               updatedAt:
                 type: string
                 format: date-time
                 example: '2022-06-07T14:56:23Z'
-                description: The time the log was updated (RFC 3339 datetime)
+                description: The time the code hosting entry was updated (RFC 3339 datetime)
                 readOnly: true
             required:
               - url
