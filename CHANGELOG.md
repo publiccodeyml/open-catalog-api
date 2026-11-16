@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Bundle endpoints at `/v1/bundles` to create, list, read, update and
+  delete bundles.
+- An audit stream recording the entity, change, actor and timestamp,
+  readable at `GET /v1/events` and `GET /v1/events/:id`.
+- `EVENT_RETENTION_DAYS` to purge older audit events at startup and
+  daily. It defaults to `365`. Set it to `0` to keep events forever.
+- A webhook `format` field accepting `default`, `standard-webhooks`
+  and `github`, for the existing payload, Standard Webhooks deliveries
+  and GitHub repository dispatches. Existing webhooks keep `default`.
+- `GET /v1/publishers/:id/logs` and `POST /v1/publishers/:id/logs`.
+- RFC 6902 JSON Patch support on `PATCH /v1/logs/:id`, alongside JSON
+  merge patches.
 - A security policy, `SECURITY.md`, saying how to report a vulnerability
   privately and which versions get fixes.
 - CI checks for the Helm chart with `helm lint` and `kubeconform`, and for
@@ -53,6 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prometheus metrics carry `service="open-catalog-api"` instead of the
   path of the running executable, which changed between builds and
   restarts. Update queries and alerts that select the old value.
+
+### Removed
+
+- `PATCH /v1/webhooks/:id`. Delete the webhook and create a new one
+  instead of updating it. Changing its URL used to keep the secret
+  and send it to the new host.
 
 ### Fixed
 
@@ -160,6 +178,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- PASETO tokens now enforce expiration, not before and issued at claims
+  when present. Expired tokens and tokens dated in the future are refused.
+- Webhook read endpoints now require authentication, including lists
+  for all publishers or software and for an individual entity.
 - The released container image runs as an unprivileged user instead of
   root.
 - A JSON Patch could set `createdAt` on a software or a catalog, moving
