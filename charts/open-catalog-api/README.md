@@ -34,7 +34,7 @@ Kubernetes: `>=1.23.0-0`
 | ingress.hosts[0].paths[0].path | string | `"/"` |  |
 | ingress.hosts[0].paths[0].pathType | string | `"ImplementationSpecific"` |  |
 | ingress.tls | list | `[]` |  |
-| maxRequests | int | `nil` | Max number of requests. |
+| maxRequests | int | `nil` | Maximum number of requests per minute from each client IP. Behind a proxy, set TRUSTED_PROXIES in 'extraEnv' so the limit counts the original client address instead of the proxy's. |
 | nameOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | pasetoKey | string | `""` | Base64 encoded Paseto Key. |
