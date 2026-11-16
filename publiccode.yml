@@ -46,7 +46,7 @@ localisation:
   availableLanguages:
     - en
   localisationReady: false
-logo: .github/logo.png
+logo: .github/logo.svg
 maintenance:
   contacts:
     - name: Fabio Bonelli
