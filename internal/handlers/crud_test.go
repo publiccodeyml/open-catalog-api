@@ -368,3 +368,23 @@ func TestApplyPatchJSONPatch(t *testing.T) {
 	)
 	assert.Equal(t, fiber.StatusUnprocessableEntity, problemStatus(t, err))
 }
+
+func TestApplyPatchJSONPatchUnknownMembers(t *testing.T) {
+	for _, path := range []string{"/mesage", "/Message", "/ID"} {
+		t.Run(path, func(t *testing.T) {
+			current := crudItem{ID: "one", Message: "first", Active: true}
+			original := current
+			opts := patchOptions[crudItem]{
+				title:    "can't update Item",
+				request:  new(crudItemPatch),
+				restore:  func(_, _ *crudItem) { t.Fatal("invalid patch reached restore") },
+				validate: validateCrudItem,
+			}
+			_, err := applyPatch(newPatchCtx(t, common.ContentTypeJSONPatch,
+				`[{"op":"add","path":"`+path+`","value":"changed"}]`), &current, opts)
+			require.Error(t, err)
+			assert.Equal(t, fiber.StatusUnprocessableEntity, problemStatus(t, err))
+			assert.Equal(t, original, current)
+		})
+	}
+}

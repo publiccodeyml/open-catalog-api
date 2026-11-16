@@ -56,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- JSON Patch documents that add unknown members, or members with a
+  different casing, now return `422` instead of being silently dropped or
+  overwriting server owned fields.
+
 - Unknown `entityType` filters on `GET /v1/events` now return `422`.
 
 - Event and webhook reads require a token with any path casing.

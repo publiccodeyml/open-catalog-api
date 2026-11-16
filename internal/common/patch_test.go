@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
+	"github.com/publiccodeyml/open-catalog-api/internal/jsondecoder"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,7 +42,7 @@ func TestApplyPatchJSONPatchValidation(t *testing.T) {
 
 	t.Run("path exactly 255 chars is valid", func(t *testing.T) {
 		okPath := "/" + strings.Repeat("x", 254)
-		entity := sampleEntity()
+		entity := map[string]string{strings.TrimPrefix(okPath, "/"): "foo"}
 		body := []byte(`[{"op":"add","path":"` + okPath + `","value":"bar"}]`)
 
 		_, err := common.ApplyPatch(&entity, common.ContentTypeJSONPatch, body)
@@ -97,4 +98,35 @@ func TestApplyPatchEncodingFailure(t *testing.T) {
 		[]byte(`[{"op":"add","path":"/name","value":"bar"}]`))
 	require.NotNil(t, err)
 	assert.Equal(t, 500, err.Code)
+}
+
+func TestApplyPatchRejectsUnknownMembers(t *testing.T) {
+	for _, body := range []string{
+		`[{"op":"add","path":"/nmae","value":"bar"}]`,
+		`[{"op":"add","path":"/Name","value":"bar"}]`,
+		`[{"op":"add","path":"/ID","value":"evil"}]`,
+		`[{"op":"add","path":"/CreatedAt","value":"2000"}]`,
+		`[{"op":"add","path":"/nested/typo","value":"bar"}]`,
+		`[{"op":"add","path":"/nested/Name","value":"bar"}]`,
+		`[{"op":"copy","from":"/name","path":"/nmae"}]`,
+		`[{"op":"replace","path":"/nested","value":{"name":"bar","typo":true}}]`,
+	} {
+		t.Run(body, func(t *testing.T) {
+			type nested struct {
+				Name string `json:"name"`
+			}
+			entity := struct {
+				ID        string `json:"id"`
+				CreatedAt string `json:"createdAt"`
+				Name      string `json:"name"`
+				Nested    nested `json:"nested"`
+			}{ID: "one", CreatedAt: "2026", Name: "foo", Nested: nested{Name: "foo"}}
+			original := entity
+			_, err := common.ApplyPatch(&entity, common.ContentTypeJSONPatch, []byte(body))
+			require.NotNil(t, err)
+			assert.Equal(t, 422, err.Code)
+			assert.ErrorIs(t, err, jsondecoder.ErrUnknownField)
+			assert.Equal(t, original, entity)
+		})
+	}
 }
