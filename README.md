@@ -58,7 +58,9 @@ You can configure the API with environment variables:
 
 * `DATABASE_DSN`: the URI used to connect to the database,
   fe `postgres://user:password@host:5432/dbname`.
-  Supports PostgreSQL and SQLite.
+  Release binaries and container images support PostgreSQL only.
+  SQLite requires a build with cgo enabled (`CGO_ENABLED=1`), for tests
+  and local development.
 
 * `DATABASE_MAX_CONNECTIONS` (optional): maximum PostgreSQL connections per
   API replica. Must be positive. Default: `10`.
