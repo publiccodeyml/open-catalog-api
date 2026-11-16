@@ -2735,6 +2735,8 @@ components:
               - add
               - remove
               - replace
+              - move
+              - copy
               - test
           path:
             type: string
@@ -2750,7 +2752,7 @@ components:
           from:
             type: string
             maxLength: 255
-            description: Source JSON Pointer, used by move and copy operations.
+            description: Source JSON Pointer. Required for move and copy operations.
             example: '/aliases/0'
     Bundle:
       title: Bundle

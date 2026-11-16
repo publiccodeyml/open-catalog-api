@@ -77,6 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The OpenAPI JSON Patch schema now lists the `move` and `copy`
+  operations, which the API already accepted.
 - Webhook events from requests still running during shutdown are drained before exit.
 
 - Publisher PATCH responses include stored timestamps and the default group flag

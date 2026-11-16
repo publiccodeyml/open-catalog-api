@@ -931,6 +931,40 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "PATCH a software resource with JSON Patch - move",
+			query:       "PATCH /v1/software/59803fb7-8eec-4fe5-a354-8926009c364a",
+			body:        `[{"op": "move", "from": "/aliases/0", "path": "/url"}]`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json-patch+json"},
+			},
+
+			expectedCode:        200,
+			expectedContentType: "application/json; charset=utf-8",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, "https://18-b.example.org/code/repo", response["url"])
+				assert.Equal(t, []any{}, response["aliases"])
+				assert.Equal(t, "59803fb7-8eec-4fe5-a354-8926009c364a", response["id"])
+			},
+		},
+		{
+			description: "PATCH a software resource with JSON Patch - copy",
+			query:       "PATCH /v1/software/59803fb7-8eec-4fe5-a354-8926009c364a",
+			body:        `[{"op": "copy", "from": "/url", "path": "/publiccodeYml"}]`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json-patch+json"},
+			},
+
+			expectedCode:        200,
+			expectedContentType: "application/json; charset=utf-8",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
+				assert.Equal(t, "https://18-a.example.org/code/repo", response["publiccodeYml"])
+				assert.Equal(t, []any{"https://18-b.example.org/code/repo"}, response["aliases"])
+			},
+		},
+		{
 			description: "PATCH a software resource with JSON Patch as Content-Type, but non JSON Patch payload",
 			query:       "PATCH /v1/software/59803fb7-8eec-4fe5-a354-8926009c364a",
 			body:        `{"publiccodeYml": "publiccodedata", "url": "https://software-new.example.org"}`,
