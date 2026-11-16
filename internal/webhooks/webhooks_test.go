@@ -21,6 +21,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -677,6 +678,50 @@ func TestDispatchWebhooks_FailureLogsOmitCredentials(t *testing.T) {
 			}
 			assert.NotContains(t, output, "path-secret")
 			assert.NotContains(t, output, "query-secret")
+		})
+	}
+}
+
+func TestDispatchWebhooks_CountsDeliveryFailures(t *testing.T) {
+	tests := []struct {
+		name    string
+		reason  string
+		blocked bool
+		status  int
+	}{
+		{name: "blocked", reason: failureTransport, blocked: true, status: http.StatusOK},
+		{name: "error status", reason: failureStatus, status: http.StatusServiceUnavailable},
+		{name: "delivered", status: http.StatusNoContent},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dialGuardDisabled.Store(!tt.blocked)
+			t.Cleanup(func() { dialGuardDisabled.Store(false) })
+
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(tt.status)
+			}))
+			defer srv.Close()
+
+			db := setupDB(t, []models.Webhook{{URL: srv.URL, EntityType: "software"}})
+
+			transport := testutil.ToFloat64(deliveryFailures.WithLabelValues(failureTransport))
+			status := testutil.ToFloat64(deliveryFailures.WithLabelValues(failureStatus))
+
+			require.NoError(t, DispatchWebhooksAndWait(models.Event{
+				Type: "created", EntityType: "software",
+			}, db))
+
+			want := map[string]float64{failureTransport: transport, failureStatus: status}
+			if tt.reason != "" {
+				want[tt.reason]++
+			}
+
+			assert.InDelta(t, want[failureTransport],
+				testutil.ToFloat64(deliveryFailures.WithLabelValues(failureTransport)), 0)
+			assert.InDelta(t, want[failureStatus],
+				testutil.ToFloat64(deliveryFailures.WithLabelValues(failureStatus)), 0)
 		})
 	}
 }
