@@ -298,6 +298,10 @@ func syncCodeHosting( //nolint:cyclop // mostly error handling ifs
 		if err := gormdb.Create(toAdd).Error; err != nil {
 			return nil, err
 		}
+
+		for _, ch := range toAdd {
+			urlMap[ch.URL] = ch
+		}
 	}
 
 	retCodeHosting := make([]models.CodeHosting, 0, len(urlMap))
