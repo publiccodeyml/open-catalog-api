@@ -17,6 +17,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	recovermw "github.com/gofiber/fiber/v2/middleware/recover"
+	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/publiccodeyml/open-catalog-api/cmd"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"github.com/publiccodeyml/open-catalog-api/internal/database"
@@ -163,7 +164,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 		common.EnvironmentConfig.PasetoKey = middleware.NewRandomPasetoKey()
 	}
 
-	prometheus := fiberprometheus.New("open-catalog-api")
+	prometheus := newMetricsMiddleware()
 	prometheus.RegisterAt(app, "/metrics")
 	app.Use(prometheus.Middleware)
 
@@ -242,6 +243,17 @@ func newResponseCache() fiber.Handler {
 			return ctx.Path() + "?" + string(ctx.Context().QueryArgs().QueryString())
 		},
 	})
+}
+
+func newMetricsMiddleware() *fiberprometheus.FiberPrometheus {
+	const serviceName = "open-catalog-api"
+
+	// The middleware would otherwise keep a private registry, and /metrics
+	// would leave out the webhook delivery metrics.
+	registry := promclient.NewRegistry()
+	webhooks.RegisterMetrics(promclient.WrapRegistererWith(promclient.Labels{"service": serviceName}, registry))
+
+	return fiberprometheus.NewWithRegistry(registry, serviceName, "http", "", nil)
 }
 
 func setupHandlers(app *fiber.App, gormDB *gorm.DB) { //nolint:funlen

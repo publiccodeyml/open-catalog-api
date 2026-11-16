@@ -362,16 +362,13 @@ func post(webhook models.Webhook, body []byte, headers map[string]string) {
 
 	response, err := httpClient.Do(req)
 	if err != nil {
-		//nolint:godox // need to implement this in the future
-		// TODO: Replace this and send anonymous failure metrics to a monitoring
-		// system instead.
-		// (https://github.com/publiccodeyml/open-catalog-api/issues/73)
 		// Client errors include the request URL, which may contain credentials.
 		if urlErr, ok := errors.AsType[*url.Error](err); ok {
 			err = urlErr.Err
 		}
 
 		log.Printf("error while dispatching webhook %s to %s: %s", webhook.ID, req.URL.Host, err)
+		deliveryFailures.WithLabelValues(failureTransport).Inc()
 
 		return
 	}
@@ -384,11 +381,8 @@ func post(webhook models.Webhook, body []byte, headers map[string]string) {
 	}()
 
 	if response.StatusCode < 200 || response.StatusCode > 299 {
-		//nolint:godox // need to implement this in the future
-		// TODO: Replace this and send anonymous failure metrics to a monitoring
-		// system instead.
-		// (https://github.com/publiccodeyml/open-catalog-api/issues/73)
 		log.Printf("error while dispatching webhook %s to %s: got HTTP %d", webhook.ID, req.URL.Host, response.StatusCode)
+		deliveryFailures.WithLabelValues(failureStatus).Inc()
 
 		return
 	}

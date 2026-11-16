@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `entityType`, `entityId`, `type` and `actor` filters on `GET /v1/events`.
 - An `extraEnv` value on the Helm chart, for environment variables
   without a dedicated chart value.
+- `webhook_delivery_failures_total` on `/metrics`, counting failed
+  webhook deliveries by `reason`: `transport` when no response arrived,
+  `status` for a non-2xx response. It carries no webhook ID or URL.
 
 ### Changed
 
