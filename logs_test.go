@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gofiber/fiber/v2/utils"
+	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,20 +39,6 @@ func TestLogsEndpoints(t *testing.T) {
 
 					createdAt := assertRFC3339(t, log["createdAt"])
 					assertRFC3339(t, log["updatedAt"])
-
-					// Only certain logs from the fixtures have an associated entity.
-					//
-					// FIXME: This is ugly, see the issue about improving tests:
-					// https://github.com/publiccodeyml/open-catalog-api/issues/91
-					if log["id"] == "2dfb2bc2-042d-11ed-9338-d8bbc146d165" ||
-						log["id"] == "12f30d9e-042e-11ed-8ddc-d8bbc146d165" ||
-						log["id"] == "18a70362-042e-11ed-b793-d8bbc146d165" {
-						assert.Equal(t, "/software/c353756e-8597-4e46-a99b-7da2e141603b", log["entity"])
-					} else if log["id"] == "53650508-042e-11ed-9b84-d8bbc146d165" {
-						assert.Equal(t, "/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde", log["entity"])
-					} else {
-						assert.Nil(t, log["entity"])
-					}
 
 					assertOnlyKeys(t, log, "id", "createdAt", "updatedAt", "message", "entity")
 
@@ -553,6 +542,49 @@ func TestLogsEndpoints(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 404, res.StatusCode)
 	})
+}
+
+func TestLogEntities(t *testing.T) {
+	loadFixtures(t)
+
+	// Isolate the entity cases from fixture logs and pagination.
+	require.NoError(t, gormDB.Where("1 = 1").Delete(&models.Log{}).Error)
+
+	expected := make(map[string]any)
+	for _, entityType := range []string{"software", "publishers", "catalogs", ""} {
+		log := models.Log{ID: utils.UUIDv4(), Message: "Log entity test"}
+		var entity any
+		if entityType != "" {
+			entityID := utils.UUIDv4()
+			log.EntityID = &entityID
+			log.EntityType = &entityType
+			entity = "/" + entityType + "/" + entityID
+		}
+		require.NoError(t, gormDB.Create(&log).Error)
+		expected[log.ID] = entity
+	}
+
+	// A unique query keeps this request out of the shared response cache.
+	req, err := newTestRequest("GET", "/v1/logs?entityTest="+utils.UUIDv4(), nil)
+	require.NoError(t, err)
+	res, err := app.Test(req, -1)
+	require.NoError(t, err)
+	defer res.Body.Close()
+	require.Equal(t, 200, res.StatusCode)
+
+	var response map[string]any
+	require.NoError(t, json.NewDecoder(res.Body).Decode(&response))
+	data := assertListResponse(t, response)
+	require.Len(t, data, len(expected))
+	for _, log := range data {
+		id, ok := log["id"].(string)
+		require.True(t, ok)
+		entity, ok := expected[id]
+		require.True(t, ok, "unexpected log %s", id)
+		assert.Equal(t, entity, log["entity"], "entity for log %s", id)
+		delete(expected, id)
+	}
+	assert.Empty(t, expected, "all inserted logs must be returned")
 }
 
 func addLogsForPaginationCapTest(t *testing.T) {
