@@ -14,6 +14,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -191,7 +192,7 @@ func dispatchWebhooks(event models.Event, gorm *gorm.DB, wait bool) error {
 			event.EntityID,
 		)
 
-	if err := stmt.Select("url, secret, format").Find(&stored).Error; err != nil {
+	if err := stmt.Select("id, url, secret, format").Find(&stored).Error; err != nil {
 		return fmt.Errorf("error finding webhooks for %s: %w", subject, err)
 	}
 
@@ -211,13 +212,13 @@ func dispatchWebhooks(event models.Event, gorm *gorm.DB, wait bool) error {
 			deliveries.Add(1)
 		}
 
-		go func(url string, body []byte, headers map[string]string) {
+		go func(webhook models.Webhook, body []byte, headers map[string]string) {
 			if wait {
 				defer deliveries.Done()
 			}
 
-			post(url, body, headers)
-		}(webhook.URL, body, headers)
+			post(webhook, body, headers)
+		}(webhook, body, headers)
 	}
 
 	if wait {
@@ -338,14 +339,14 @@ func standardWebhooksRequest(
 	return body, headers, nil
 }
 
-func post(url string, body []byte, headers map[string]string) {
+func post(webhook models.Webhook, body []byte, headers map[string]string) {
 	ctx, cancel := context.WithTimeout(context.Background(), dispatchTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		url,
+		webhook.URL,
 		bytes.NewReader(body),
 	)
 	if err != nil {
@@ -365,7 +366,12 @@ func post(url string, body []byte, headers map[string]string) {
 		// TODO: Replace this and send anonymous failure metrics to a monitoring
 		// system instead.
 		// (https://github.com/publiccodeyml/open-catalog-api/issues/73)
-		log.Printf("error while dispatching webhook %s: %s", url, err.Error())
+		// Client errors include the request URL, which may contain credentials.
+		if urlErr, ok := errors.AsType[*url.Error](err); ok {
+			err = urlErr.Err
+		}
+
+		log.Printf("error while dispatching webhook %s to %s: %s", webhook.ID, req.URL.Host, err)
 
 		return
 	}
@@ -382,7 +388,7 @@ func post(url string, body []byte, headers map[string]string) {
 		// TODO: Replace this and send anonymous failure metrics to a monitoring
 		// system instead.
 		// (https://github.com/publiccodeyml/open-catalog-api/issues/73)
-		log.Printf("error while dispatching webhook %s: got HTTP %d", url, response.StatusCode)
+		log.Printf("error while dispatching webhook %s to %s: got HTTP %d", webhook.ID, req.URL.Host, response.StatusCode)
 
 		return
 	}

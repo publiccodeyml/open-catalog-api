@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -86,7 +87,7 @@ func TestPostTimesOut(t *testing.T) {
 		defer func() { httpClient = originalClient }()
 
 		start := time.Now()
-		post(srv.URL, []byte(`{"event":"test","subject":"/software"}`), nil)
+		post(models.Webhook{URL: srv.URL}, []byte(`{"event":"test","subject":"/software"}`), nil)
 		elapsed := time.Since(start)
 
 		assert.Equal(t, dispatchTimeout, elapsed,
@@ -332,7 +333,8 @@ func TestDispatchWebhooks_SSRFLoopbackBlocked(t *testing.T) {
 	err := DispatchWebhooksAndWait(event, db)
 	require.NoError(t, err)
 
-	assert.Contains(t, logged.String(), srv.URL)
+	assert.Contains(t, logged.String(), "wh-ssrf-1")
+	assert.Contains(t, logged.String(), strings.TrimPrefix(srv.URL, "http://"))
 	assert.Contains(t, logged.String(), "not publicly routable")
 
 	assert.Equal(t, int64(0), hitCount.Load(), "server must not be hit when dial guard blocks loopback")
@@ -639,4 +641,42 @@ func TestDispatchDeletedResourceWebhooks(t *testing.T) {
 		}, request.headers.Get("X-Webhook-Signature"))
 	}
 	assert.NotEqual(t, signatures[0], signatures[1])
+}
+
+func TestDispatchWebhooks_FailureLogsOmitCredentials(t *testing.T) {
+	for _, blocked := range []bool{true, false} {
+		t.Run(strconv.FormatBool(blocked), func(t *testing.T) {
+			dialGuardDisabled.Store(!blocked)
+			t.Cleanup(func() { dialGuardDisabled.Store(false) })
+			var logged bytes.Buffer
+			originalOutput := log.Writer()
+			log.SetOutput(&logged)
+			t.Cleanup(func() { log.SetOutput(originalOutput) })
+
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "/path-secret", r.URL.Path)
+				assert.Equal(t, "query-secret", r.URL.Query().Get("token"))
+				w.WriteHeader(http.StatusServiceUnavailable)
+			}))
+			defer srv.Close()
+
+			db := setupDB(t, []models.Webhook{{
+				ID: "failed-webhook", URL: srv.URL + "/path-secret?token=query-secret",
+				EntityType: "software",
+			}})
+			require.NoError(t, DispatchWebhooksAndWait(models.Event{
+				Type: "created", EntityType: "software",
+			}, db))
+			output := logged.String()
+			assert.Contains(t, output, "failed-webhook")
+			assert.Contains(t, output, strings.TrimPrefix(srv.URL, "http://"))
+			if blocked {
+				assert.Contains(t, output, "not publicly routable")
+			} else {
+				assert.Contains(t, output, "got HTTP 503")
+			}
+			assert.NotContains(t, output, "path-secret")
+			assert.NotContains(t, output, "query-secret")
+		})
+	}
 }
