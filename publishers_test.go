@@ -1272,7 +1272,11 @@ func TestPublishersPatchCodeHostingGroup(t *testing.T) {
 			code, body := tt.patch(t, publisherPath+italiaPublisherID, tt.body)
 			require.Equal(t, 200, code, "body: %s", body)
 
-			req, err := newTestRequest(http.MethodGet, publisherPath+italiaPublisherID, nil)
+			// The query only gives each subtest its own response cache key.
+			// Without it the second subtest reads the document cached by the
+			// first, whose reloaded entries carry other timestamps.
+			query := "?codeHostingGroup=" + strings.ReplaceAll(tt.name, " ", "")
+			req, err := newTestRequest(http.MethodGet, publisherPath+italiaPublisherID+query, nil)
 			require.NoError(t, err)
 
 			res, err := app.Test(req, -1)
@@ -1283,10 +1287,24 @@ func TestPublishersPatchCodeHostingGroup(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, 200, res.StatusCode, "body: %s", out)
 
+			added := map[string]any{}
+			for _, ch := range decodeJSON(t, body)["codeHosting"].([]any) {
+				entry := ch.(map[string]any)
+				if entry["url"] == addedURL || entry["url"] == defaultURL {
+					assert.False(t, assertRFC3339(t, entry["createdAt"]).IsZero())
+					assert.False(t, assertRFC3339(t, entry["updatedAt"]).IsZero())
+					added[entry["url"].(string)] = entry
+				}
+			}
+			require.Len(t, added, 2)
+
 			groups := map[string]any{}
 			for _, ch := range decodeJSON(t, out)["codeHosting"].([]any) {
 				entry := ch.(map[string]any)
 				groups[entry["url"].(string)] = entry["group"]
+				if entry["url"] == addedURL || entry["url"] == defaultURL {
+					assert.Equal(t, entry, added[entry["url"].(string)])
+				}
 			}
 
 			assert.Equal(t, map[string]any{
