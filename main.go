@@ -44,27 +44,14 @@ See the README for configuration:
 https://github.com/publiccodeyml/open-catalog-api#configuration`,
 		SilenceUsage: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			app, debouncer, stopEventPurge, _ := Setup()
+			app, _, stopBackground, _ := Setup()
 
 			sigCh := make(chan os.Signal, 1)
 			signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-			go func() {
-				<-sigCh
+			defer signal.Stop(sigCh)
 
-				if err := app.Shutdown(); err != nil {
-					log.Printf("graceful shutdown failed: %s", err)
-				}
-			}()
-
-			err := app.Listen(":3000")
-
-			// Drain runs after Listen returns so any webhook event held
-			// in the debouncer's pending window is dispatched before the
-			// process exits.
-			debouncer.Drain()
-			stopEventPurge()
-
+			err := serveUntilShutdown(app, func() error { return app.Listen(":3000") }, sigCh, stopBackground)
 			if err != nil {
 				return fmt.Errorf("listen: %w", err)
 			}
@@ -80,8 +67,69 @@ https://github.com/publiccodeyml/open-catalog-api#configuration`,
 	}
 }
 
+// serveUntilShutdown waits for active handlers before stopping event delivery.
+func serveUntilShutdown(app *fiber.App, listen func() error, signals <-chan os.Signal, stopBackground func()) error {
+	listenDone := make(chan struct{})
+	shutdownDone := make(chan struct{})
+
+	go func() {
+		defer close(shutdownDone)
+
+		select {
+		case <-signals:
+			if err := app.Shutdown(); err != nil {
+				log.Printf("graceful shutdown failed: %s", err)
+			}
+		case <-listenDone:
+		}
+	}()
+
+	err := listen()
+
+	close(listenDone)
+	<-shutdownDone
+	stopBackground()
+
+	return err
+}
+
+// Stop only after all event producers have finished. The shared channel stays
+// open so other app instances in the test harness can keep using it.
+func startEventWorker(events <-chan models.Event, debouncer *webhooks.Debouncer) func() {
+	stop := make(chan struct{})
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+
+		for {
+			select {
+			case event := <-events:
+				debouncer.Submit(event)
+			case <-stop:
+				for {
+					select {
+					case event := <-events:
+						debouncer.Submit(event)
+					default:
+						debouncer.Drain()
+
+						return
+					}
+				}
+			}
+		}
+	}()
+
+	return func() {
+		close(stop)
+		<-done
+	}
+}
+
 // Setup builds the app. It also returns the gorm handle: the tests hook
-// callbacks on the same connection the handlers use.
+// callbacks on the same connection the handlers use. The stop function drains
+// event delivery and stops the purge worker after all handlers have finished.
 func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	if err := env.Parse(&common.EnvironmentConfig); err != nil {
 		panic(err)
@@ -112,11 +160,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	// (es. Publisher creation, Software delete, etc.)
 	debouncer := newWebhookDebouncer(gormDB)
 
-	go func() {
-		for event := range models.EventChan {
-			debouncer.Submit(event)
-		}
-	}()
+	stopEvents := startEventWorker(models.EventChan, debouncer)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: common.CustomErrorHandler,
@@ -174,7 +218,10 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 
 	setupHandlers(app, gormDB)
 
-	return app, debouncer, stopEventPurge, gormDB
+	return app, debouncer, func() {
+		stopEvents()
+		stopEventPurge()
+	}, gormDB
 }
 
 func newWebhookDebouncer(gormDB *gorm.DB) *webhooks.Debouncer {
