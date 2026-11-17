@@ -180,7 +180,9 @@ paths:
             pattern: '.*'
           in: query
           name: url
-          description: Only software with this URL
+          description: >
+            Software with this canonical URL or alias, across all catalogs.
+            The same URL can match several software records.
           example: 'https://github.com/example/my-software'
         - schema:
             type: integer
@@ -2865,7 +2867,9 @@ components:
           maxLength: 255
           description: >
             Repository URL this software is available at.
-            This is the current and canonical one.
+            This is the current and canonical one. Canonical URLs and aliases are
+            unique within a catalog, including the root catalog. The same URL
+            can belong to software in different catalogs.
           example: 'https://github.com/example/my-software'
         aliases:
           type: array

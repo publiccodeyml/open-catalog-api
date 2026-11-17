@@ -462,7 +462,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 		{
 			description: "POST software with an already existing URL",
 			query:       "POST /v1/software",
-			body:        `{"publiccodeYml": "-", "url": "https://1-a.example.org/code/repo"}`,
+			body:        `{"publiccodeYml": "-", "url": "https://3-a.example.org/code/repo"}`,
 			headers: map[string][]string{
 				"Authorization": {goodToken},
 				"Content-Type":  {"application/json"},
@@ -475,7 +475,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 		{
 			description: "POST software with an already existing URL as an alias",
 			query:       "POST /v1/software",
-			body:        `{"publiccodeYml": "-", "url": "https://software.example.org", "aliases": ["https://1-b.example.org/code/repo"]}`,
+			body:        `{"publiccodeYml": "-", "url": "https://software.example.org", "aliases": ["https://3-b.example.org/code/repo"]}`,
 			headers: map[string][]string{
 				"Authorization": {goodToken},
 				"Content-Type":  {"application/json"},

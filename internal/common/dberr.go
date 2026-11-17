@@ -19,7 +19,7 @@ var pgConstraintToAPI = map[string]string{ //nolint:gochecknoglobals
 	"idx_publishers_description":      "description",
 	"idx_publishers_alternative_id":   fieldAlternativeID,
 	"idx_publishers_code_hosting_url": "codeHosting.url",
-	"idx_software_urls_url":           fieldURL,
+	"idx_software_urls_catalog_url":   fieldURL,
 	"idx_webhook_url":                 fieldURL,
 }
 
