@@ -162,7 +162,36 @@ func migrateModels(database *gorm.DB) error {
 		return err
 	}
 
-	return migrateLogs(database)
+	if err := migrateLogs(database); err != nil {
+		return err
+	}
+
+	return removeOrphanResourceLogs(database)
+}
+
+// removeOrphanResourceLogs soft deletes the logs left behind by publishers,
+// software and catalogs deleted before their deletion removed them too.
+// Logs without an entity_id, like the root catalog ones, are kept.
+func removeOrphanResourceLogs(database *gorm.DB) error {
+	for _, table := range []string{
+		models.Publisher{}.TableName(),
+		models.Software{}.TableName(),
+		models.Catalog{}.TableName(),
+	} {
+		result := database.Session(&gorm.Session{SkipHooks: true}).
+			Where("entity_type = ? AND entity_id IS NOT NULL", table).
+			Where("NOT EXISTS (?)", database.Table(table).Select("1").Where(table+".id = logs.entity_id")).
+			Delete(&models.Log{})
+		if result.Error != nil {
+			return fmt.Errorf("can't remove the logs of deleted %s: %w", table, result.Error)
+		}
+
+		if result.RowsAffected > 0 {
+			log.Printf("removed %d logs of deleted %s", result.RowsAffected, table)
+		}
+	}
+
+	return nil
 }
 
 // removeOrphanResourceWebhooks deletes the webhooks left behind by

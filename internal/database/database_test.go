@@ -362,3 +362,41 @@ func TestMigrationRemovesWebhooksOfDeletedResources(t *testing.T) {
 
 	assert.Equal(t, []string{"https://example.org/all-publishers", "https://example.org/live"}, remaining)
 }
+
+func TestMigrationRemovesLogsOfDeletedResources(t *testing.T) {
+	connection := testConnection(t)
+
+	database := openDatabase(t, connection)
+
+	publisher := models.Publisher{ID: "0c3e8a51-6d2b-4f7a-9e14-8b5c2d7f0a36", Description: "Live publisher"}
+	require.NoError(t, database.Session(&gorm.Session{SkipHooks: true}).Create(&publisher).Error)
+
+	entityLog := func(id, message, entityType string, entityID *string) models.Log {
+		return models.Log{ID: id, Message: message, EntityType: &entityType, EntityID: entityID}
+	}
+	deletedPublisher := "1e7b4c92-3a5f-4d8e-a0c6-9f2d5b8e1a47"
+	deletedSoftware := "2f8c5da3-4b6e-4e9f-b1d7-0a3e6c9f2b58"
+	deletedCatalog := "3a9d6eb4-5c7f-4fa0-82e8-1b4f7da03c69"
+
+	logs := []models.Log{
+		entityLog("4bae7fc5-6d80-4ab1-93f9-2c5a8eb14d7a", "live publisher", "publishers", &publisher.ID),
+		entityLog("5cbf80d6-7e91-4bc2-a40a-3d6b9fc25e8b", "deleted publisher", "publishers", &deletedPublisher),
+		entityLog("6dc091e7-8fa2-4cd3-b51b-4e7ca0d36f9c", "deleted software", "software", &deletedSoftware),
+		entityLog("7ed1a2f8-90b3-4de4-862c-5f8db1e470ad", "deleted catalog", "catalogs", &deletedCatalog),
+		entityLog("8fe2b309-a1c4-4ef5-973d-60a9c2f581be", "root catalog", "catalogs", nil),
+		{ID: "90f3c41a-b2d5-4f06-a84e-71bad30692cf", Message: "no entity"},
+	}
+	require.NoError(t, database.Session(&gorm.Session{SkipHooks: true}).Create(&logs).Error)
+
+	migrated := openDatabase(t, connection)
+
+	var remaining []string
+	require.NoError(t, migrated.Model(&models.Log{}).Order("message").Pluck("message", &remaining).Error)
+
+	assert.Equal(t, []string{"live publisher", "no entity", "root catalog"}, remaining)
+
+	var deleted int64
+	require.NoError(t, migrated.Unscoped().Model(&models.Log{}).Where("deleted_at IS NOT NULL").Count(&deleted).Error)
+
+	assert.Equal(t, int64(3), deleted)
+}
