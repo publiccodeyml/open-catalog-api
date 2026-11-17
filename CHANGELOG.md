@@ -84,6 +84,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Webhook events from requests still running during shutdown are drained before exit.
 - List requests with both `page[after]` and `page[before]` return `422`
   instead of ignoring `page[before]`.
+- Publisher routes now decode a percent encoded `alternativeId` in the
+  path, so a publisher whose `alternativeId` has a space or a non ASCII
+  letter can be read, updated and deleted by it.
 
 - Publisher PATCH responses include stored timestamps and the default group flag
   for newly added code hosting entries.

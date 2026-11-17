@@ -1694,3 +1694,46 @@ func TestPublishersJSONPatchWrongValueTypes(t *testing.T) {
 		})
 	}
 }
+
+func TestPublishersEscapedAlternativeID(t *testing.T) {
+	const (
+		alternativeID = "Città di Prova 100%"
+		escaped       = "Citt%C3%A0%20di%20Prova%20100%25"
+	)
+
+	loadFixtures(t)
+
+	code, body := patchMerge(t, publisherPath+rootPublisherID, `{"alternativeId": "`+alternativeID+`"}`)
+	require.Equal(t, 200, code, "body: %s", body)
+
+	req, err := newTestRequest(http.MethodGet, publisherPath+escaped+"?escapedAlternativeID=1", nil)
+	require.NoError(t, err)
+
+	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
+
+	got, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.Equal(t, 200, res.StatusCode, "body: %s", got)
+	assert.Equal(t, rootPublisherID, decodeJSON(t, got)["id"])
+
+	code, body = patchMerge(t, publisherPath+escaped, `{"description": "patched by escaped alternativeId"}`)
+	require.Equal(t, 200, code, "body: %s", body)
+	assert.Equal(t, rootPublisherID, decodeJSON(t, body)["id"])
+
+	code, body = patchMerge(t, catalogPath+"%E2%88%85/publishers/"+escaped, `{"description": "patched in its catalog"}`)
+	require.Equal(t, 200, code, "body: %s", body)
+	assert.Equal(t, rootPublisherID, decodeJSON(t, body)["id"])
+
+	req, err = newTestRequest(http.MethodDelete, publisherPath+escaped, nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", goodToken)
+
+	res, err = app.Test(req, fiber.TestConfig{Timeout: 0})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
+	assert.Equal(t, 204, res.StatusCode)
+
+	assert.Equal(t, 0, dbCount(t, "publishers", "id", rootPublisherID))
+}
