@@ -56,7 +56,7 @@ func buildLink(base map[string]string, key string, cursor *string) *string {
 
 	parts := make([]string, 0, len(params))
 	for _, k := range slices.Sorted(maps.Keys(params)) {
-		parts = append(parts, k+"="+url.QueryEscape(params[k]))
+		parts = append(parts, url.QueryEscape(k)+"="+url.QueryEscape(params[k]))
 	}
 
 	s := "?" + strings.Join(parts, "&")

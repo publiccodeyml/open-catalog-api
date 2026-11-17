@@ -32,7 +32,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				// Default pagination size is 25, so there's another page and
 				// next cursor should be present
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDE1LTA0LTI2VDAwOjAwOjAwWiIsIjEyNDI4MGQ3LTc1NTItNGZmZS05MzlmLWY0NjY5N2NjMGU4YSJd")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDE1LTA0LTI2VDAwOjAwOjAwWiIsIjEyNDI4MGQ3LTc1NTItNGZmZS05MzlmLWY0NjY5N2NjMGU4YSJd")
 
 				firstSoftware := data[0]
 				assert.NotEmpty(t, firstSoftware["publiccodeYml"])
@@ -197,7 +197,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assert.Equal(t, 2, len(data))
 
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDE0LTA1LTE2VDAwOjAwOjAwWiIsIjlmMTM1MjY4LWEzN2UtNGVhZC05NmVjLWU0YTI0YmI5MzQ0YSJd&page[size]=2")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDE0LTA1LTE2VDAwOjAwOjAwWiIsIjlmMTM1MjY4LWEzN2UtNGVhZC05NmVjLWU0YTI0YmI5MzQ0YSJd&page%5Bsize%5D=2")
 			},
 		},
 		{
@@ -234,7 +234,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assert.Equal(t, 5, len(data))
 
-				assertPaginationLinks(t, response, "?page[before]=WyIyMDE1LTA1LTExVDAwOjAwOjAwWiIsIjgzZTdhMzVlLTMyOGItNDg5MS1iNjBiLTU5NzkyZTAxYzU5ZSJd", nil)
+				assertPaginationLinks(t, response, "?page%5Bbefore%5D=WyIyMDE1LTA1LTExVDAwOjAwOjAwWiIsIjgzZTdhMzVlLTMyOGItNDg5MS1iNjBiLTU5NzkyZTAxYzU5ZSJd", nil)
 			},
 		},
 		{
@@ -259,7 +259,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assert.Equal(t, 25, len(data))
 
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDE1LTA0LTI2VDAwOjAwOjAwWiIsIjEyNDI4MGQ3LTc1NTItNGZmZS05MzlmLWY0NjY5N2NjMGU4YSJd")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDE1LTA0LTI2VDAwOjAwOjAwWiIsIjEyNDI4MGQ3LTc1NTItNGZmZS05MzlmLWY0NjY5N2NjMGU4YSJd")
 			},
 		},
 		{
@@ -1223,7 +1223,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assert.Equal(t, 2, len(data))
 
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDEwLTAxLTE1VDIzOjU5OjU5WiIsIjEyZjMwZDllLTA0MmUtMTFlZC04ZGRjLWQ4YmJjMTQ2ZDE2NSJd&page[size]=2")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDEwLTAxLTE1VDIzOjU5OjU5WiIsIjEyZjMwZDllLTA0MmUtMTFlZC04ZGRjLWQ4YmJjMTQ2ZDE2NSJd&page%5Bsize%5D=2")
 			},
 		},
 		{
@@ -1418,7 +1418,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 				assert.Equal(t, 1, len(data))
 
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDE3LTA1LTAxVDAwOjAwOjAwWiIsImQ2MzM0MDAwLTY5YTgtNDNhMS1hYjQzLTUwYmIwNGUxNGVlZCJd&page[size]=1")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDE3LTA1LTAxVDAwOjAwOjAwWiIsImQ2MzM0MDAwLTY5YTgtNDNhMS1hYjQzLTUwYmIwNGUxNGVlZCJd&page%5Bsize%5D=1")
 			},
 		},
 
