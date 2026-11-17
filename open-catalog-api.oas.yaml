@@ -1719,6 +1719,16 @@ paths:
           name: all
           description: 'Show all software, even the ones with "active" set to false'
         - schema:
+            type: string
+            minLength: 1
+            maxLength: 255
+            pattern: '.*'
+          in: query
+          name: url
+          description: >
+            Software in this catalog with this canonical URL or alias.
+          example: 'https://github.com/example/my-software'
+        - schema:
             type: integer
             format: int32
             example: 100

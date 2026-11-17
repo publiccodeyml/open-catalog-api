@@ -79,6 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The OpenAPI JSON Patch schema now lists the `move` and `copy`
   operations, which the API already accepted.
+- The OpenAPI spec now documents the `url` filter on
+  `GET /v1/catalogs/{catalogId}/software`, which the API already applied.
 - Webhook events from requests still running during shutdown are drained before exit.
 
 - Publisher PATCH responses include stored timestamps and the default group flag
