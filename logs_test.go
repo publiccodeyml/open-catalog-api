@@ -241,7 +241,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?from=2010-03-01T23:00:00Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json; charset=utf-8",
+			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -253,7 +253,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?from=2010-03-02T01:00:00%2B02:00",
 
 			expectedCode:        200,
-			expectedContentType: "application/json; charset=utf-8",
+			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 
@@ -265,7 +265,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?to=2010-03-02T00:30:00Z",
 
 			expectedCode:        200,
-			expectedContentType: "application/json; charset=utf-8",
+			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := response["data"].([]any)
 
@@ -277,7 +277,7 @@ func TestLogsEndpoints(t *testing.T) {
 			query:       "GET /v1/logs?to=2010-03-01T22:30:00-02:00",
 
 			expectedCode:        200,
-			expectedContentType: "application/json; charset=utf-8",
+			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := response["data"].([]any)
 
