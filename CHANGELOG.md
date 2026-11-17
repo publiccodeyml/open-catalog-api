@@ -138,6 +138,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   preserving delivery of the final delete event.
 - Startup now removes the webhooks, and their secrets, that an earlier
   version kept for deleted publishers and software.
+- Startup now removes the logs that an earlier version kept for deleted
+  publishers, software and catalogs, so `GET /logs` stops listing them.
 - `token create` now rejects negative `--expiry` durations instead of
   creating a token without expiration. Zero still means never expires.
 - Rate limited requests got a plain text `429` body. They now get the
