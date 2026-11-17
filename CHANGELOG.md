@@ -83,6 +83,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GET /v1/catalogs/{catalogId}/software`, which the API already applied.
 - The OpenAPI spec now accepts a publisher `alternativeId` in the path of
   `/v1/publishers/{publisherId}`, which the API already resolved.
+- The OpenAPI spec now documents the `Retry-After` header on `429`
+  responses, which the API already sent.
 - Webhook events from requests still running during shutdown are drained before exit.
 - List requests with both `page[after]` and `page[before]` return `422`
   instead of ignoring `page[before]`.
