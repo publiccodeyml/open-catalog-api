@@ -38,12 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Requests now follow the length limits in the OpenAPI spec. A log message
-  can be a single character and is refused above 2048 characters. Webhook
-  URLs, software URLs and aliases, publisher descriptions, emails and code
-  hosting URLs are refused above 255 characters. `publiccodeYml` and
-  `vitality` are refused above 99999, and software aliases and publisher
-  code hosting lists above 255 items.
+- Request validation now follows the OpenAPI length and list size limits.
+  Log messages can be a single character.
 - The OpenAPI `Software` schema now allows a null `vitality` and an empty
   `aliases` list, matching the values returned by the API.
 - `helm upgrade` now restarts the API pods when it changes `databaseDSN`
