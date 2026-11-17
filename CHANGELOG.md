@@ -47,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Pagination links preserve encoded query names instead of turning them
+  into extra filters.
+
 - Analysis PATCH requests can remove a namespace by setting it to null.
 
 - Bundle requests with duplicate `softwareIds` now return 422 with an

@@ -28,7 +28,7 @@ func TestPublishersEndpoints(t *testing.T) {
 
 				// Default pagination size is 25, so there's another page and
 				// next cursor should be present
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDE4LTExLTI3VDAwOjAwOjAwWiIsIjgxZmRhN2M0LTZiYmYtNDM4Ny04Zjg5LTI1OGMxZTZmYWZhMiJd")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDE4LTExLTI3VDAwOjAwOjAwWiIsIjgxZmRhN2M0LTZiYmYtNDM4Ny04Zjg5LTI1OGMxZTZmYWZhMiJd")
 
 				firstPub := data[0]
 				assert.NotEmpty(t, firstPub["email"])
@@ -99,7 +99,7 @@ func TestPublishersEndpoints(t *testing.T) {
 
 				assert.Equal(t, 2, len(data))
 
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDE4LTA1LTE2VDAwOjAwOjAwWiIsIjQ3ODA3ZTBjLTA2MTMtNGFlYS05OTE3LTU0NTVjYzZlZGRhZCJd&page[size]=2")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDE4LTA1LTE2VDAwOjAwOjAwWiIsIjQ3ODA3ZTBjLTA2MTMtNGFlYS05OTE3LTU0NTVjYzZlZGRhZCJd&page%5Bsize%5D=2")
 			},
 		},
 		{
@@ -136,7 +136,7 @@ func TestPublishersEndpoints(t *testing.T) {
 
 				assert.Equal(t, 2, len(data))
 
-				assertPaginationLinks(t, response, "?page[before]=WyIyMDE4LTExLTI3VDAwOjAwOjAwWiIsIjkxZmRhN2M0LTZiYmYtNDM4Ny04Zjg5LTI1OGMxZTZmYWZhMiJd", nil)
+				assertPaginationLinks(t, response, "?page%5Bbefore%5D=WyIyMDE4LTExLTI3VDAwOjAwOjAwWiIsIjkxZmRhN2M0LTZiYmYtNDM4Ny04Zjg5LTI1OGMxZTZmYWZhMiJd", nil)
 			},
 		},
 		{
@@ -161,7 +161,7 @@ func TestPublishersEndpoints(t *testing.T) {
 
 				assert.Equal(t, 25, len(data))
 
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDE4LTExLTI3VDAwOjAwOjAwWiIsIjgxZmRhN2M0LTZiYmYtNDM4Ny04Zjg5LTI1OGMxZTZmYWZhMiJd")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDE4LTExLTI3VDAwOjAwOjAwWiIsIjgxZmRhN2M0LTZiYmYtNDM4Ny04Zjg5LTI1OGMxZTZmYWZhMiJd")
 			},
 		},
 		{
@@ -975,7 +975,7 @@ func TestPublishersEndpoints(t *testing.T) {
 
 				assert.Equal(t, 1, len(data))
 
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDE4LTA3LTE1VDAwOjAwOjAwWiIsIjhmMzczYThjLTFmNTUtNDVlNC04NTQ5LTA1Y2Q2MzJhMmFkZCJd&page[size]=1")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDE4LTA3LTE1VDAwOjAwOjAwWiIsIjhmMzczYThjLTFmNTUtNDVlNC04NTQ5LTA1Y2Q2MzJhMmFkZCJd&page%5Bsize%5D=1")
 			},
 		},
 

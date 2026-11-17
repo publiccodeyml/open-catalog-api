@@ -93,7 +93,7 @@ func TestEventsEndpoints(t *testing.T) {
 
 				assert.Equal(t, 3, len(data))
 
-				assertPaginationLinks(t, response, nil, "?page[after]=WyIyMDE5LTA5LTE1VDAwOjAwOjAwWiIsImIzYzRkNWU2LTdmODAtNGI5Yy04ZDFlLTRmNWE2YjdjOGQ3MyJd&page[size]=3")
+				assertPaginationLinks(t, response, nil, "?page%5Bafter%5D=WyIyMDE5LTA5LTE1VDAwOjAwOjAwWiIsImIzYzRkNWU2LTdmODAtNGI5Yy04ZDFlLTRmNWE2YjdjOGQ3MyJd&page%5Bsize%5D=3")
 			},
 		},
 		{
@@ -107,7 +107,7 @@ func TestEventsEndpoints(t *testing.T) {
 
 				assert.Equal(t, 5, len(data))
 
-				assertPaginationLinks(t, response, "?page[before]=WyIyMDE4LTExLTMwVDAwOjAwOjAwWiIsImEyYjNjNGQ1LTZlN2YtNGE4Yi05YzBkLTNlNGY1YTZiN2M3MiJd", nil)
+				assertPaginationLinks(t, response, "?page%5Bbefore%5D=WyIyMDE4LTExLTMwVDAwOjAwOjAwWiIsImEyYjNjNGQ1LTZlN2YtNGE4Yi05YzBkLTNlNGY1YTZiN2M3MiJd", nil)
 			},
 		},
 		{
