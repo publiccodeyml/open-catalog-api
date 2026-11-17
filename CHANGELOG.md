@@ -47,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Every `500` carries the same generic detail. A few answered `db error`.
 - The events model no longer has a `deleted_at` column. An existing
   database keeps the column, unused.
+- Software URLs and aliases are unique within each catalog instead of
+  globally, so several catalogs can list the same repository.
+  `GET /v1/software?url=` returns every match across catalogs.
 
 ### Fixed
 
