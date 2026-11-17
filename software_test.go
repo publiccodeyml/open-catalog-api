@@ -940,7 +940,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json; charset=utf-8",
+			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://18-b.example.org/code/repo", response["url"])
 				assert.Equal(t, []any{}, response["aliases"])
@@ -957,7 +957,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 			},
 
 			expectedCode:        200,
-			expectedContentType: "application/json; charset=utf-8",
+			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["url"])
 				assert.Equal(t, "https://18-a.example.org/code/repo", response["publiccodeYml"])
