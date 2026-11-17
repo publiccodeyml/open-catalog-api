@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"net/url"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -122,9 +123,18 @@ type findOptions struct {
 // findOne loads the T with the given id. On a miss it returns a 404
 // Problem JSON error, on any other database failure a 500 one, so a
 // handler returns the error as it is.
-func findOne[T any](gormdb *gorm.DB, id string, opts findOptions) (*T, error) {
-	conds := []any{"id = ?", id}
+//
+// rawID is the escaped route parameter. With byAlternativeID it is
+// decoded here exactly once, as in resolveCatalog, since an alternative
+// id can hold a space or a non ASCII letter.
+func findOne[T any](gormdb *gorm.DB, rawID string, opts findOptions) (*T, error) {
+	conds := []any{"id = ?", rawID}
 	if opts.byAlternativeID {
+		id, err := url.PathUnescape(rawID)
+		if err != nil {
+			id = rawID
+		}
+
 		conds = []any{"id = ? OR alternative_id = ?", id, id}
 	}
 
