@@ -2,6 +2,7 @@
 version: 2
 builds:
   - binary: open-catalog-api
+    mod_timestamp: "{{ .CommitTimestamp }}"
     env:
       - CGO_ENABLED=0
     flags:
@@ -13,6 +14,20 @@ builds:
 archives:
   - formats:
       - tar.gz
+    builds_info:
+      owner: root
+      group: root
+      mtime: "{{ .CommitDate }}"
+    files:
+      - src: README*
+        info: &archive_info
+          owner: root
+          group: root
+          mtime: "{{ .CommitDate }}"
+      - src: LICENSE*
+        info: *archive_info
+      - src: CHANGELOG*
+        info: *archive_info
 sboms:
   - artifacts: archive
 
