@@ -81,25 +81,25 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 		want        string
 	}{
 		{
-			"softwarePath add /analysis", softwarePath, italiaSoftwareID,
+			"softwarePath add /analysis", softwarePath, rootSoftwareID,
 			`{"op": "add", "path": "/analysis", "value": {"scanner": {"v": 1}}},
 			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
 			"can't update Software", "software", "publiccode_yml", "-",
 		},
 		{
-			"softwarePath replace /analysis", softwarePath, italiaSoftwareID,
+			"softwarePath replace /analysis", softwarePath, rootSoftwareID,
 			`{"op": "replace", "path": "/analysis", "value": {}},
 			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
 			"can't update Software", "software", "publiccode_yml", "-",
 		},
 		{
-			"softwarePath remove /analysis", softwarePath, italiaSoftwareID,
+			"softwarePath remove /analysis", softwarePath, rootSoftwareID,
 			`{"op": "remove", "path": "/analysis"},
 			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
 			"can't update Software", "software", "publiccode_yml", "-",
 		},
 		{
-			"softwarePath add /analysis/scanner", softwarePath, italiaSoftwareID,
+			"softwarePath add /analysis/scanner", softwarePath, rootSoftwareID,
 			`{"op": "add", "path": "/analysis/scanner", "value": {"v": 1}},
 			 {"op": "replace", "path": "/publiccodeYml", "value": "patched"}`,
 			"can't update Software", "software", "publiccode_yml", "-",
