@@ -37,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The weekly fuzz job now fails when package or target discovery fails.
+- The weekly fuzz job now reports errors when listing Go packages or their
+  fuzz test functions (`Fuzz...`).
 - `?search` on a list other than the logs answered `500`. The parameter
   is now ignored there.
 - The Helm chart now renders a valid `autoscaling/v2` HPA and quotes the
