@@ -36,14 +36,7 @@ func (p *Software) GetAllSoftware(ctx *fiber.Ctx) error {
 		return common.Error(fiber.StatusUnprocessableEntity, "can't get Software", general.QueryErrorDetail(err))
 	}
 
-	stmt, found, err := softwareURLFilter(ctx, p.db, stmt, "can't get Software")
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return ctx.JSON(fiber.Map{"data": []any{}, "links": general.PaginationLinks{}})
-	}
+	stmt = softwareURLFilter(ctx, p.db, stmt)
 
 	return listSoftware(ctx, stmt)
 }
@@ -143,7 +136,12 @@ func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 		return err //nolint:wrapcheck
 	}
 
-	url := models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(softwareReq.URL)}
+	scope := ""
+	if catalogID != nil {
+		scope = *catalogID
+	}
+
+	url := models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(softwareReq.URL), CatalogID: scope}
 
 	if err := validateAliasURLs(url.URL, softwareReq.Aliases, errMsg); err != nil {
 		return err
@@ -151,7 +149,7 @@ func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 
 	aliases := []models.SoftwareURL{}
 	for _, u := range softwareReq.Aliases {
-		aliases = append(aliases, models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(u)})
+		aliases = append(aliases, models.SoftwareURL{ID: utils.UUIDv4(), URL: common.NormalizeURL(u), CatalogID: scope})
 	}
 
 	sort.Slice(aliases, func(a int, b int) bool {
@@ -235,6 +233,7 @@ func updateSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, software models.Software) e
 		updatedURL, aliases, err := syncAliases(
 			tran,
 			software.ID,
+			software.URL.CatalogID,
 			currentURLs,
 			updatedSoftware.URL.URL,
 			expectedAliases,
@@ -279,6 +278,7 @@ func updateSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, software models.Software) e
 func syncAliases( //nolint:cyclop // mostly error handling ifs
 	gormdb *gorm.DB,
 	softwareID string,
+	catalogID string,
 	currentURLs []models.SoftwareURL,
 	expectedURL string,
 	expectedAliases []string,
@@ -308,7 +308,7 @@ func syncAliases( //nolint:cyclop // mostly error handling ifs
 	for _, urlStr := range allSoftwareURLs {
 		_, exists := urlMap[urlStr]
 		if !exists {
-			su := models.SoftwareURL{ID: utils.UUIDv4(), URL: urlStr, SoftwareID: softwareID}
+			su := models.SoftwareURL{ID: utils.UUIDv4(), URL: urlStr, SoftwareID: softwareID, CatalogID: catalogID}
 
 			toAdd = append(toAdd, su)
 			urlMap[urlStr] = su
@@ -380,34 +380,25 @@ func (p *Software) PatchSoftwareAnalysis(ctx *fiber.Ctx) error {
 	})
 }
 
-// softwareURLFilter narrows stmt to the software owning the ?url query
-// parameter. found is false when no software has that url, so the caller
-// answers with an empty list instead of running the query. title is the
-// Problem JSON title of the 500 the caller would have written itself.
-func softwareURLFilter(ctx *fiber.Ctx, gormdb, stmt *gorm.DB, title string) (*gorm.DB, bool, error) {
+// softwareURLFilter matches every owner of a canonical URL or alias. The
+// caller's catalog scope still applies, while the global list can return
+// the same repository from several catalogs.
+func softwareURLFilter(ctx *fiber.Ctx, gormdb, stmt *gorm.DB) *gorm.DB {
 	url := common.NormalizeURL(ctx.Query("url", ""))
 	if url == "" {
-		return stmt, true, nil
+		return stmt
 	}
 
-	var softwareURL models.SoftwareURL
+	owners := gormdb.Model(&models.SoftwareURL{}).Select("software_id").Where("url = ?", url)
 
-	if err := gormdb.First(&softwareURL, "url = ?", url).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return stmt, false, nil
-		}
-
-		return nil, false, common.InternalServerError(title)
-	}
-
-	return stmt.Where("id = ?", softwareURL.SoftwareID), true, nil
+	return stmt.Where("id IN (?)", owners)
 }
 
 // listSoftware writes one page of the software matched by stmt and loads
 // its aliases. stmt must not Preload("URL"): that makes gorm guess a
 // has one through the software_id column and load an arbitrary url. The
-// ?from and ?to window is the caller's, GET /software applies it before
-// its ?url short circuit and the catalog software list does not declare it.
+// ?from and ?to window is the caller's, GET /software applies it and
+// the catalog software list does not declare it.
 func listSoftware(ctx *fiber.Ctx, stmt *gorm.DB) error {
 	stmt = stmt.Preload("Aliases")
 

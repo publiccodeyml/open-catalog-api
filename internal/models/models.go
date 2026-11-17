@@ -172,8 +172,10 @@ func (s Software) AnalysisDocument() common.AnalysisData {
 
 //nolint:musttag // we are using a custom MarshalJSON method
 type SoftwareURL struct {
-	ID         string    `gorm:"primarykey"`
-	URL        string    `gorm:"uniqueIndex"`
+	ID  string `gorm:"primarykey"`
+	URL string `gorm:"uniqueIndex:idx_software_urls_catalog_url,priority:1"`
+	// Empty CatalogID is the root catalog, so root URLs also remain unique.
+	CatalogID  string    `gorm:"not null;default:'';uniqueIndex:idx_software_urls_catalog_url,priority:2"`
 	SoftwareID string    `gorm:"not null;index"`
 	CreatedAt  time.Time `gorm:"index"`
 	UpdatedAt  time.Time

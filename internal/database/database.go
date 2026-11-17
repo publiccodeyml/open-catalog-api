@@ -154,6 +154,10 @@ func migrateModels(database *gorm.DB) error {
 		}
 	}
 
+	if err := migrateSoftwareURLs(database); err != nil {
+		return err
+	}
+
 	return migrateLogs(database)
 }
 
@@ -210,6 +214,29 @@ func createMissingLogIndexes(migrator gorm.Migrator, logs *schema.Schema) error 
 		if err := migrator.CreateIndex(&models.Log{}, index.Name); err != nil {
 			return fmt.Errorf("can't create index %q on \"logs\": %w", index.Name, err)
 		}
+	}
+
+	return nil
+}
+
+// migrateSoftwareURLs replaces global URL uniqueness after the new column
+// and composite index exist. Keep the old index until all owners are copied.
+func migrateSoftwareURLs(database *gorm.DB) error {
+	const oldIndex = "idx_software_urls_url"
+
+	if !database.Migrator().HasIndex(&models.SoftwareURL{}, oldIndex) {
+		return nil
+	}
+
+	if err := database.Transaction(func(tran *gorm.DB) error {
+		if err := tran.Exec(`UPDATE software_urls SET catalog_id = COALESCE(
+			(SELECT catalog_id FROM software WHERE software.id = software_urls.software_id), '')`).Error; err != nil {
+			return err
+		}
+
+		return tran.Migrator().DropIndex(&models.SoftwareURL{}, oldIndex)
+	}); err != nil {
+		return fmt.Errorf("can't migrate software URL ownership: %w", err)
 	}
 
 	return nil

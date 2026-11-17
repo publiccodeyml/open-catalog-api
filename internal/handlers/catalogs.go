@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
-	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
 )
@@ -397,14 +396,7 @@ func (c *Catalog) GetCatalogSoftware(ctx *fiber.Ctx) error {
 
 	stmt := c.db.Scopes(catalogScope(catalog))
 
-	stmt, found, err := softwareURLFilter(ctx, c.db, stmt, "can't get Software")
-	if err != nil {
-		return err
-	}
-
-	if !found {
-		return ctx.JSON(fiber.Map{"data": []any{}, "links": general.PaginationLinks{}})
-	}
+	stmt = softwareURLFilter(ctx, c.db, stmt)
 
 	return listSoftware(ctx, stmt)
 }

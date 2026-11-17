@@ -277,3 +277,45 @@ func TestNewDatabaseRejectsNonPositivePoolSize(t *testing.T) {
 		require.EqualError(t, err, "DATABASE_MAX_CONNECTIONS must be positive")
 	}
 }
+
+func TestMigrationScopesExistingSoftwareURLs(t *testing.T) {
+	connection := testConnection(t)
+	database := openDatabase(t, connection)
+	catalog := "catalog-migration"
+	require.NoError(t, database.Create(&models.Catalog{ID: catalog, Name: "Migration"}).Error)
+	for _, item := range []struct {
+		id      string
+		catalog *string
+	}{{"owned", &catalog}, {"root", nil}} {
+		scope := ""
+		if item.catalog != nil {
+			scope = *item.catalog
+		}
+		require.NoError(t, database.Create(&models.Software{
+			ID: item.id, CatalogID: item.catalog, SoftwareURLID: item.id + "-url",
+			URL:     models.SoftwareURL{ID: item.id + "-url", URL: "https://" + item.id + ".example.org", CatalogID: scope},
+			Aliases: []models.SoftwareURL{{ID: item.id + "-alias", URL: "https://" + item.id + "-alias.example.org", CatalogID: scope}},
+		}).Error)
+	}
+	// Recreate the old URL schema, which had only a global unique index.
+	require.NoError(t, database.Migrator().DropIndex(&models.SoftwareURL{}, "idx_software_urls_catalog_url"))
+	require.NoError(t, database.Exec("ALTER TABLE software_urls DROP COLUMN catalog_id").Error)
+	require.NoError(t, database.Exec("CREATE UNIQUE INDEX idx_software_urls_url ON software_urls (url)").Error)
+	migrated := openDatabase(t, connection)
+	require.False(t, migrated.Migrator().HasIndex(&models.SoftwareURL{}, "idx_software_urls_url"))
+	var urls []models.SoftwareURL
+	require.NoError(t, migrated.Order("id").Find(&urls).Error)
+	require.Len(t, urls, 4)
+	for _, u := range urls {
+		expected := ""
+		if u.SoftwareID == "owned" {
+			expected = catalog
+		}
+		assert.Equal(t, expected, u.CatalogID)
+	}
+	// Reopening must preserve the new ownership and allow the same URL in root.
+	migrated = openDatabase(t, connection)
+	require.NoError(t, migrated.Create(&models.SoftwareURL{ID: "shared", SoftwareID: "root", URL: "https://owned.example.org"}).Error)
+	err := migrated.Create(&models.SoftwareURL{ID: "duplicate", SoftwareID: "root", URL: "https://owned.example.org"}).Error
+	require.Error(t, err)
+}
