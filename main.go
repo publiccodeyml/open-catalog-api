@@ -283,7 +283,7 @@ func newResponseCache() fiber.Handler {
 			return ctx.Path() == "/v1/status" ||
 				requiresAuth(ctx.Method(), ctx.Path())
 		},
-		Methods:      []string{fiber.MethodGet, fiber.MethodHead},
+		Methods:      []string{fiber.MethodGet},
 		CacheControl: true,
 		Expiration:   10 * time.Second,
 		KeyGenerator: func(ctx *fiber.Ctx) string {
