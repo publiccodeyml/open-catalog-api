@@ -27,6 +27,8 @@ func QueryErrorDetail(err error) string {
 		return errInvalidPageSize.Error()
 	case errors.Is(err, errPageSizeOutOfRange):
 		return errPageSizeOutOfRange.Error()
+	case errors.Is(err, errBothCursors):
+		return errBothCursors.Error()
 	default:
 		log.Printf("unexpected query parameter error: %s", err)
 

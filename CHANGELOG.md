@@ -82,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The OpenAPI spec now documents the `url` filter on
   `GET /v1/catalogs/{catalogId}/software`, which the API already applied.
 - Webhook events from requests still running during shutdown are drained before exit.
+- List requests with both `page[after]` and `page[before]` return `422`
+  instead of ignoring `page[before]`.
 
 - Publisher PATCH responses include stored timestamps and the default group flag
   for newly added code hosting entries.

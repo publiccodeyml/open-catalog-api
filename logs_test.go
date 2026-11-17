@@ -130,6 +130,17 @@ func TestLogsEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "GET with both page[after] and page[before]",
+			query:       "GET /v1/logs?page[size]=3&page[after]=WyIyMDEwLTA3LTAxVDIzOjU5OjU5WiIsIjg1MWZlMGY0LTA0MmUtMTFlZC05MzNlLWQ4YmJjMTQ2ZDE2NSJd&page[before]=WyIyMDEwLTA2LTMwVDIzOjU5OjU5WiIsIjgyNTZmODgwLTA0MmUtMTFlZC04MmI5LWQ4YmJjMTQ2ZDE2NSJd",
+
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, `can't get Logs`, response["title"])
+				assert.Equal(t, "page[after] and page[before] cannot be used together", response["detail"])
+			},
+		},
+		{
 			description: "GET with page[before] query param",
 			query:       "GET /v1/logs?page[before]=WyIyMDEwLTA2LTMwVDIzOjU5OjU5WiIsIjgyNTZmODgwLTA0MmUtMTFlZC04MmI5LWQ4YmJjMTQ2ZDE2NSJd",
 

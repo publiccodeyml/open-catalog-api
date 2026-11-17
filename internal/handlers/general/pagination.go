@@ -28,6 +28,7 @@ var DefaultConfig = &paginator.Config{ //nolint:gochecknoglobals //can't turn it
 var (
 	errInvalidPageSize    = errors.New("page[size] must be an integer")
 	errPageSizeOutOfRange = fmt.Errorf("page[size] must be between 1 and %d", MaxLimitCount)
+	errBothCursors        = errors.New("page[after] and page[before] cannot be used together")
 )
 
 type PaginationLinks struct {
@@ -79,13 +80,22 @@ func NewPaginatorWithConfig(ctx *fiber.Ctx, config *paginator.Config) (*paginato
 		mergedConf.Order = config.Order
 	}
 
+	after := ctx.Query("page[after]")
+	before := ctx.Query("page[before]")
+
+	// The paginator applies only one cursor, so a request with both
+	// would silently lose page[before].
+	if after != "" && before != "" {
+		return nil, errBothCursors
+	}
+
 	paginator := paginator.New(&mergedConf)
 
-	if after := ctx.Query("page[after]"); after != "" {
+	if after != "" {
 		paginator.SetAfterCursor(after)
 	}
 
-	if before := ctx.Query("page[before]"); before != "" {
+	if before != "" {
 		paginator.SetBeforeCursor(before)
 	}
 

@@ -201,7 +201,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -210,7 +210,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
         - schema:
             type: string
@@ -464,7 +464,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -472,7 +472,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
         - schema:
             type: string
@@ -569,7 +569,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -577,7 +577,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
         - schema:
             type: string
@@ -693,7 +693,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -701,7 +701,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
         - schema:
             type: string
@@ -790,7 +790,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
         - schema:
             type: string
             minLength: 1
@@ -798,7 +798,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
       responses:
         '200':
           description: OK
@@ -982,7 +982,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -990,7 +990,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
         - schema:
             type: string
@@ -1181,7 +1181,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -1189,7 +1189,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
         - schema:
             type: string
@@ -1307,7 +1307,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -1315,7 +1315,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
       responses:
         '200':
@@ -1566,7 +1566,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -1574,7 +1574,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
       responses:
         '200':
@@ -1744,7 +1744,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -1752,7 +1752,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
       responses:
         '200':
@@ -1967,7 +1967,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -1975,7 +1975,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
         - schema:
             type: string
@@ -2160,14 +2160,14 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
         - schema:
             type: string
             maxLength: 255
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
         - schema:
             type: string
             format: date-time
@@ -2270,7 +2270,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -2278,7 +2278,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
         - schema:
             type: string
@@ -2394,7 +2394,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[before]'
-          description: Only results before this cursor
+          description: Only results before this cursor. Cannot be used with `page[after]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImJmZjEyMzQ1Il0='
         - schema:
             type: string
@@ -2402,7 +2402,7 @@ paths:
             pattern: '.*'
           in: query
           name: 'page[after]'
-          description: Only results after this cursor
+          description: Only results after this cursor. Cannot be used with `page[before]`.
           example: 'WyIyMDIyLTA2LTA3VDE0OjU2OjIzWiIsImFhYTEyMzQ1Il0='
         - schema:
             type: string

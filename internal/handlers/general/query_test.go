@@ -31,6 +31,11 @@ func TestQueryErrorDetail(t *testing.T) {
 			expected:    "page[size] must be between 1 and 100",
 		},
 		{
+			description: "both cursors keep their own message",
+			err:         errBothCursors,
+			expected:    "page[after] and page[before] cannot be used together",
+		},
+		{
 			description: "a wrapped known error loses the wrapping context",
 			err:         fmt.Errorf("while paginating: %w", errInvalidPageSize),
 			expected:    "page[size] must be an integer",
