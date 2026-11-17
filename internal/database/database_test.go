@@ -319,3 +319,46 @@ func TestMigrationScopesExistingSoftwareURLs(t *testing.T) {
 	err := migrated.Create(&models.SoftwareURL{ID: "duplicate", SoftwareID: "root", URL: "https://owned.example.org"}).Error
 	require.Error(t, err)
 }
+
+func TestMigrationRemovesWebhooksOfDeletedResources(t *testing.T) {
+	connection := testConnection(t)
+
+	database := openDatabase(t, connection)
+
+	publisher := models.Publisher{ID: "5b1cf1a4-3f1e-4c4e-9b0e-6a2f0c7d8e91", Description: "Live publisher"}
+	require.NoError(t, database.Session(&gorm.Session{SkipHooks: true}).Create(&publisher).Error)
+
+	webhooks := []models.Webhook{
+		{
+			ID:         "b2f6c0de-7a43-4f0e-8c51-0e6d9a1f2b37",
+			URL:        "https://example.org/live",
+			EntityID:   publisher.ID,
+			EntityType: "publishers",
+		},
+		{
+			ID:         "c8d1a7e2-5b94-4c3f-a0e6-1f7b2d9c4e58",
+			URL:        "https://example.org/deleted-publisher",
+			EntityID:   "e4a9b3c1-8d2f-4a6e-b7c0-3f5d1e9a2b64",
+			EntityType: "publishers",
+		},
+		{
+			ID:         "d3e7f1a9-2c6b-4e8d-9a1f-5b0c7e3d6a42",
+			URL:        "https://example.org/deleted-software",
+			EntityID:   "f7c2e5a8-1b3d-4f9e-8a6c-2d4b0e7f1c93",
+			EntityType: "software",
+		},
+		{
+			ID:         "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+			URL:        "https://example.org/all-publishers",
+			EntityType: "publishers",
+		},
+	}
+	require.NoError(t, database.Session(&gorm.Session{SkipHooks: true}).Create(&webhooks).Error)
+
+	migrated := openDatabase(t, connection)
+
+	var remaining []string
+	require.NoError(t, migrated.Model(&models.Webhook{}).Order("url").Pluck("url", &remaining).Error)
+
+	assert.Equal(t, []string{"https://example.org/all-publishers", "https://example.org/live"}, remaining)
+}

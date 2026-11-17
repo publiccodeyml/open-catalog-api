@@ -158,7 +158,35 @@ func migrateModels(database *gorm.DB) error {
 		return err
 	}
 
+	if err := removeOrphanResourceWebhooks(database); err != nil {
+		return err
+	}
+
 	return migrateLogs(database)
+}
+
+// removeOrphanResourceWebhooks deletes the webhooks left behind by
+// publishers and software deleted before their deletion removed them too.
+// Type wide webhooks have an empty entity_id and are kept.
+func removeOrphanResourceWebhooks(database *gorm.DB) error {
+	for _, table := range []string{
+		models.Publisher{}.TableName(),
+		models.Software{}.TableName(),
+	} {
+		result := database.Session(&gorm.Session{SkipHooks: true}).
+			Where("entity_type = ? AND entity_id <> ''", table).
+			Where("NOT EXISTS (?)", database.Table(table).Select("1").Where(table+".id = webhooks.entity_id")).
+			Delete(&models.Webhook{})
+		if result.Error != nil {
+			return fmt.Errorf("can't remove the webhooks of deleted %s: %w", table, result.Error)
+		}
+
+		if result.RowsAffected > 0 {
+			log.Printf("removed %d webhooks of deleted %s", result.RowsAffected, table)
+		}
+	}
+
+	return nil
 }
 
 const entityField = "Entity"
