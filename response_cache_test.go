@@ -20,8 +20,8 @@ func TestResponseCacheSeparatesPathAndQuery(t *testing.T) {
 		alternativeID string
 		target        string
 	}{
-		{"2ded32eb-c45e-4167-9166-a44e18b8adde", "a", "/v1/publishers/a?b"},
-		{"47807e0c-0613-4aea-9917-5455cc6eddad", "ab", "/v1/publishers/ab"},
+		{"2ded32eb-c45e-4167-9166-a44e18b8adde", "a", "/v1/publishers/a?b=c"},
+		{"47807e0c-0613-4aea-9917-5455cc6eddad", "ab=c", "/v1/publishers/ab=c"},
 	}
 	for _, publisher := range publishers {
 		require.NoError(t, gormDB.Model(&models.Publisher{}).
