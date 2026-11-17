@@ -322,7 +322,7 @@ func TestEventsEndpoints(t *testing.T) {
 			query:               "GET /v1/events?entityType=" + entityType,
 			headers:             authHeaders,
 			expectedCode:        200,
-			expectedContentType: "application/json; charset=utf-8",
+			expectedContentType: "application/json",
 			validateFunc: func(t *testing.T, response map[string]any) {
 				data := assertListResponse(t, response)
 				assert.Len(t, data, count)
