@@ -2027,12 +2027,12 @@ paths:
     parameters:
       - schema:
           type: string
-          maxLength: 36
-          pattern: '[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}'
+          maxLength: 255
+          pattern: '.*'
           example: '2ded32eb-c45e-4167-9166-a44e18b8adde'
         name: publisherId
         in: path
-        description: The ID of the Publisher
+        description: The publisher UUID or alternativeId
         required: true
     get:
       summary: Get a Publisher
