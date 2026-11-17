@@ -1709,7 +1709,7 @@ func TestPublishersEscapedAlternativeID(t *testing.T) {
 	req, err := newTestRequest(http.MethodGet, publisherPath+escaped+"?escapedAlternativeID=1", nil)
 	require.NoError(t, err)
 
-	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
+	res, err := app.Test(req, -1)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
 
@@ -1730,7 +1730,7 @@ func TestPublishersEscapedAlternativeID(t *testing.T) {
 	require.NoError(t, err)
 	req.Header.Set("Authorization", goodToken)
 
-	res, err = app.Test(req, fiber.TestConfig{Timeout: 0})
+	res, err = app.Test(req, -1)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, res.Body.Close()) })
 	assert.Equal(t, 204, res.StatusCode)
