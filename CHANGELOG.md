@@ -192,6 +192,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- The Helm chart disables Kubernetes API token mounting in the API pod
+  by default. Set `serviceAccount.automount` to `true` to enable it.
+
 - PASETO tokens now enforce expiration, not before and issued at claims
   when present. Expired tokens and tokens dated in the future are refused.
 - Webhook read endpoints now require authentication, including lists

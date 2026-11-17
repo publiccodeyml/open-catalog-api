@@ -51,6 +51,7 @@ Kubernetes: `>=1.23.0-0`
 | service.port | int | `80` |  |
 | service.type | string | `"ClusterIP"` |  |
 | serviceAccount.annotations | object | `{}` |  |
+| serviceAccount.automount | bool | `false` | Mount a Kubernetes API token in the API pod. |
 | serviceAccount.create | bool | `true` |  |
 | serviceAccount.name | string | `""` |  |
 | serviceMonitor.additionalLabels | object | `{}` |  |
