@@ -303,7 +303,7 @@ func TestResourceWebhookListsReturnOnlyTheirType(t *testing.T) {
 			require.NoError(t, err)
 			request.Header.Set("Authorization", goodToken)
 
-			response, err := app.Test(request, fiber.TestConfig{Timeout: 0})
+			response, err := app.Test(request, -1)
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, response.Body.Close()) })
 			require.Equal(t, http.StatusOK, response.StatusCode)
