@@ -39,8 +39,7 @@ func main() {
 		Short: "Serve the Open Catalog API",
 		Long: `Serve the Open Catalog API on port 3000.
 
-Configure it with environment variables such as DATABASE_DSN and
-PASETO_KEY. See the Configuration section of the README for the full list:
+See the README for configuration:
 https://github.com/publiccodeyml/open-catalog-api#configuration`,
 		SilenceUsage: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
