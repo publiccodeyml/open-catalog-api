@@ -58,7 +58,7 @@ jobs:
 
       - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7
         with:
-          version: v2.15.2
+          version: v2.20.2
           args: release --config .goreleaser.staging.yaml
 
       - name: Read the pushed image out of goreleaser's artifact list
