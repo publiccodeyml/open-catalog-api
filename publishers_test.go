@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"slices"
 	"strings"
@@ -1316,13 +1317,24 @@ func TestPublishersPatchCodeHostingGroup(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, 200, res.StatusCode, "body: %s", out)
 
+			// PostgreSQL stores microseconds, so a reload drops the
+			// nanoseconds the PATCH response still carries.
+			microseconds := func(entry map[string]any) map[string]any {
+				out := maps.Clone(entry)
+				for _, key := range []string{"createdAt", "updatedAt"} {
+					out[key] = assertRFC3339(t, entry[key]).Truncate(time.Microsecond).Format(time.RFC3339Nano)
+				}
+
+				return out
+			}
+
 			added := map[string]any{}
 			for _, ch := range decodeJSON(t, body)["codeHosting"].([]any) {
 				entry := ch.(map[string]any)
 				if entry["url"] == addedURL || entry["url"] == defaultURL {
 					assert.False(t, assertRFC3339(t, entry["createdAt"]).IsZero())
 					assert.False(t, assertRFC3339(t, entry["updatedAt"]).IsZero())
-					added[entry["url"].(string)] = entry
+					added[entry["url"].(string)] = microseconds(entry)
 				}
 			}
 			require.Len(t, added, 2)
@@ -1332,7 +1344,7 @@ func TestPublishersPatchCodeHostingGroup(t *testing.T) {
 				entry := ch.(map[string]any)
 				groups[entry["url"].(string)] = entry["group"]
 				if entry["url"] == addedURL || entry["url"] == defaultURL {
-					assert.Equal(t, entry, added[entry["url"].(string)])
+					assert.Equal(t, microseconds(entry), added[entry["url"].(string)])
 				}
 			}
 
