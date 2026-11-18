@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v2"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"github.com/publiccodeyml/open-catalog-api/internal/webhooks"
 	"github.com/stretchr/testify/require"
@@ -23,7 +23,7 @@ func TestShutdownDrainsEventsFromActiveRequests(t *testing.T) { //nolint:funlen
 	app := fiber.New()
 	entered := make(chan struct{})
 	release := make(chan struct{})
-	app.Post("/write", func(ctx fiber.Ctx) error {
+	app.Post("/write", func(ctx *fiber.Ctx) error {
 		close(entered)
 		<-release
 		for _, id := range []string{"first", "second", "third"} {
