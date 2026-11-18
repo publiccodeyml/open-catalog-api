@@ -97,7 +97,7 @@ jobs:
           cache: false
       - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7
         with:
-          version: v2.15.2
+          version: v2.20.2
           install-only: true
       - name: Build the release artifact with goreleaser
         run: goreleaser build --snapshot --clean --single-target -o /tmp/goreleaser-build
@@ -136,7 +136,7 @@ jobs:
           cache: false
       - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7
         with:
-          version: v2.15.2
+          version: v2.20.2
           install-only: true
       - run: go install github.com/reproducible-containers/diffoci/cmd/diffoci@v0.1.8
       - # The reproducibility flags in the goreleaser configs need a
