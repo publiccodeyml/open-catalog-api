@@ -1185,7 +1185,7 @@ func TestPublishersPostDuplicateCodeHosting(t *testing.T) {
 	req.Header.Set("Authorization", goodToken)
 	req.Header.Set("Content-Type", "application/json")
 
-	res, err := app.Test(req, fiber.TestConfig{Timeout: 0})
+	res, err := app.Test(req, -1)
 	require.NoError(t, err)
 	defer res.Body.Close()
 
