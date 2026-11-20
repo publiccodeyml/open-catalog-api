@@ -470,3 +470,80 @@ func TestConcurrentMigrationsOnAnEmptyDatabase(t *testing.T) {
 		})
 	}
 }
+
+// openWithOneConnection opens the database with a single pooled
+// connection, so every query reuses whatever that connection cached.
+func openWithOneConnection(t *testing.T, connection string) *gorm.DB {
+	t.Helper()
+
+	database, err := NewDatabase(connection, 1)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		if pool, err := database.DB(); err == nil {
+			_ = pool.Close()
+		}
+	})
+
+	return database
+}
+
+// addPublishersColumn adds a column from another connection, as a newer
+// release migrating the schema does.
+func addPublishersColumn(t *testing.T, connection string) {
+	t.Helper()
+
+	other, err := gorm.Open(postgres.Open(connection), &gorm.Config{})
+	require.NoError(t, err)
+
+	require.NoError(t, other.Exec("ALTER TABLE publishers ADD COLUMN added_by_upgrade text").Error)
+
+	if pool, err := other.DB(); err == nil {
+		_ = pool.Close()
+	}
+}
+
+func postgresOnlyTestConnection(t *testing.T) string {
+	t.Helper()
+
+	connection := testConnection(t)
+	if dialect, _ := DialectFromDSN(connection); dialect != Postgres {
+		t.Skip("PostgreSQL only: SQLite has no prepared statements across connections")
+	}
+
+	return connection
+}
+
+func TestReadsKeepWorkingAfterAnotherInstanceAddsAColumn(t *testing.T) {
+	connection := postgresOnlyTestConnection(t)
+	database := openWithOneConnection(t, connection)
+
+	require.NoError(t, database.Find(&[]models.Publisher{}).Error)
+
+	addPublishersColumn(t, connection)
+
+	for range 3 {
+		require.NoError(t, database.Find(&[]models.Publisher{}).Error)
+	}
+}
+
+func TestQueryExecModeFromTheDSNIsKept(t *testing.T) {
+	connection := postgresOnlyTestConnection(t)
+
+	parsed, err := url.Parse(connection)
+	require.NoError(t, err)
+
+	query := parsed.Query()
+	query.Set("default_query_exec_mode", "cache_statement")
+	parsed.RawQuery = query.Encode()
+
+	database := openWithOneConnection(t, parsed.String())
+
+	require.NoError(t, database.Find(&[]models.Publisher{}).Error)
+
+	addPublishersColumn(t, connection)
+
+	// The pgx statement cache fails once, then prepares the query again.
+	require.ErrorContains(t, database.Find(&[]models.Publisher{}).Error, "0A000")
+	require.NoError(t, database.Find(&[]models.Publisher{}).Error)
+}

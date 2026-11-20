@@ -62,6 +62,11 @@ You can configure the API with environment variables:
   At startup the API creates the `pg_trgm` extension to index log
   searches, which needs the `CREATE` privilege on the database. Without
   it the API starts and log searches run unindexed.
+  Queries don't use prepared statements, so a schema change by a newer
+  release doesn't break the replicas of the previous one. Add
+  `default_query_exec_mode=cache_statement` to the DSN to cache them
+  instead, at the cost of one failed query per connection after such a
+  change.
   SQLite requires a build with cgo enabled (`CGO_ENABLED=1`), for tests
   and local development.
 
