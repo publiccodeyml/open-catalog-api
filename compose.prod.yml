@@ -1,0 +1,36 @@
+# Production deployment. Copy .env.example to .env, fill it in and run
+# docker compose -f compose.prod.yml up -d
+services:
+  api:
+    image: ghcr.io/publiccodeyml/open-catalog-api:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        # The API panics when it cannot connect at startup.
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      DATABASE_DSN: "host=db user=postgres password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env} dbname=postgres port=5432"
+      ENVIRONMENT: production
+      PASETO_KEY: "${PASETO_KEY:-}"
+      MAX_REQUESTS: "${MAX_REQUESTS:-0}"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-}"
+
+  db:
+    # Same image as docker-compose.yml
+    image: postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+    volumes:
+      # Postgres 18 keeps its data in a versioned directory under this path.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  pgdata:

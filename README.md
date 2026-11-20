@@ -124,6 +124,19 @@ You can configure the API with environment variables:
   Values must be between `0` and `106751` days.
   Default: `365`.
 
+## Production with Docker Compose
+
+`compose.prod.yml` runs the published image with a PostgreSQL
+container. Copy `.env.example` to `.env`, set at least
+`POSTGRES_PASSWORD`, then start it:
+
+```shell
+docker compose -f compose.prod.yml up -d
+```
+
+The API listens on `127.0.0.1:3000`. Put a reverse proxy in front of it
+and set `TRUSTED_PROXIES` as described above.
+
 ## Contributing
 
 This project exists also thanks to your contributions! Here is a list of

@@ -3,7 +3,9 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - db
+      db:
+        # The API panics when it cannot connect at startup.
+        condition: service_healthy
     networks:
       - default
     volumes:
@@ -20,10 +22,13 @@ services:
     image: postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
     restart: always
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "test"]
-      interval: 10s
+      # Over TCP: while the entrypoint creates the databases, Postgres
+      # listens on the Unix socket only, so a socket check passes before
+      # the API can connect.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"]
+      interval: 2s
       timeout: 5s
-      retries: 5
+      retries: 30
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
