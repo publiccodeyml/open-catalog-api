@@ -127,20 +127,20 @@ func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 		AlternativeID: request.AlternativeID,
 	}
 
-	seenURLs := make(map[string]struct{}, len(request.CodeHosting))
+	urls := make([]string, 0, len(request.CodeHosting))
 	for _, codeHost := range request.CodeHosting {
-		url := common.NormalizeURL(codeHost.URL)
-		if _, exists := seenURLs[url]; exists {
-			return common.Error(fiber.StatusUnprocessableEntity, errMsg,
-				fmt.Sprintf("codeHosting url %s repeats another entry", codeHost.URL))
-		}
+		urls = append(urls, codeHost.URL)
+	}
 
-		seenURLs[url] = struct{}{}
+	if err := validateCodeHostingURLs(urls, errMsg); err != nil {
+		return err
+	}
 
+	for _, codeHost := range request.CodeHosting {
 		publisher.CodeHosting = append(publisher.CodeHosting,
 			models.CodeHosting{
 				ID:    utils.UUIDv4(),
-				URL:   url,
+				URL:   common.NormalizeURL(codeHost.URL),
 				Group: codeHost.Group,
 			})
 	}
@@ -160,6 +160,24 @@ func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	}
 
 	return ctx.JSON(publisher)
+}
+
+// validateCodeHostingURLs rejects codeHosting urls that normalize to an
+// earlier entry. Merging them would keep one group flag and drop the other.
+func validateCodeHostingURLs(urls []string, title string) error {
+	seen := make(map[string]struct{}, len(urls))
+
+	for _, url := range urls {
+		normalized := common.NormalizeURL(url)
+		if _, exists := seen[normalized]; exists {
+			return common.Error(fiber.StatusUnprocessableEntity, title,
+				fmt.Sprintf("codeHosting url %s repeats another entry", url))
+		}
+
+		seen[normalized] = struct{}{}
+	}
+
+	return nil
 }
 
 // updatePublisher applies the PATCH body to publisher and saves it in

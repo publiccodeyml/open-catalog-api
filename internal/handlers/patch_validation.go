@@ -27,7 +27,11 @@ func validatePatchedSoftware(software models.Software, title string) error {
 		Vitality:      software.Vitality,
 	}
 
-	return validatePatchedEntity(request, title)
+	if err := validatePatchedEntity(request, title); err != nil {
+		return err
+	}
+
+	return validateAliasURLs(common.NormalizeURL(software.URL.URL), aliases, title)
 }
 
 func validatePatchedPublisher(publisher models.Publisher, title string) error {
@@ -36,11 +40,14 @@ func validatePatchedPublisher(publisher models.Publisher, title string) error {
 	}
 
 	codeHosting := make([]common.CodeHosting, 0, len(publisher.CodeHosting))
+	urls := make([]string, 0, len(publisher.CodeHosting))
+
 	for _, codeHost := range publisher.CodeHosting {
 		codeHosting = append(codeHosting, common.CodeHosting{
 			URL:   codeHost.URL,
 			Group: codeHost.Group,
 		})
+		urls = append(urls, codeHost.URL)
 	}
 
 	request := common.PublisherPatch{
@@ -51,7 +58,11 @@ func validatePatchedPublisher(publisher models.Publisher, title string) error {
 		AlternativeID: publisher.AlternativeID,
 	}
 
-	return validatePatchedEntity(request, title)
+	if err := validatePatchedEntity(request, title); err != nil {
+		return err
+	}
+
+	return validateCodeHostingURLs(urls, title)
 }
 
 func validatePatchedCatalog(catalog models.Catalog, title string) error {

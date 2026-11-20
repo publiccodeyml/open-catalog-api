@@ -208,8 +208,9 @@ func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 }
 
 // validateAliasURLs rejects aliases that normalize to the canonical url or
-// to an earlier alias. Without it the request fails on the unique index with
-// a 409 that cannot be told apart from a URL owned by another software.
+// to an earlier alias. Without it a POST fails on the unique index with a
+// 409 that cannot be told apart from a URL owned by another software, and a
+// PATCH merges the repeats into one row.
 func validateAliasURLs(url string, aliases []string, title string) error {
 	seen := make(map[string]struct{}, len(aliases))
 
