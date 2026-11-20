@@ -126,9 +126,9 @@ You can configure the API with environment variables:
 
 ## Production with Docker Compose
 
-`compose.prod.yml` runs the published image with a PostgreSQL
-container. Copy `.env.example` to `.env`, set at least
-`POSTGRES_PASSWORD`, then start it:
+`compose.prod.yml` runs the `stable` image, the latest release that is
+not a prerelease, with a PostgreSQL container. Copy `.env.example` to
+`.env`, set at least `POSTGRES_PASSWORD`, then start it:
 
 ```shell
 docker compose -f compose.prod.yml up -d

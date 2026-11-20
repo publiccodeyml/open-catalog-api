@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   vulnerabilities.
 - `compose.prod.yml` and `.env.example` to run the published image with
   PostgreSQL through Docker Compose.
+- A `stable` container image tag, moved by every release that is not a
+  prerelease.
 - `entityType`, `entityId`, `type` and `actor` filters on `GET /v1/events`.
 - An `extraEnv` value on the Helm chart, for environment variables
   without a dedicated chart value.
