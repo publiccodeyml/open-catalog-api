@@ -117,6 +117,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `PATCH /v1/software/{id}/analysis` and `PATCH /v1/catalogs/{id}/analysis`
   answer `500` on SQLite. Namespaces may now nest at most 64 objects and
   arrays, and deeper ones get `422` on both databases.
+- An analysis number outside the PostgreSQL `numeric` range, such as
+  `1e131072`, made the analysis `PATCH` answer `500` on PostgreSQL.
+  Numbers must now fit a float64, with an exponent between -16383 and
+  16383 and at most 16383 digits after the decimal point, and others get
+  `422` on both databases.
 - The analysis of a software or catalog grew without limit when each
   `PATCH` added a new namespace. A merged document larger than 1 MiB is
   now rejected with `422` and nothing is written. Patches that only remove
