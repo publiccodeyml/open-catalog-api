@@ -67,17 +67,14 @@ func (p *Software) PostSoftware(ctx *fiber.Ctx) error {
 func (p *Software) PatchSoftware(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Software"
 
-	software := models.Software{}
-
-	if err := loadSoftware(p.db, &software, ctx.Params("id")); err != nil {
-		if errors.Is(err, errLoadNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
+	return patchInTransaction(ctx, p.db, errMsg, func(tran *gorm.DB) (*models.Software, error) {
+		software, err := lockSoftware(tran, ctx.Params("id"), errMsg)
+		if err != nil {
+			return nil, err
 		}
 
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
-	}
-
-	return updateSoftware(ctx, writeDB(ctx, p.db), software)
+		return updateSoftware(ctx, tran, *software)
+	})
 }
 
 // DeleteSoftware deletes the software with the given ID.
@@ -97,6 +94,28 @@ func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.SendStatus(fiber.StatusNoContent)
+}
+
+// lockSoftware locks the software with the given id, see lockRow, and
+// loads it. Errors are Problem JSON errors, ready to be returned from a
+// handler as they are.
+func lockSoftware(tran *gorm.DB, id, title string) (*models.Software, error) {
+	software := models.Software{}
+
+	err := lockRow[models.Software](tran, "id = ?", id)
+	if err == nil {
+		err = loadSoftware(tran, &software, id)
+	}
+
+	if err != nil {
+		if errors.Is(err, errLoadNotFound) {
+			return nil, common.Error(fiber.StatusNotFound, title, "Software was not found")
+		}
+
+		return nil, common.InternalServerError(title)
+	}
+
+	return &software, nil
 }
 
 func loadSoftware(gormdb *gorm.DB, software *models.Software, id string) error {
@@ -203,19 +222,18 @@ func validateAliasURLs(url string, aliases []string, title string) error {
 	return nil
 }
 
-// updateSoftware applies the PATCH body to software and saves it, keeping
-// its canonical URL and its aliases in sync.
-func updateSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, software models.Software) error {
-	const errMsg = "can't update Software"
-
+// updateSoftware applies the PATCH body to software and saves it in tran,
+// keeping its canonical URL and its aliases in sync. It runs under
+// patchInTransaction, with software read after the lock.
+func updateSoftware(ctx *fiber.Ctx, tran *gorm.DB, software models.Software) (*models.Software, error) {
 	updatedSoftware, err := applyPatch(ctx, &software, patchOptions[models.Software]{
-		title:    errMsg,
+		title:    "can't update Software",
 		request:  &common.SoftwarePatch{},
 		restore:  restoreSoftware,
 		validate: validatePatchedSoftware,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	updatedSoftware.URL.URL = common.NormalizeURL(updatedSoftware.URL.URL)
@@ -226,49 +244,43 @@ func updateSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, software models.Software) e
 		expectedAliases = append(expectedAliases, common.NormalizeURL(alias.URL))
 	}
 
-	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
-		//nolint:gocritic // it's fine, we want to append to another slice
-		currentURLs := append(software.Aliases, software.URL)
+	//nolint:gocritic // it's fine, we want to append to another slice
+	currentURLs := append(software.Aliases, software.URL)
 
-		updatedURL, aliases, err := syncAliases(
-			tran,
-			software.ID,
-			software.URL.CatalogID,
-			currentURLs,
-			updatedSoftware.URL.URL,
-			expectedAliases,
-		)
-		if err != nil {
-			return err
-		}
-
-		// Manually set the canonical URL via the foreign key because of a limitation in gorm
-		updatedSoftware.SoftwareURLID = updatedURL.ID
-		updatedSoftware.URL = *updatedURL
-
-		// Set Aliases to a zero value, so it's not touched by gorm's Update(),
-		// because we handle the alias manually
-		updatedSoftware.Aliases = []models.SoftwareURL{}
-
-		err = updateColumns(tran, &updatedSoftware,
-			"PubliccodeYml", "Active", "Vitality", "SoftwareURLID")
-		if err != nil {
-			return err
-		}
-
-		updatedSoftware.Aliases = aliases
-
-		return nil
-	}); err != nil {
-		return writeError(err, errMsg)
+	updatedURL, aliases, err := syncAliases(
+		tran,
+		software.ID,
+		software.URL.CatalogID,
+		currentURLs,
+		updatedSoftware.URL.URL,
+		expectedAliases,
+	)
+	if err != nil {
+		return nil, err
 	}
+
+	// Manually set the canonical URL via the foreign key because of a limitation in gorm
+	updatedSoftware.SoftwareURLID = updatedURL.ID
+	updatedSoftware.URL = *updatedURL
+
+	// Set Aliases to a zero value, so it's not touched by gorm's Update(),
+	// because we handle the alias manually
+	updatedSoftware.Aliases = []models.SoftwareURL{}
+
+	err = updateColumns(tran, &updatedSoftware,
+		"PubliccodeYml", "Active", "Vitality", "SoftwareURLID")
+	if err != nil {
+		return nil, err
+	}
+
+	updatedSoftware.Aliases = aliases
 
 	// Sort the aliases to always have a consistent output
 	sort.Slice(updatedSoftware.Aliases, func(a int, b int) bool {
 		return updatedSoftware.Aliases[a].URL < updatedSoftware.Aliases[b].URL
 	})
 
-	return ctx.JSON(&updatedSoftware)
+	return &updatedSoftware, nil
 }
 
 // syncAliases synchs the SoftwareURLs for a `Software` in the database to reflect the

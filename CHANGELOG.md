@@ -209,6 +209,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the webhooks.
 - On shutdown, the process could exit before delivering the webhooks of
   events still in the debounce queue.
+- Two concurrent `PATCH` requests on the same software, publisher,
+  catalog, bundle or log both answered `200`, but the later one put back
+  the fields the earlier one had changed. A JSON Patch `test` operation
+  now also checks the stored row.
 
 ### Security
 

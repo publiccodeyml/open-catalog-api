@@ -53,18 +53,23 @@ func (p *Publisher) PostPublisher(ctx *fiber.Ctx) error {
 // PatchPublisher updates the publisher with the given ID.
 // Supports both JSON Merge Patch (default) and JSON Patch (application/json-patch+json).
 func (p *Publisher) PatchPublisher(ctx *fiber.Ctx) error {
-	// Preload will load all the associated CodeHosting. We'll manually handle that later.
-	found, err := findOne[models.Publisher](p.db, ctx.Params("id"), findOptions{
-		title:           "can't update Publisher",
-		name:            publisherEntityName,
-		byAlternativeID: true,
-		preloads:        []string{codeHostingAssociation},
-	})
-	if err != nil {
-		return err
-	}
+	const errMsg = "can't update Publisher"
 
-	return updatePublisher(ctx, writeDB(ctx, p.db), *found)
+	return patchInTransaction(ctx, p.db, errMsg, func(tran *gorm.DB) (*models.Publisher, error) {
+		// Preload will load all the associated CodeHosting. We'll manually handle that later.
+		found, err := findOne[models.Publisher](tran, ctx.Params("id"), findOptions{
+			title:           errMsg,
+			name:            publisherEntityName,
+			byAlternativeID: true,
+			preloads:        []string{codeHostingAssociation},
+			lock:            true,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return updatePublisher(ctx, tran, *found)
+	})
 }
 
 // DeletePublisher deletes the publisher with the given ID. The lookup
@@ -150,19 +155,18 @@ func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	return ctx.JSON(publisher)
 }
 
-// updatePublisher applies the PATCH body to publisher and saves it, keeping
-// its CodeHosting in sync.
-func updatePublisher(ctx *fiber.Ctx, gormdb *gorm.DB, publisher models.Publisher) error {
-	const errMsg = "can't update Publisher"
-
+// updatePublisher applies the PATCH body to publisher and saves it in
+// tran, keeping its CodeHosting in sync. It runs under patchInTransaction,
+// with publisher read after the lock.
+func updatePublisher(ctx *fiber.Ctx, tran *gorm.DB, publisher models.Publisher) (*models.Publisher, error) {
 	updatedPublisher, err := applyPatch(ctx, &publisher, patchOptions[models.Publisher]{
-		title:    errMsg,
+		title:    "can't update Publisher",
 		request:  new(common.PublisherPatch),
 		restore:  restorePublisher,
 		validate: validatePatchedPublisher,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	updatedPublisher.Email = common.NormalizeEmail(updatedPublisher.Email)
@@ -173,46 +177,40 @@ func updatePublisher(ctx *fiber.Ctx, gormdb *gorm.DB, publisher models.Publisher
 			models.CodeHosting{URL: common.NormalizeURL(ch.URL), Group: ch.Group})
 	}
 
-	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
-		if updatedPublisher.AlternativeID != nil &&
-			(publisher.AlternativeID == nil || *updatedPublisher.AlternativeID != *publisher.AlternativeID) {
-			if err := checkAlternativeIDConflict(tran, *updatedPublisher.AlternativeID); err != nil {
-				return err
-			}
+	if updatedPublisher.AlternativeID != nil &&
+		(publisher.AlternativeID == nil || *updatedPublisher.AlternativeID != *publisher.AlternativeID) {
+		if err := checkAlternativeIDConflict(tran, *updatedPublisher.AlternativeID); err != nil {
+			return nil, err
 		}
-
-		codeHosting, err := syncCodeHosting(tran, publisher, expectedCodeHosting)
-		if err != nil {
-			return err
-		}
-
-		publisher.Description = updatedPublisher.Description
-		publisher.Email = updatedPublisher.Email
-		publisher.Active = updatedPublisher.Active
-		publisher.AlternativeID = updatedPublisher.AlternativeID
-
-		// Set CodeHosting to a zero value, so it's not touched by gorm's Update(),
-		// because we handle it manually via syncCodeHosting.
-		publisher.CodeHosting = []models.CodeHosting{}
-
-		err = updateColumns(tran, &publisher, "Description", "Email", "Active", "AlternativeID")
-		if err != nil {
-			return err
-		}
-
-		publisher.CodeHosting = codeHosting
-
-		return nil
-	}); err != nil {
-		return writeError(err, errMsg)
 	}
+
+	codeHosting, err := syncCodeHosting(tran, publisher, expectedCodeHosting)
+	if err != nil {
+		return nil, err
+	}
+
+	publisher.Description = updatedPublisher.Description
+	publisher.Email = updatedPublisher.Email
+	publisher.Active = updatedPublisher.Active
+	publisher.AlternativeID = updatedPublisher.AlternativeID
+
+	// Set CodeHosting to a zero value, so it's not touched by gorm's Update(),
+	// because we handle it manually via syncCodeHosting.
+	publisher.CodeHosting = []models.CodeHosting{}
+
+	err = updateColumns(tran, &publisher, "Description", "Email", "Active", "AlternativeID")
+	if err != nil {
+		return nil, err
+	}
+
+	publisher.CodeHosting = codeHosting
 
 	// Sort codeHosting to always have a consistent output.
 	sort.Slice(publisher.CodeHosting, func(a int, b int) bool {
 		return publisher.CodeHosting[a].URL < publisher.CodeHosting[b].URL
 	})
 
-	return ctx.JSON(&publisher)
+	return &publisher, nil
 }
 
 // idConflictError is returned when alternativeId conflicts with an existing publisher's primary key.

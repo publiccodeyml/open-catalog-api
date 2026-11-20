@@ -63,26 +63,28 @@ func (p *Log) PostLog(ctx *fiber.Ctx) error {
 func (p *Log) PatchLog(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Log"
 
-	log, err := findOne[models.Log](p.db, ctx.Params("id"), findOptions{title: errMsg, name: "Log"})
-	if err != nil {
-		return err
-	}
+	return patchInTransaction(ctx, p.db, errMsg, func(tran *gorm.DB) (*models.Log, error) {
+		log, err := findOne[models.Log](tran, ctx.Params("id"), findOptions{title: errMsg, name: "Log", lock: true})
+		if err != nil {
+			return nil, err
+		}
 
-	updatedLog, err := applyPatch(ctx, log, patchOptions[models.Log]{
-		title:    errMsg,
-		request:  &common.Log{},
-		restore:  restoreLog,
-		validate: validatePatchedLog,
+		updatedLog, err := applyPatch(ctx, log, patchOptions[models.Log]{
+			title:    errMsg,
+			request:  &common.Log{},
+			restore:  restoreLog,
+			validate: validatePatchedLog,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if err := tran.Updates(&updatedLog).Error; err != nil {
+			return nil, err
+		}
+
+		return &updatedLog, nil
 	})
-	if err != nil {
-		return err
-	}
-
-	if err := p.db.Updates(&updatedLog).Error; err != nil {
-		return common.InternalServerError(errMsg)
-	}
-
-	return ctx.JSON(&updatedLog)
 }
 
 // DeleteLog deletes the log with the given ID.

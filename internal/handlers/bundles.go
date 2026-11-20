@@ -82,51 +82,61 @@ func (b *Bundle) PostBundle(ctx *fiber.Ctx) error {
 func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Bundle"
 
-	bundle, err := findOne[models.Bundle](b.db, ctx.Params("id"), findOptions{
-		title:    errMsg,
-		name:     bundleEntityName,
-		preloads: []string{softwareAssociation},
-	})
-	if err != nil {
-		return err
-	}
+	return patchInTransaction(ctx, b.db, errMsg, func(tran *gorm.DB) (*models.Bundle, error) {
+		bundle, err := findOne[models.Bundle](tran, ctx.Params("id"), findOptions{
+			title:    errMsg,
+			name:     bundleEntityName,
+			preloads: []string{softwareAssociation},
+			lock:     true,
+		})
+		if err != nil {
+			return nil, err
+		}
 
-	updatedBundle, err := applyPatch(ctx, bundle, patchOptions[models.Bundle]{
+		return updateBundle(ctx, tran, *bundle)
+	})
+}
+
+// updateBundle applies the PATCH body to bundle and saves it in tran,
+// with its software. It runs under patchInTransaction, with bundle read
+// after the lock.
+func updateBundle(ctx *fiber.Ctx, tran *gorm.DB, bundle models.Bundle) (*models.Bundle, error) {
+	const errMsg = "can't update Bundle"
+
+	updatedBundle, err := applyPatch(ctx, &bundle, patchOptions[models.Bundle]{
 		title:   errMsg,
 		request: new(common.BundlePatch),
 		restore: restoreBundle,
 		validate: func(updated models.Bundle, title string) error {
-			return validatePatchedBundle(updated, *bundle, title)
+			return validatePatchedBundle(updated, bundle, title)
 		},
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	software, err := findSoftwareByIDs(b.db, updatedBundle.SoftwareIDs)
+	software, err := findSoftwareByIDs(tran, updatedBundle.SoftwareIDs)
 	if err != nil {
-		return softwareLookupError(errMsg, err)
+		return nil, softwareLookupError(errMsg, err)
 	}
 
 	updatedBundle.Software = nil
 
-	err = models.Transaction(writeDB(ctx, b.db), func(tran *gorm.DB) error {
-		if err := updateColumns(tran, &updatedBundle, "Name", "Description", "Active"); err != nil {
-			return err
-		}
-
-		// Omit("Software.*") swaps the join rows without upserting the
-		// software rows themselves. The swap saves the bundle again, and
-		// updateColumns has already recorded that update, so the hooks
-		// are skipped here or the same change would emit two events.
-		return tran.Session(&gorm.Session{SkipHooks: true}).Model(&updatedBundle).Omit("Software.*").
-			Association("Software").Replace(software)
-	})
-	if err != nil {
-		return writeError(err, errMsg)
+	if err := updateColumns(tran, &updatedBundle, "Name", "Description", "Active"); err != nil {
+		return nil, err
 	}
 
-	return ctx.JSON(&updatedBundle)
+	// Omit("Software.*") swaps the join rows without upserting the
+	// software rows themselves. The swap saves the bundle again, and
+	// updateColumns has already recorded that update, so the hooks
+	// are skipped here or the same change would emit two events.
+	err = tran.Session(&gorm.Session{SkipHooks: true}).Model(&updatedBundle).Omit("Software.*").
+		Association("Software").Replace(software)
+	if err != nil {
+		return nil, err //nolint:wrapcheck // patchInTransaction maps the driver error to a status
+	}
+
+	return &updatedBundle, nil
 }
 
 func (b *Bundle) DeleteBundle(ctx *fiber.Ctx) error {

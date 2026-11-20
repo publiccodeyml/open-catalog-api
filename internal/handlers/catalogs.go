@@ -145,21 +145,51 @@ func (c *Catalog) PostCatalog(ctx *fiber.Ctx) error {
 }
 
 // PatchCatalog updates the catalog with the given id.
-func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
+func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error {
 	const errMsg = "can't update Catalog"
 
-	catalogID := ctx.Params("id")
+	return patchInTransaction(ctx, c.db, errMsg, func(tran *gorm.DB) (*models.Catalog, error) {
+		resolved, err := lockCatalog(tran, ctx.Params("id"), errMsg)
+		if err != nil {
+			return nil, err
+		}
 
-	resolved, err := resolveCatalogOr404(c.db, catalogID, errMsg, "Sources")
+		return updateCatalog(ctx, tran, *resolved)
+	})
+}
+
+// lockCatalog locks the catalog with the given id or alternativeId, see
+// lockRows, and loads it with its sources. Errors are Problem JSON errors,
+// ready to be returned from a handler as they are.
+func lockCatalog(tran *gorm.DB, rawID, title string) (*models.Catalog, error) {
+	catalogID, err := url.PathUnescape(rawID)
 	if err != nil {
-		return err
+		catalogID = rawID
 	}
 
-	if resolved == nil {
-		return common.Error(fiber.StatusNotFound, errMsg, "Catalog was not found")
+	ids, err := lockRows[models.Catalog](tran, "id = ? OR alternative_id = ?", catalogID, catalogID)
+	if err != nil {
+		return nil, common.InternalServerError(title)
 	}
 
-	catalog := *resolved
+	if len(ids) == 0 {
+		return nil, common.Error(fiber.StatusNotFound, title, "Catalog was not found")
+	}
+
+	// Read the row the lock took, not whatever the alternativeId matches now.
+	var catalog models.Catalog
+	if err := tran.Preload("Sources").First(&catalog, "id IN ?", ids).Error; err != nil {
+		return nil, common.InternalServerError(title)
+	}
+
+	return &catalog, nil
+}
+
+// updateCatalog applies the PATCH body to catalog and saves it in tran,
+// keeping its sources in sync. It runs under patchInTransaction, with
+// catalog read after the lock.
+func updateCatalog(ctx *fiber.Ctx, tran *gorm.DB, catalog models.Catalog) (*models.Catalog, error) { //nolint:cyclop
+	const errMsg = "can't update Catalog"
 
 	updatedCatalog, err := applyPatch(ctx, &catalog, patchOptions[models.Catalog]{
 		title:    errMsg,
@@ -168,12 +198,12 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 		validate: validatePatchedCatalog,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if isRoot(&catalog) {
 		if updatedCatalog.AlternativeID == nil || *updatedCatalog.AlternativeID != rootCatalogID {
-			return common.Error(fiber.StatusUnprocessableEntity, errMsg,
+			return nil, common.Error(fiber.StatusUnprocessableEntity, errMsg,
 				"alternativeId on the root catalog cannot be changed")
 		}
 	}
@@ -189,39 +219,33 @@ func (c *Catalog) PatchCatalog(ctx *fiber.Ctx) error { //nolint:cyclop
 
 	if isRoot(&catalog) {
 		if len(sourcesInput) > 0 {
-			return common.Error(fiber.StatusUnprocessableEntity, errMsg,
+			return nil, common.Error(fiber.StatusUnprocessableEntity, errMsg,
 				"sources are not allowed on the root catalog")
 		}
 	} else if len(sourcesInput) == 0 {
-		return common.Error(fiber.StatusUnprocessableEntity, errMsg, "sources must not be empty")
+		return nil, common.Error(fiber.StatusUnprocessableEntity, errMsg, "sources must not be empty")
 	}
 
 	if err := validateSourceURLs(sourcesInput, errMsg); err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := models.Transaction(writeDB(ctx, c.db), func(tran *gorm.DB) error {
-		sources, err := syncSources(tran, catalog, sourcesInput)
-		if err != nil {
-			return err
-		}
-
-		updatedCatalog.Sources = nil
-
-		err = updateColumns(tran, &updatedCatalog,
-			"Name", "AlternativeID", "Active", "PublishersNamespace", "Scopes")
-		if err != nil {
-			return err
-		}
-
-		updatedCatalog.Sources = sources
-
-		return nil
-	}); err != nil {
-		return writeError(err, errMsg)
+	sources, err := syncSources(tran, catalog, sourcesInput)
+	if err != nil {
+		return nil, err
 	}
 
-	return ctx.JSON(&updatedCatalog)
+	updatedCatalog.Sources = nil
+
+	err = updateColumns(tran, &updatedCatalog,
+		"Name", "AlternativeID", "Active", "PublishersNamespace", "Scopes")
+	if err != nil {
+		return nil, err
+	}
+
+	updatedCatalog.Sources = sources
+
+	return &updatedCatalog, nil
 }
 
 // DeleteCatalog deletes the catalog with the given id.
@@ -329,21 +353,24 @@ func (c *Catalog) PatchCatalogPublisher(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	found, err := findOne[models.Publisher](c.db, ctx.Params("publisherId"), findOptions{
-		title:           errMsg,
-		name:            publisherEntityName,
-		byAlternativeID: true,
-		preloads:        []string{codeHostingAssociation},
+	return patchInTransaction(ctx, c.db, errMsg, func(tran *gorm.DB) (*models.Publisher, error) {
+		found, err := findOne[models.Publisher](tran, ctx.Params("publisherId"), findOptions{
+			title:           errMsg,
+			name:            publisherEntityName,
+			byAlternativeID: true,
+			preloads:        []string{codeHostingAssociation},
+			lock:            true,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if !belongsToCatalog(catalog, found.CatalogID) {
+			return nil, common.Error(fiber.StatusNotFound, errMsg, "Publisher was not found")
+		}
+
+		return updatePublisher(ctx, tran, *found)
 	})
-	if err != nil {
-		return err
-	}
-
-	if !belongsToCatalog(catalog, found.CatalogID) {
-		return common.Error(fiber.StatusNotFound, errMsg, "Publisher was not found")
-	}
-
-	return updatePublisher(ctx, writeDB(ctx, c.db), *found)
 }
 
 // PostCatalogSoftware creates software belonging to the given catalog.
@@ -368,21 +395,18 @@ func (c *Catalog) PatchCatalogSoftware(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	software := models.Software{}
-
-	if err := loadSoftware(c.db, &software, ctx.Params("softwareId")); err != nil {
-		if errors.Is(err, errLoadNotFound) {
-			return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
+	return patchInTransaction(ctx, c.db, errMsg, func(tran *gorm.DB) (*models.Software, error) {
+		software, err := lockSoftware(tran, ctx.Params("softwareId"), errMsg)
+		if err != nil {
+			return nil, err
 		}
 
-		return common.Error(fiber.StatusInternalServerError, errMsg, fiber.ErrInternalServerError.Message)
-	}
+		if !belongsToCatalog(catalog, software.CatalogID) {
+			return nil, common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
+		}
 
-	if !belongsToCatalog(catalog, software.CatalogID) {
-		return common.Error(fiber.StatusNotFound, errMsg, "Software was not found")
-	}
-
-	return updateSoftware(ctx, writeDB(ctx, c.db), software)
+		return updateSoftware(ctx, tran, *software)
+	})
 }
 
 // GetCatalogSoftware lists software belonging to the given catalog.
