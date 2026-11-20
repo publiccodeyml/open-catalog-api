@@ -121,3 +121,57 @@ func TestRequestLengthLimits(t *testing.T) {
 		})
 	}
 }
+
+func TestURLLimitsApplyToTheNormalizedURL(t *testing.T) {
+	// Each Cyrillic letter is stored percent-encoded, six characters long.
+	grows := "https://example.org/" + strings.Repeat("ж", 45)
+	growsWebhook := "https://8.8.8.8/" + strings.Repeat("ж", 45)
+	// Dropping www. and the trailing slash brings 256 characters to 251.
+	shrinks := "https://www.example.org/" + strings.Repeat("a", 231) + "/"
+
+	tests := []struct {
+		name    string
+		request any
+		rule    string
+	}{
+		{"software URL", SoftwarePost{URL: grows, PubliccodeYml: "x"}, "max"},
+		{"software alias", SoftwarePost{URL: "https://example.org", Aliases: []string{grows}, PubliccodeYml: "x"}, "max"},
+		{"patched software URL", SoftwarePatch{URL: &grows}, "max"},
+		{"patched software alias", SoftwarePatch{Aliases: &[]string{grows}}, "max"},
+		{"code hosting URL", PublisherPost{CodeHosting: []CodeHosting{{URL: grows}}, Description: "x"}, "max"},
+		{"webhook URL", Webhook{URL: growsWebhook}, "max"},
+		{"catalog source URL", CatalogPost{
+			Name: "x", Sources: []SourceInput{{URL: "https://example.org/" + strings.Repeat("ж", 339)}},
+		}, "max"},
+		{"URL that shrinks under the limit", SoftwarePost{URL: shrinks, PubliccodeYml: "x"}, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			errs := ValidateStruct(tt.request)
+			if tt.rule == "" {
+				assert.Empty(t, errs)
+
+				return
+			}
+
+			require.Len(t, errs, 1)
+			assert.Equal(t, tt.rule, errs[0].Rule)
+		})
+	}
+}
+
+// A PATCH validates the stored URL again, so normalizing it a second time
+// must not make it longer.
+func TestNormalizeURLIsStable(t *testing.T) {
+	for _, rawURL := range []string{
+		"https://example.org/" + strings.Repeat("ж", 39),
+		"https://example.org/a b/c%20d",
+		"https://www.Example.org/x/../y/?b=2&a=1#frag",
+	} {
+		t.Run(rawURL, func(t *testing.T) {
+			once := NormalizeURL(rawURL)
+			assert.Equal(t, once, NormalizeURL(once))
+		})
+	}
+}

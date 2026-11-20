@@ -19,7 +19,7 @@ func NormalizeURL(rawURL string) string {
 
 type SourceInput struct {
 	Driver *string  `json:"driver" validate:"omitempty,min=1,max=64"`
-	URL    string   `json:"url" validate:"required,url,max=2048"`
+	URL    string   `json:"url" validate:"required,url,normalized_max=2048"`
 	Args   []string `json:"args" validate:"omitempty,min=1,max=20,dive,min=1,max=2048"`
 }
 
@@ -58,21 +58,21 @@ type PublisherPatch struct {
 }
 
 type CodeHosting struct {
-	URL   string `json:"url" validate:"required,max=255,http_url,code_hosting_url"`
+	URL   string `json:"url" validate:"required,normalized_max=255,http_url,code_hosting_url"`
 	Group *bool  `json:"group"`
 }
 
 type SoftwarePost struct {
-	URL           string   `json:"url" validate:"required,max=255,url"`
-	Aliases       []string `json:"aliases" validate:"max=255,dive,max=255,url"`
+	URL           string   `json:"url" validate:"required,normalized_max=255,url"`
+	Aliases       []string `json:"aliases" validate:"max=255,dive,normalized_max=255,url"`
 	PubliccodeYml string   `json:"publiccodeYml" validate:"required,max=99999"`
 	Active        *bool    `json:"active"`
 	Vitality      *string  `json:"vitality" validate:"omitempty,max=99999"`
 }
 
 type SoftwarePatch struct {
-	URL           *string   `json:"url" validate:"omitempty,max=255,url"`
-	Aliases       *[]string `json:"aliases" validate:"omitempty,max=255,dive,max=255,url"`
+	URL           *string   `json:"url" validate:"omitempty,normalized_max=255,url"`
+	Aliases       *[]string `json:"aliases" validate:"omitempty,max=255,dive,normalized_max=255,url"`
 	PubliccodeYml *string   `json:"publiccodeYml" validate:"omitempty,max=99999"`
 	Active        *bool     `json:"active"`
 	Vitality      *string   `json:"vitality" validate:"omitempty,max=99999"`
@@ -97,7 +97,7 @@ type Log struct {
 }
 
 type Webhook struct {
-	URL    string `json:"url" validate:"required,max=255,url,webhook_url"`
+	URL    string `json:"url" validate:"required,normalized_max=255,url,webhook_url"`
 	Secret string `json:"secret" validate:"omitempty,min=16,max=256"`
 	Format string `json:"format" validate:"omitempty,oneof=default github standard-webhooks"`
 }

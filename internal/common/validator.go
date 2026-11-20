@@ -9,9 +9,11 @@ import (
 	"net"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -28,6 +30,7 @@ var hostValidator = validator.New()
 const (
 	tagPosition      = 2
 	maxProvidedValue = 255
+	normalizedMaxTag = "normalized_max"
 
 	// A webhook URL is validated while a request is being served, so the
 	// resolution has to give up quickly if the resolver is slow.
@@ -166,6 +169,7 @@ func newRequestValidator() *validator.Validate {
 	})
 
 	_ = validate.RegisterValidation("code_hosting_url", validateCodeHostingURL)
+	_ = validate.RegisterValidation(normalizedMaxTag, validateNormalizedMax)
 	_ = validate.RegisterValidation("webhook_url", validateWebhookURL)
 	validate.RegisterStructValidation(validateGitHubWebhook, Webhook{})
 
@@ -195,9 +199,16 @@ func ValidateStruct(validateStruct any) []ValidationError {
 				value = string(valueRunes[:maxProvidedValue])
 			}
 
+			rule := err.Tag()
+			// Clients see the same rule as for any other value over its
+			// limit.
+			if rule == normalizedMaxTag {
+				rule = "max"
+			}
+
 			validationErrors = append(validationErrors, ValidationError{
 				Field: err.Field(),
-				Rule:  err.Tag(),
+				Rule:  rule,
 				Value: value,
 			})
 		}
@@ -264,6 +275,19 @@ func validateCodeHostingURL(fl validator.FieldLevel) bool {
 	}
 
 	return hostValidator.Var(parsed.Hostname(), "fqdn") == nil
+}
+
+// validateNormalizedMax checks the length limit on the URL the API stores,
+// not on the one the client sent. Normalization percent-encodes non ASCII
+// letters and spaces, so a URL under the limit can grow past it, and every
+// later PATCH, which validates the stored entity again, would refuse it.
+func validateNormalizedMax(field validator.FieldLevel) bool {
+	limit, err := strconv.Atoi(field.Param())
+	if err != nil {
+		panic("normalized_max needs an integer parameter, got " + field.Param())
+	}
+
+	return utf8.RuneCountInString(NormalizeURL(field.Field().String())) <= limit
 }
 
 func GenerateErrorDetails(validationErrors []ValidationError) string {
