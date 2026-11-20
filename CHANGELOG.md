@@ -89,6 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `PATCH /v1/software/:id` and `PATCH /v1/publishers/:id` reject an
+  alias or a codeHosting url repeated after normalization with `422`, as
+  POST does, instead of keeping one of the entries. A stored software or
+  publisher holding such a repeat must drop it in the same PATCH.
 - The OpenAPI JSON Patch schema now lists the `move` and `copy`
   operations, which the API already accepted.
 - The OpenAPI spec now documents the `url` filter on

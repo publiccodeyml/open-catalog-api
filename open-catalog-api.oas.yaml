@@ -3012,7 +3012,8 @@ components:
             to the current one. Each alias must be an http or https URL with
             a host. The 255 character limit on each alias applies
             to the URL as stored, after normalization percent-encodes non ASCII
-            letters and spaces.
+            letters and spaces. A POST or PATCH listing an alias that
+            normalizes to `url` or to another alias is rejected with 422.
           example: ['https://github.com/example/old-repo']
           minItems: 0
           maxItems: 255
@@ -3234,6 +3235,8 @@ components:
                   The HTTP URL for the repository or the group of repositories.
                   The 255 character limit applies to the URL as stored, after
                   normalization percent-encodes non ASCII letters and spaces.
+                  A POST or PATCH listing two entries whose URLs normalize to
+                  the same URL is rejected with 422.
                 format: uri
                 maxLength: 255
                 example: 'https://gitlab.example.org/my-group/'
