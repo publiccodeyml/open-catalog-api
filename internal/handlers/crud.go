@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/url"
+	"reflect"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,6 +14,7 @@ import (
 	"github.com/publiccodeyml/open-catalog-api/internal/handlers/general"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // listOptions drives the query parameters shared by every paginated
@@ -118,6 +120,8 @@ type findOptions struct {
 	// byAlternativeID also matches the alternative_id column.
 	byAlternativeID bool
 	preloads        []string
+	// lock takes the write lock on the row before reading it, see lockRows.
+	lock bool
 }
 
 // findOne loads the T with the given id. On a miss it returns a 404
@@ -136,6 +140,19 @@ func findOne[T any](gormdb *gorm.DB, rawID string, opts findOptions) (*T, error)
 		}
 
 		conds = []any{"id = ? OR alternative_id = ?", id, id}
+	}
+
+	if opts.lock {
+		ids, err := lockRows[T](gormdb, conds...)
+		if err != nil {
+			return nil, common.InternalServerError(opts.title)
+		}
+
+		// Read the rows the lock took, not whatever conds match now.
+		conds = []any{"id IN ?", ids}
+		if len(ids) == 0 {
+			return nil, common.Error(fiber.StatusNotFound, opts.title, opts.name+" was not found")
+		}
 	}
 
 	var item T
@@ -238,6 +255,73 @@ func writeError(err error, title string) error {
 	}
 
 	return common.InternalServerError(title)
+}
+
+// lockRows locks the rows matching conds as lockRow does and returns
+// their primary keys, so the caller reads the rows it locked by them.
+// Read again with conds, a PostgreSQL statement takes a new snapshot and
+// can match another row: one that a concurrent PATCH gave the alternative
+// id after the lock, which nothing locked. No row matching is not an
+// error, the empty slice is the caller's 404.
+func lockRows[T any](tran *gorm.DB, conds ...any) ([]string, error) {
+	var locked []T
+
+	err := tran.Model(&locked).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "id"}}}).
+		Where(conds[0], conds[1:]...).
+		UpdateColumn("updated_at", gorm.Expr("updated_at")).Error
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, 0, len(locked))
+	for i := range locked {
+		ids = append(ids, reflect.ValueOf(&locked[i]).Elem().FieldByName("ID").String())
+	}
+
+	return ids, nil
+}
+
+// lockRow makes tran the only writer of the rows matching conds until it
+// ends, so a PATCH reads the row no concurrent PATCH is about to overwrite.
+// It writes the row back as it is, rather than selecting it FOR UPDATE:
+// SQLite has no row locks, and a transaction that reads before writing
+// fails with SQLITE_BUSY instead of waiting when another one writes first.
+// A first write makes SQLite wait for the database write lock and
+// PostgreSQL for the row lock. No row matching is not an error, the read
+// that follows reports it. conds must name the primary key, which no
+// concurrent write changes. Use lockRows when they match an alternative id.
+func lockRow[T any](tran *gorm.DB, conds ...any) error {
+	return tran.Model(new(T)).Where(conds[0], conds[1:]...).
+		UpdateColumn("updated_at", gorm.Expr("updated_at")).Error
+}
+
+// patchInTransaction runs patch in one write transaction and answers the
+// entity it returns. patch locks the row with lockRow, reads it and writes
+// it back, so two concurrent PATCH requests on the same entity apply one
+// after the other and neither restores the values the other replaced.
+// Problem JSON errors from patch are returned as they are, any other error
+// goes through writeError.
+func patchInTransaction[T any](
+	ctx *fiber.Ctx, gormdb *gorm.DB, title string, patch func(tran *gorm.DB) (*T, error),
+) error {
+	var updated *T
+
+	if err := models.Transaction(writeDB(ctx, gormdb), func(tran *gorm.DB) error {
+		var err error
+
+		updated, err = patch(tran)
+
+		return err
+	}); err != nil {
+		if problem, ok := errors.AsType[common.ProblemJSONError](err); ok {
+			return problem
+		}
+
+		return writeError(err, title)
+	}
+
+	return ctx.JSON(updated)
 }
 
 // patchOptions drives applyPatch.

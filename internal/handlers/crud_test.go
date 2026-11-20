@@ -388,3 +388,109 @@ func TestApplyPatchJSONPatchUnknownMembers(t *testing.T) {
 		})
 	}
 }
+
+// counter is a row two transactions increment, with the updated_at column
+// lockRow writes.
+type counter struct {
+	ID        string `gorm:"primaryKey"`
+	Value     int
+	UpdatedAt time.Time
+}
+
+// TestLockRowSerializesReadModifyWrite runs on SQLite's default rollback
+// journal, where a transaction that reads before it writes fails with
+// SQLITE_BUSY when another one writes first.
+func TestLockRowSerializesReadModifyWrite(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "lock.db")), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&counter{}))
+	require.NoError(t, db.Create(&counter{ID: "one"}).Error)
+
+	const writers = 4
+
+	start := make(chan struct{})
+	errs := make(chan error, writers)
+
+	for range writers {
+		go func() {
+			<-start
+
+			errs <- db.Transaction(func(tran *gorm.DB) error {
+				if err := lockRow[counter](tran, "id = ?", "one"); err != nil {
+					return err
+				}
+
+				var current counter
+				if err := tran.First(&current, "id = ?", "one").Error; err != nil {
+					return err
+				}
+
+				// Leave the others time to read the same value.
+				time.Sleep(20 * time.Millisecond)
+
+				return tran.Model(&current).Update("value", current.Value+1).Error
+			})
+		}()
+	}
+
+	close(start)
+
+	for range writers {
+		require.NoError(t, <-errs)
+	}
+
+	var final counter
+	require.NoError(t, db.First(&final, "id = ?", "one").Error)
+	assert.Equal(t, writers, final.Value)
+}
+
+// lockedItem is a row findOne locks by id or alternative id.
+type lockedItem struct {
+	ID            string `gorm:"primaryKey"`
+	AlternativeID *string
+	UpdatedAt     time.Time
+}
+
+// TestFindOneReadsTheLockedRow moves the alternative id to another row
+// right after the lock, as a PATCH committing between the two statements
+// does on PostgreSQL, where each statement takes a new snapshot.
+func TestFindOneReadsTheLockedRow(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(filepath.Join(t.TempDir(), "lock.db")), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(&lockedItem{}))
+
+	alt := "shared"
+	require.NoError(t, db.Create(&lockedItem{ID: "one", AlternativeID: &alt}).Error)
+	require.NoError(t, db.Create(&lockedItem{ID: "two"}).Error)
+
+	moved := false
+
+	require.NoError(t, db.Callback().Update().After("gorm:update").Register("test:move_alternative_id",
+		func(tx *gorm.DB) {
+			if moved || tx.Statement.Table != "locked_items" {
+				return
+			}
+
+			moved = true
+			conn := tx.Session(&gorm.Session{NewDB: true, SkipHooks: true})
+			require.NoError(t, conn.Exec("UPDATE locked_items SET alternative_id = NULL WHERE id = 'one'").Error)
+			require.NoError(t, conn.Exec("UPDATE locked_items SET alternative_id = 'shared' WHERE id = 'two'").Error)
+		}))
+
+	err = db.Transaction(func(tran *gorm.DB) error {
+		item, err := findOne[lockedItem](tran, "shared", findOptions{
+			title: "can't update Item", name: "Item", byAlternativeID: true, lock: true,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "one", item.ID, "the read must return the row the lock took")
+
+		return nil
+	})
+	require.NoError(t, err)
+	assert.True(t, moved)
+
+	_, err = findOne[lockedItem](db, "missing", findOptions{
+		title: "can't update Item", name: "Item", byAlternativeID: true, lock: true,
+	})
+	assert.Equal(t, fiber.StatusNotFound, problemStatus(t, err))
+}
