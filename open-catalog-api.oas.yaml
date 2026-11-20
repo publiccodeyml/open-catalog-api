@@ -2726,6 +2726,8 @@ components:
         Analysis data is written through the analysis endpoint of the resource,
         PATCH /software/{softwareId}/analysis or PATCH /catalogs/{catalogId}/analysis.
         Operations on /analysis or its children are rejected with 422.
+        The copy operations of a patch may add at most 4 MiB (4194304 bytes)
+        in total, a patch going over is rejected with 422.
       example:
         - op: replace
           path: /publiccodeYml

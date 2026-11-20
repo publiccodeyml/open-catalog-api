@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/gofiber/fiber/v2"
 	"github.com/publiccodeyml/open-catalog-api/internal/jsondecoder"
 )
 
@@ -19,6 +20,11 @@ const (
 
 	maxPatchOps     = 100
 	maxPatchPathLen = 255
+
+	// A copy into its own parent doubles the document, so a few dozen
+	// operations would allocate gigabytes. Copies may add as much as a
+	// request body could carry, which the Fiber default limits.
+	maxPatchCopyBytes = fiber.DefaultBodyLimit
 )
 
 var (
@@ -26,6 +32,7 @@ var (
 	errPatchTooMany   = fmt.Errorf("patch must not exceed %d operations", maxPatchOps)
 	errPatchPathLen   = fmt.Errorf("path and from must not exceed %d characters", maxPatchPathLen)
 	errPatchProtected = errors.New("operation not allowed on a read-only field")
+	errPatchCopySize  = fmt.Errorf("copy operations must not add more than %d bytes", maxPatchCopyBytes)
 )
 
 type PatchError struct {
@@ -52,23 +59,12 @@ func ApplyPatch[T any](entity *T, contentType string, body []byte) (T, *PatchErr
 
 	var updatedJSON []byte
 
-	if IsJSONPatch(contentType) { //nolint:nestif
-		patch, err := jsonpatch.DecodePatch(body)
-		if err != nil {
-			return zero, &PatchError{Code: http.StatusBadRequest, Err: err}
-		}
+	if IsJSONPatch(contentType) {
+		var patchErr *PatchError
 
-		if err := validatePatch(patch); err != nil {
-			return zero, &PatchError{Code: http.StatusUnprocessableEntity, Err: err}
-		}
-
-		updatedJSON, err = patch.Apply(entityJSON)
-		if err != nil {
-			return zero, &PatchError{Code: http.StatusUnprocessableEntity, Err: err}
-		}
-
-		if err := checkProtectedFields(entityJSON, updatedJSON); err != nil {
-			return zero, &PatchError{Code: http.StatusUnprocessableEntity, Err: err}
+		updatedJSON, patchErr = applyJSONPatch(entityJSON, body)
+		if patchErr != nil {
+			return zero, patchErr
 		}
 	} else {
 		updatedJSON, err = jsonpatch.MergePatch(entityJSON, body)
@@ -88,6 +84,35 @@ func ApplyPatch[T any](entity *T, contentType string, body []byte) (T, *PatchErr
 	}
 
 	return updated, nil
+}
+
+func applyJSONPatch(entityJSON, body []byte) ([]byte, *PatchError) {
+	patch, err := jsonpatch.DecodePatch(body)
+	if err != nil {
+		return nil, &PatchError{Code: http.StatusBadRequest, Err: err}
+	}
+
+	if err := validatePatch(patch); err != nil {
+		return nil, &PatchError{Code: http.StatusUnprocessableEntity, Err: err}
+	}
+
+	options := jsonpatch.NewApplyOptions()
+	options.AccumulatedCopySizeLimit = maxPatchCopyBytes
+
+	updatedJSON, err := patch.ApplyWithOptions(entityJSON, options)
+	if sizeErr := (*jsonpatch.AccumulatedCopySizeError)(nil); errors.As(err, &sizeErr) {
+		return nil, &PatchError{Code: http.StatusUnprocessableEntity, Err: errPatchCopySize}
+	}
+
+	if err != nil {
+		return nil, &PatchError{Code: http.StatusUnprocessableEntity, Err: err}
+	}
+
+	if err := checkProtectedFields(entityJSON, updatedJSON); err != nil {
+		return nil, &PatchError{Code: http.StatusUnprocessableEntity, Err: err}
+	}
+
+	return updatedJSON, nil
 }
 
 func validatePatch(patch jsonpatch.Patch) error {

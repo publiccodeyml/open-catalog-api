@@ -873,6 +873,22 @@ func TestPublishersEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "PATCH a publisher with JSON Patch - copies that keep doubling the document",
+			query:       "PATCH /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde",
+			body: "[" + strings.TrimSuffix(strings.Repeat(
+				`{"op":"copy","from":"/codeHosting","path":"/codeHosting/-"},`, 40), ",") + "]",
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json-patch+json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, "can't update Publisher", response["title"])
+				assert.Equal(t, "copy operations must not add more than 4194304 bytes", response["detail"])
+			},
+		},
+		{
 			description: "PATCH a publisher with JSON Patch - malformed patch",
 			query:       "PATCH /v1/publishers/2ded32eb-c45e-4167-9166-a44e18b8adde",
 			body:        `{"description": "this is not a JSON Patch"}`,
