@@ -248,7 +248,7 @@ func TestWriteError(t *testing.T) {
 	db := newCrudDB(t)
 	seedCrudItems(t, db)
 
-	err := writeError(idConflictError("one"), "can't create Item")
+	err := writeError(idConflictError{name: "Publisher", id: "one"}, "can't create Item")
 	problem, ok := errors.AsType[common.ProblemJSONError](err)
 	require.True(t, ok)
 	assert.Equal(t, fiber.StatusConflict, problem.Status)
