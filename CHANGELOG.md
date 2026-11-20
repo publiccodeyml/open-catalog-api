@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Bundle endpoints at `/v1/bundles` to create, list, read, update and
-  delete bundles.
+  delete bundles. A bundle holds up to 255 software.
 - An audit stream recording the entity, change, actor and timestamp,
   readable at `GET /v1/events` and `GET /v1/events/:id`.
 - `EVENT_RETENTION_DAYS` to purge older audit events at startup and

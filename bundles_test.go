@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -18,7 +19,20 @@ const (
 	existingSoftwareID  = "c353756e-8597-4e46-a99b-7da2e141603b"
 	existingSoftwareID2 = "9f135268-a37e-4ead-96ec-e4a24bb9344a"
 	existingSoftwareID3 = "18348f13-1076-4a1e-b204-ed541b824d64"
+
+	maxBundleSoftware = 255
 )
+
+// softwareIDList returns a JSON array of n distinct uuid4 IDs that match
+// no software.
+func softwareIDList(n int) string {
+	ids := make([]string, n)
+	for i := range ids {
+		ids[i] = fmt.Sprintf(`"00000000-0000-4000-a000-%012d"`, i)
+	}
+
+	return "[" + strings.Join(ids, ",") + "]"
+}
 
 func TestBundleEndpoints(t *testing.T) {
 	tests := []TestCase{
@@ -166,6 +180,30 @@ func TestBundleEndpoints(t *testing.T) {
 			expectedBody:        `{"title":"can't create Bundle","detail":"invalid format: softwareIds contains duplicate items","status":422,"validationErrors":[{"field":"softwareIds","rule":"unique","value":""}]}`,
 		},
 		{
+			description: "POST bundle with softwareIds at the cap reaches the software lookup",
+			query:       "POST /v1/bundles",
+			body:        `{"name": "Full refs", "softwareIds": ` + softwareIDList(maxBundleSoftware) + `}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Bundle","detail":"one or more softwareIds do not exist","status":422}`,
+		},
+		{
+			description: "POST bundle with softwareIds over the cap",
+			query:       "POST /v1/bundles",
+			body:        `{"name": "Too many refs", "softwareIds": ` + softwareIDList(maxBundleSoftware+1) + `}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't create Bundle","detail":"invalid format: softwareIds does not meet its size limits (too long)","status":422,"validationErrors":[{"field":"softwareIds","rule":"max","value":""}]}`,
+		},
+		{
 			description: "POST bundle with nonexistent software",
 			query:       "POST /v1/bundles",
 			body:        `{"name": "Bad refs", "softwareIds": ["00000000-0000-4000-a000-000000000000"]}`,
@@ -247,6 +285,27 @@ func TestBundleEndpoints(t *testing.T) {
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
 			expectedBody:        `{"title":"can't update Bundle","detail":"invalid format: softwareIds contains duplicate items","status":422,"validationErrors":[{"field":"softwareIds","rule":"unique","value":""}]}`,
+		},
+		{
+			description:         "PATCH bundle with softwareIds over the cap",
+			query:               "PATCH /v1/bundles/" + municipalitiesID,
+			body:                `{"softwareIds": ` + softwareIDList(maxBundleSoftware+1) + `}`,
+			headers:             map[string][]string{"Authorization": {goodToken}, "Content-Type": {"application/json"}},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't update Bundle","detail":"invalid format: softwareIds does not meet its size limits (too long)","status":422,"validationErrors":[{"field":"softwareIds","rule":"max","value":""}]}`,
+		},
+		{
+			description: "PATCH bundle JSON Patch with softwareIds over the cap",
+			query:       "PATCH /v1/bundles/" + municipalitiesID,
+			body:        `[{"op": "replace", "path": "/softwareIds", "value": ` + softwareIDList(maxBundleSoftware+1) + `}]`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/json-patch+json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			expectedBody:        `{"title":"can't update Bundle","detail":"invalid format: softwareIds does not meet its size limits (too long)","status":422,"validationErrors":[{"field":"softwareIds","rule":"max","value":""}]}`,
 		},
 		{
 			description:         "PATCH bundle with nonexistent software",
