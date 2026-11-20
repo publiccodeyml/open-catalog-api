@@ -1130,7 +1130,9 @@ paths:
       operationId: get-log
     patch:
       summary: Update a Log
-      description: Update a Log by its id
+      description: >
+        Update a Log by its id. Only the message is writable, a patch that
+        changes the entity the log belongs to is rejected with 422.
       tags:
         - logs
       security:
