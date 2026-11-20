@@ -48,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be writable by that user.
 - Requests must finish sending within 30 seconds. Idle keep-alive
   connections close after 120 seconds.
+- Responses must be read within 5 minutes, so a client that stops
+  reading no longer keeps its response in server memory.
 - PostgreSQL connections are limited to 10 per replica and kept open for
   reuse. Set `DATABASE_MAX_CONNECTIONS` to change the limit, and size it
   across all replicas within PostgreSQL's `max_connections`.

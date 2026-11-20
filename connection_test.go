@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"net"
 	"net/http"
@@ -19,7 +20,7 @@ func TestConnectionTimeouts(t *testing.T) {
 	config := app.Config()
 	require.Equal(t, 30*time.Second, config.ReadTimeout)
 	require.Equal(t, 120*time.Second, config.IdleTimeout)
-	require.Zero(t, config.WriteTimeout)
+	require.Equal(t, 5*time.Minute, config.WriteTimeout)
 
 	// Exercise the configured server with short deadlines instead of
 	// waiting for the production limits in every test run.
@@ -82,6 +83,68 @@ func TestConnectionTimeouts(t *testing.T) {
 			// the connection after its own deadline.
 			_, err = io.ReadAll(reader)
 			require.NoError(t, err)
+
+			select {
+			case <-done:
+			case <-time.After(2 * time.Second):
+				assert.Fail(t, "server did not release the connection")
+			}
+		})
+	}
+}
+
+func TestWriteTimeout(t *testing.T) {
+	t.Parallel()
+
+	// A body larger than any socket buffer, so the server write blocks
+	// until the client reads it.
+	body := bytes.Repeat([]byte("x"), 4<<20)
+
+	config := app.Config()
+	config.WriteTimeout = 100 * time.Millisecond
+
+	for _, test := range []struct {
+		name string
+		read bool
+	}{
+		{name: "client never reads"},
+		{name: "client reads", read: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			serverApp := fiber.New(config)
+			serverApp.Get("/", func(ctx *fiber.Ctx) error {
+				return ctx.Send(body)
+			})
+
+			serverApp.Handler()
+
+			client, server := net.Pipe()
+			t.Cleanup(func() { _ = client.Close() })
+
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				defer server.Close()
+
+				_ = serverApp.Server().ServeConn(server)
+			}()
+
+			require.NoError(t, client.SetDeadline(time.Now().Add(2*time.Second)))
+			_, err := io.WriteString(client, "GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+			require.NoError(t, err)
+
+			if test.read {
+				response, err := http.ReadResponse(bufio.NewReader(client), nil)
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, response.StatusCode)
+
+				received, err := io.ReadAll(response.Body)
+				require.NoError(t, err)
+				require.Equal(t, len(body), len(received))
+				require.NoError(t, response.Body.Close())
+			}
 
 			select {
 			case <-done:
