@@ -210,6 +210,9 @@ func updateCatalog(ctx *fiber.Ctx, tran *gorm.DB, catalog models.Catalog) (*mode
 			return nil, common.Error(fiber.StatusUnprocessableEntity, errMsg,
 				"alternativeId on the root catalog cannot be changed")
 		}
+	} else if isRoot(&updatedCatalog) {
+		return nil, common.Error(fiber.StatusUnprocessableEntity, errMsg,
+			"alternativeId "+rootCatalogID+" can only be set when creating the root catalog")
 	}
 
 	if !sameString(updatedCatalog.AlternativeID, catalog.AlternativeID) {

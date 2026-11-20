@@ -3063,8 +3063,8 @@ components:
             The reserved value `∅` (U+2205, URL-encoded `%E2%88%85`) materializes
             the implicit root catalog: the row holds the configuration
             (publishersNamespace, name, scopes, active) but its resources keep
-            being addressed via `catalog_id IS NULL`. Once set to `∅` it cannot
-            be changed via PATCH, and `sources` are not allowed.
+            being addressed via `catalog_id IS NULL`. Only POST can set `∅`.
+            Once set it cannot be changed via PATCH, and `sources` are not allowed.
           maxLength: 255
           example: 'example-catalog'
         active:
