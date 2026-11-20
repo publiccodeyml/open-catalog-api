@@ -141,10 +141,8 @@ func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	}
 
 	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
-		if request.AlternativeID != nil {
-			if err := checkAlternativeIDConflict(tran, *request.AlternativeID); err != nil {
-				return err
-			}
+		if err := checkAlternativeIDConflict[models.Publisher](tran, "Publisher", request.AlternativeID); err != nil {
+			return err
 		}
 
 		return tran.Create(&publisher).Error
@@ -177,9 +175,9 @@ func updatePublisher(ctx *fiber.Ctx, tran *gorm.DB, publisher models.Publisher) 
 			models.CodeHosting{URL: common.NormalizeURL(ch.URL), Group: ch.Group})
 	}
 
-	if updatedPublisher.AlternativeID != nil &&
-		(publisher.AlternativeID == nil || *updatedPublisher.AlternativeID != *publisher.AlternativeID) {
-		if err := checkAlternativeIDConflict(tran, *updatedPublisher.AlternativeID); err != nil {
+	if !sameString(updatedPublisher.AlternativeID, publisher.AlternativeID) {
+		err := checkAlternativeIDConflict[models.Publisher](tran, "Publisher", updatedPublisher.AlternativeID)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -213,23 +211,33 @@ func updatePublisher(ctx *fiber.Ctx, tran *gorm.DB, publisher models.Publisher) 
 	return &publisher, nil
 }
 
-// idConflictError is returned when alternativeId conflicts with an existing publisher's primary key.
-type idConflictError string
-
-func (e idConflictError) Error() string {
-	return fmt.Sprintf("Publisher with id '%s' already exists", string(e))
+// idConflictError is returned when an alternativeId equals the primary key
+// of an existing entity of the same kind, which would make lookups by id
+// reach the entity holding the alternativeId instead.
+type idConflictError struct {
+	name string
+	id   string
 }
 
-// checkAlternativeIDConflict returns idConflictError if any publisher exists whose primary key
-// equals the given alternativeID value, which would cause ambiguous lookups.
-func checkAlternativeIDConflict(db *gorm.DB, alternativeID string) error {
-	result := db.Limit(1).Find(&models.Publisher{ID: alternativeID})
+func (e idConflictError) Error() string {
+	return fmt.Sprintf("%s with id '%s' already exists", e.name, e.id)
+}
+
+// checkAlternativeIDConflict returns idConflictError if a T exists whose
+// primary key equals alternativeID. name is the entity name in the error.
+// A nil alternativeID never conflicts.
+func checkAlternativeIDConflict[T any](db *gorm.DB, name string, alternativeID *string) error {
+	if alternativeID == nil {
+		return nil
+	}
+
+	result := db.Limit(1).Where("id = ?", *alternativeID).Find(new(T))
 	if result.Error != nil {
 		return result.Error
 	}
 
 	if result.RowsAffected != 0 {
-		return idConflictError(alternativeID)
+		return idConflictError{name: name, id: *alternativeID}
 	}
 
 	return nil

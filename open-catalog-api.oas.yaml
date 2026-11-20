@@ -3059,6 +3059,7 @@ components:
           description: >
             Optional alternative user-provided identifier for this Catalog.
             If present, you can use it in place of the Catalog `id` as a path argument.
+            It must not be the `id` of an existing Catalog.
             The reserved value `∅` (U+2205, URL-encoded `%E2%88%85`) materializes
             the implicit root catalog: the row holds the configuration
             (publishersNamespace, name, scopes, active) but its resources keep

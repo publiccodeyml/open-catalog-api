@@ -136,6 +136,10 @@ func (c *Catalog) PostCatalog(ctx *fiber.Ctx) error {
 	}
 
 	if err := models.Transaction(writeDB(ctx, c.db), func(tran *gorm.DB) error {
+		if err := checkAlternativeIDConflict[models.Catalog](tran, "Catalog", request.AlternativeID); err != nil {
+			return err
+		}
+
 		return tran.Create(catalog).Error
 	}); err != nil {
 		return writeError(err, errMsg)
@@ -205,6 +209,13 @@ func updateCatalog(ctx *fiber.Ctx, tran *gorm.DB, catalog models.Catalog) (*mode
 		if updatedCatalog.AlternativeID == nil || *updatedCatalog.AlternativeID != rootCatalogID {
 			return nil, common.Error(fiber.StatusUnprocessableEntity, errMsg,
 				"alternativeId on the root catalog cannot be changed")
+		}
+	}
+
+	if !sameString(updatedCatalog.AlternativeID, catalog.AlternativeID) {
+		err := checkAlternativeIDConflict[models.Catalog](tran, "Catalog", updatedCatalog.AlternativeID)
+		if err != nil {
+			return nil, err
 		}
 	}
 

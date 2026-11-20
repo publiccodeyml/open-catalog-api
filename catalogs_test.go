@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"strings"
 	"testing"
@@ -1602,6 +1603,77 @@ func TestCatalogPostDBChecks(t *testing.T) {
 		assert.Equal(t, "persisted", dbValue(t, "catalogs", "alternative_id", "id", catalogID))
 		assert.Equal(t, "ns", dbValue(t, "catalogs", "publishers_namespace", "id", catalogID))
 	})
+}
+
+// TestCatalogAlternativeIDConflict checks that a catalog can't take
+// another catalog's id as its alternativeId: lookups match id or
+// alternativeId, so requests for that id would reach the wrong catalog.
+func TestCatalogAlternativeIDConflict(t *testing.T) {
+	const detail = `"Catalog with id '` + swissID + `' already exists"`
+
+	assertSwissResolves := func(t *testing.T) {
+		t.Helper()
+
+		req, err := newTestRequest("GET", catalogPath+swissID+"?altIDConflict=1", nil)
+		require.NoError(t, err)
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		require.Equal(t, 200, res.StatusCode)
+
+		var catalog map[string]any
+		require.NoError(t, json.NewDecoder(res.Body).Decode(&catalog))
+		assert.Equal(t, swissID, catalog["id"])
+	}
+
+	t.Run("POST", func(t *testing.T) {
+		loadFixtures(t)
+
+		body := `{"name":"Taker","alternativeId":"` + swissID + `","sources":[{"url":"https://github.com/example/taker"}]}`
+
+		req, err := newTestRequest("POST", "/v1/catalogs", strings.NewReader(body))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+
+		out, err := io.ReadAll(res.Body)
+		require.NoError(t, err)
+
+		assert.Equal(t, 409, res.StatusCode)
+		assert.Contains(t, string(out), detail)
+		assert.Equal(t, 0, dbCount(t, "catalogs", "alternative_id", swissID))
+		assertSwissResolves(t)
+	})
+
+	for name, send := range map[string]func(t *testing.T) (int, []byte){
+		"PATCH merge": func(t *testing.T) (int, []byte) {
+			t.Helper()
+
+			return patchMerge(t, catalogPath+italiaID, `{"alternativeId": "`+swissID+`"}`)
+		},
+		"PATCH JSON Patch": func(t *testing.T) (int, []byte) {
+			t.Helper()
+
+			return patchJSON(t, catalogPath+italiaID,
+				`[{"op": "replace", "path": "/alternativeId", "value": "`+swissID+`"}]`)
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			loadFixtures(t)
+
+			code, body := send(t)
+
+			assert.Equal(t, 409, code)
+			assert.Contains(t, string(body), detail)
+			assert.Equal(t, "italia", dbValue(t, "catalogs", "alternative_id", "id", italiaID))
+			assertSwissResolves(t)
+		})
+	}
 }
 
 func TestCatalogPatchDBChecks(t *testing.T) {
