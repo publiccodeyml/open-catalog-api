@@ -68,6 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prometheus metrics carry `service="open-catalog-api"` instead of the
   path of the running executable, which changed between builds and
   restarts. Update queries and alerts that select the old value.
+- `POST` and `PATCH` requests with a Content-Type that is not JSON, such
+  as XML or form bodies, are refused with `415`. They used to be decoded
+  without the unknown field check.
 
 ### Removed
 
