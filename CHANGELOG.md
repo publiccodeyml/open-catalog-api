@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI checks for the Dockerfiles with `hadolint`, and a weekly `trivy`
   scan of the published container image for Alpine package
   vulnerabilities.
+- `compose.prod.yml` and `.env.example` to run the published image with
+  PostgreSQL through Docker Compose.
 - `entityType`, `entityId`, `type` and `actor` filters on `GET /v1/events`.
 - An `extraEnv` value on the Helm chart, for environment variables
   without a dedicated chart value.
@@ -105,6 +107,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alias or a codeHosting url repeated after normalization with `422`, as
   POST does, instead of keeping one of the entries. A stored software or
   publisher holding such a repeat must drop it in the same PATCH.
+- `docker compose up` starts the API only once PostgreSQL accepts
+  connections, instead of letting it crash on startup.
 - The OpenAPI JSON Patch schema now lists the `move` and `copy`
   operations, which the API already accepted.
 - The OpenAPI spec now documents the `url` filter on
