@@ -13,16 +13,51 @@ import (
 
 type Log struct {
 	db *gorm.DB
+	// searches holds a token for each ?search list running, nil when
+	// the pool has no limit. See searchSlots.
+	searches chan struct{}
 }
 
 func NewLog(db *gorm.DB) *Log {
-	return &Log{db: db}
+	return &Log{db: db, searches: searchSlots(db)}
+}
+
+// searchSlots bounds the ?search lists running at once to half the
+// connection pool, at least one. Anyone can search the logs, and a
+// substring search the index can't narrow, like a term with fewer than
+// three letters, reads every log: without a bound a stream of them
+// takes every connection and every other request waits.
+func searchSlots(db *gorm.DB) chan struct{} {
+	pool, err := db.DB()
+	if err != nil {
+		return nil
+	}
+
+	size := pool.Stats().MaxOpenConnections
+	if size == 0 {
+		return nil
+	}
+
+	return make(chan struct{}, max(1, size/2))
 }
 
 // GetLogs gets the list of all logs and returns any error encountered.
 func (p *Log) GetLogs(ctx *fiber.Ctx) error {
+	const errMsg = "can't get Logs"
+
+	if p.searches != nil && ctx.Query("search", "") != "" {
+		select {
+		case p.searches <- struct{}{}:
+			defer func() { <-p.searches }()
+		default:
+			ctx.Set(fiber.HeaderRetryAfter, "1")
+
+			return common.Error(fiber.StatusServiceUnavailable, errMsg, "too many log searches are running")
+		}
+	}
+
 	return list[models.Log](ctx, p.db, listOptions{
-		title:       "can't get Logs",
+		title:       errMsg,
 		filterField: "message",
 		searchField: "message",
 		order:       paginator.DESC,

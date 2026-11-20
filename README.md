@@ -59,6 +59,9 @@ You can configure the API with environment variables:
 * `DATABASE_DSN`: the URI used to connect to the database,
   fe `postgres://user:password@host:5432/dbname`.
   Release binaries and container images support PostgreSQL only.
+  At startup the API creates the `pg_trgm` extension to index log
+  searches, which needs the `CREATE` privilege on the database. Without
+  it the API starts and log searches run unindexed.
   SQLite requires a build with cgo enabled (`CGO_ENABLED=1`), for tests
   and local development.
 

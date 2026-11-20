@@ -102,9 +102,49 @@ func NewDatabase(connection string, maxConnections int) (*gorm.DB, error) {
 		if err := database.Exec(sql).Error; err != nil {
 			return nil, fmt.Errorf("can't create catalog analysis GIN index: %w", err)
 		}
+
+		createLogSearchIndex(database)
 	}
 
 	return database, nil
+}
+
+// LogSearchIndex is the trigram index serving ?search on the log list,
+// which matches LOWER(message) LIKE '%term%'. A B-tree can't serve a
+// pattern with a leading wildcard, so without it every search that
+// matches few logs reads the whole table.
+const LogSearchIndex = "idx_logs_message_trgm"
+
+// createLogSearchIndex creates LogSearchIndex. pg_trgm is a trusted
+// extension, so the database owner can create it, but a role without
+// the CREATE privilege on the database can't. The API still works
+// without the index, only log searches get slower, so a failure is
+// logged and startup goes on.
+func createLogSearchIndex(database *gorm.DB) {
+	if database.Migrator().HasIndex(&models.Log{}, LogSearchIndex) {
+		return
+	}
+
+	if err := database.Exec("CREATE EXTENSION IF NOT EXISTS pg_trgm").Error; err != nil {
+		log.Printf("log searches run without an index, can't create the pg_trgm extension: %s", err)
+
+		return
+	}
+
+	sql := "CREATE INDEX " + LogSearchIndex + " ON logs USING GIN (LOWER(message) gin_trgm_ops)"
+	if err := database.Exec(sql).Error; err != nil {
+		log.Printf("log searches run without an index, can't create %s: %s", LogSearchIndex, err)
+
+		return
+	}
+
+	// The planner knows nothing about LOWER(message) until the table is
+	// analyzed, and autovacuum may not get to a large logs table for a
+	// long time. Until then it guesses that a search matches many rows
+	// and walks created_at instead of using the index.
+	if err := database.Exec("ANALYZE logs").Error; err != nil {
+		log.Printf("can't analyze logs after creating %s: %s", LogSearchIndex, err)
+	}
 }
 
 func openDatabaseConnection(connection string, dialect Dialect) (*gorm.DB, error) {
