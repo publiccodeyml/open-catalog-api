@@ -13,7 +13,6 @@ import (
 	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/caarlos0/env/v6"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cache"
 	"github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	recovermw "github.com/gofiber/fiber/v2/middleware/recover"
@@ -214,7 +213,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 
 	app.Use(middleware.NewPasetoMiddleware(common.EnvironmentConfig, requiresAuth))
 
-	app.Use(newResponseCache())
+	app.Use(newResponseCache(responseCacheMaxBytes, responseCacheMaxEntries, time.Now))
 
 	setupHandlers(app, gormDB)
 
@@ -274,22 +273,6 @@ func requiresAuth(method, requestPath string) bool {
 	}
 
 	return false
-}
-
-func newResponseCache() fiber.Handler {
-	return cache.New(cache.Config{
-		Next: func(ctx *fiber.Ctx) bool {
-			// Don't cache health checks or authenticated resources.
-			return ctx.Path() == "/v1/status" ||
-				requiresAuth(ctx.Method(), ctx.Path())
-		},
-		Methods:      []string{fiber.MethodGet},
-		CacheControl: true,
-		Expiration:   10 * time.Second,
-		KeyGenerator: func(ctx *fiber.Ctx) string {
-			return ctx.Path() + "?" + string(ctx.Context().QueryArgs().QueryString())
-		},
-	})
 }
 
 func newMetricsMiddleware() *fiberprometheus.FiberPrometheus {
