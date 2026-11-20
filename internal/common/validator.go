@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/go-playground/validator/v10"
@@ -168,6 +169,8 @@ func newRequestValidator() *validator.Validate {
 		return strings.SplitN(fld.Tag.Get("json"), ",", tagPosition)[0]
 	})
 
+	_ = validate.RegisterValidation("url", urlWithoutSpaces("url"))
+	_ = validate.RegisterValidation("http_url", urlWithoutSpaces("http_url"))
 	_ = validate.RegisterValidation("code_hosting_url", validateCodeHostingURL)
 	_ = validate.RegisterValidation(normalizedMaxTag, validateNormalizedMax)
 	_ = validate.RegisterValidation("webhook_url", validateWebhookURL)
@@ -268,6 +271,20 @@ func ValidateRequestEntity(ctx *fiber.Ctx, request any, errorMessage string) err
 	return nil
 }
 
+// urlWithoutSpaces runs the validator's own URL rule and also refuses
+// whitespace. The rule accepts a trailing or inner space that normalization
+// then stores as %20, a URL that matches no other row and no real page.
+func urlWithoutSpaces(tag string) validator.Func {
+	return func(fl validator.FieldLevel) bool {
+		value := fl.Field().String()
+		if strings.ContainsFunc(value, unicode.IsSpace) {
+			return false
+		}
+
+		return hostValidator.Var(value, tag) == nil
+	}
+}
+
 // validateCodeHostingURL rejects publisher CodeHosting URLs that point at
 // non public hosts. The "http_url" tag already vets the scheme and overall
 // shape. Here we only require the host to be a real FQDN, which
@@ -283,7 +300,7 @@ func validateCodeHostingURL(fl validator.FieldLevel) bool {
 
 // validateNormalizedMax checks the length limit on the URL the API stores,
 // not on the one the client sent. Normalization percent-encodes non ASCII
-// letters and spaces, so a URL under the limit can grow past it, and every
+// letters, so a URL under the limit can grow past it, and every
 // later PATCH, which validates the stored entity again, would refuse it.
 func validateNormalizedMax(field validator.FieldLevel) bool {
 	limit, err := strconv.Atoi(field.Param())

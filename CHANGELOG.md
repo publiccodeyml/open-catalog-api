@@ -89,6 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Software url and aliases, publisher codeHosting, webhook and catalog
+  source URLs containing whitespace are rejected with `422`. A trailing
+  space used to pass and was stored as `%20`, creating a second software
+  or publisher for a URL already in the catalog.
 - `PATCH /v1/software/:id` and `PATCH /v1/publishers/:id` reject an
   alias or a codeHosting url repeated after normalization with `422`, as
   POST does, instead of keeping one of the entries. A stored software or

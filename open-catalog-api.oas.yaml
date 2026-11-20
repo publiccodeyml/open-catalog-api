@@ -3002,7 +3002,8 @@ components:
             unique within a catalog, including the root catalog. The same URL
             can belong to software in different catalogs.
             The 255 character limit applies to the URL as stored, after
-            normalization percent-encodes non ASCII letters and spaces.
+            normalization percent-encodes non ASCII letters. A URL
+            containing whitespace is rejected with 422.
           example: 'https://github.com/example/my-software'
         aliases:
           type: array
@@ -3012,8 +3013,9 @@ components:
             to the current one. Each alias must be an http or https URL with
             a host. The 255 character limit on each alias applies
             to the URL as stored, after normalization percent-encodes non ASCII
-            letters and spaces. A POST or PATCH listing an alias that
-            normalizes to `url` or to another alias is rejected with 422.
+            letters. An alias containing whitespace is rejected with 422. A
+            POST or PATCH listing an alias that normalizes to `url` or to
+            another alias is rejected with 422.
           example: ['https://github.com/example/old-repo']
           minItems: 0
           maxItems: 255
@@ -3187,7 +3189,7 @@ components:
           description: >
             URL of this catalog source. The 2048 character limit applies to
             the URL as stored, after normalization percent-encodes non ASCII
-            letters and spaces.
+            letters. A URL containing whitespace is rejected with 422.
           example: 'https://github.com/org'
         args:
           type: array
@@ -3234,7 +3236,8 @@ components:
                 description: |
                   The HTTP URL for the repository or the group of repositories.
                   The 255 character limit applies to the URL as stored, after
-                  normalization percent-encodes non ASCII letters and spaces.
+                  normalization percent-encodes non ASCII letters. A URL
+                  containing whitespace is rejected with 422.
                   A POST or PATCH listing two entries whose URLs normalize to
                   the same URL is rejected with 422.
                 format: uri
@@ -3593,7 +3596,8 @@ components:
             DNS resolution is best effort at registration and checked again
             before every delivery.
             The 255 character limit applies to the URL as stored, after
-            normalization percent-encodes non ASCII letters and spaces.
+            normalization percent-encodes non ASCII letters. A URL
+            containing whitespace is rejected with 422.
         secret:
           type: string
           minLength: 16
