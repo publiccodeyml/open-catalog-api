@@ -231,6 +231,34 @@ func TestMigrationCreatesEventCreatedAtIndex(t *testing.T) {
 	assert.Equal(t, event.Type, stored.Type)
 }
 
+func TestMigrationCreatesLogSearchIndex(t *testing.T) {
+	connection := testConnection(t)
+
+	dialect, err := DialectFromDSN(connection)
+	require.NoError(t, err)
+
+	if dialect == SQLite {
+		t.Skip("SQLite builds keep the plain LIKE, the index is PostgreSQL only")
+	}
+
+	database := openDatabase(t, connection)
+
+	require.True(t, database.Migrator().HasIndex(&models.Log{}, LogSearchIndex))
+	require.NoError(t, database.Migrator().DropIndex(&models.Log{}, LogSearchIndex))
+	require.NoError(t, database.Create(&models.Log{ID: "log-before-index", Message: "Crawled a repository"}).Error)
+
+	migrated := openDatabase(t, connection)
+
+	assert.True(t, migrated.Migrator().HasIndex(&models.Log{}, LogSearchIndex))
+
+	// Without statistics on the indexed expression the planner skips
+	// the index, so the migration analyzes the table it indexed.
+	var stats int64
+
+	require.NoError(t, migrated.Raw("SELECT COUNT(*) FROM pg_stats WHERE tablename = ?", LogSearchIndex).Scan(&stats).Error)
+	assert.Positive(t, stats)
+}
+
 func TestNewDatabaseConnectionPool(t *testing.T) {
 	connection := testConnection(t)
 	dialect, err := DialectFromDSN(connection)

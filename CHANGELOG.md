@@ -134,6 +134,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refuses to start on an entry that is not an IP address or a CIDR. A
   padded entry, a hostname or a bad CIDR never matched the proxy, so
   every client behind it shared one rate limit.
+- On PostgreSQL, `GET /v1/logs?search=` read every log when the term
+  matched none, so a stream of anonymous searches held every database
+  connection and other requests waited. A trigram index on the log
+  message now serves the search, created at startup with the `pg_trgm`
+  extension. Searches the index can't narrow, like a term with fewer
+  than three letters, still read every log, so at most half the
+  connections run a search at once and a search over that answers `503`.
 
 - Publisher PATCH responses include stored timestamps and the default group flag
   for newly added code hosting entries.
