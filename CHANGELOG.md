@@ -89,6 +89,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A JSON Patch `test` operation whose value is an array holding `null`
+  gets `422` instead of `500`. The JSON Patch library panicked comparing
+  the null item.
 - `PATCH` rejects an empty software `publiccodeYml`, catalog
   `alternativeId`, publisher `description` and publisher `alternativeId`
   with `422`, as POST does, instead of storing `""`. A row already

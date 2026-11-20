@@ -33,6 +33,7 @@ var (
 	errPatchPathLen   = fmt.Errorf("path and from must not exceed %d characters", maxPatchPathLen)
 	errPatchProtected = errors.New("operation not allowed on a read-only field")
 	errPatchCopySize  = fmt.Errorf("copy operations must not add more than %d bytes", maxPatchCopyBytes)
+	errPatchFailed    = errors.New("patch could not be applied")
 )
 
 type PatchError struct {
@@ -99,7 +100,7 @@ func applyJSONPatch(entityJSON, body []byte) ([]byte, *PatchError) {
 	options := jsonpatch.NewApplyOptions()
 	options.AccumulatedCopySizeLimit = maxPatchCopyBytes
 
-	updatedJSON, err := patch.ApplyWithOptions(entityJSON, options)
+	updatedJSON, err := applyRecovering(patch, entityJSON, options)
 	if sizeErr := (*jsonpatch.AccumulatedCopySizeError)(nil); errors.As(err, &sizeErr) {
 		return nil, &PatchError{Code: http.StatusUnprocessableEntity, Err: errPatchCopySize}
 	}
@@ -113,6 +114,25 @@ func applyJSONPatch(entityJSON, body []byte) ([]byte, *PatchError) {
 	}
 
 	return updatedJSON, nil
+}
+
+// applyRecovering applies patch, turning a panic of the library into an
+// error. json-patch v5.9.11 dereferences the null items of an array in a test
+// value, so [{"op":"test","path":"/aliases","value":[null]}] would otherwise
+// end the request with a 500.
+func applyRecovering(patch jsonpatch.Patch, doc []byte, options *jsonpatch.ApplyOptions) ([]byte, error) {
+	var (
+		updated []byte
+		err     = errPatchFailed
+	)
+
+	func() {
+		defer func() { _ = recover() }()
+
+		updated, err = patch.ApplyWithOptions(doc, options)
+	}()
+
+	return updated, err //nolint:wrapcheck
 }
 
 func validatePatch(patch jsonpatch.Patch) error {
