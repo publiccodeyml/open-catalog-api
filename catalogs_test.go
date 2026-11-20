@@ -1420,6 +1420,21 @@ func TestCatalogAnalysisEndpoints(t *testing.T) {
 			},
 		},
 		{
+			description: "PATCH analysis nested deeper than SQLite reads returns 422",
+			query:       "PATCH /v1/catalogs/" + italiaID + "/analysis",
+			body:        `{"badges": {"v": 1, "x": ` + strings.Repeat("[", 999) + strings.Repeat("]", 999) + `}}`,
+			headers: map[string][]string{
+				"Authorization": {goodToken},
+				"Content-Type":  {"application/merge-patch+json"},
+			},
+			expectedCode:        422,
+			expectedContentType: "application/problem+json",
+			validateFunc: func(t *testing.T, response map[string]any) {
+				assert.Equal(t, "can't update Catalog analysis", response["title"])
+				assert.Equal(t, "analysis.badges: must not nest objects and arrays deeper than 64 levels", response["detail"])
+			},
+		},
+		{
 			description:         "GET analysis on nonexistent catalog returns 404",
 			query:               "GET /v1/catalogs/" + missingID + "/analysis",
 			expectedCode:        404,
