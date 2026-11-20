@@ -39,7 +39,7 @@ func newResponseCache(maxBytes, maxEntries int, now func() time.Time) fiber.Hand
 		// is about to store.
 		Next: func(ctx *fiber.Ctx) bool {
 			// Don't cache health checks or authenticated resources.
-			if ctx.Path() == "/v1/status" || requiresAuth(ctx.Method(), ctx.Path()) {
+			if routePath(ctx.Path()) == "/v1/status" || requiresAuth(ctx.Method(), ctx.Path()) {
 				return true
 			}
 

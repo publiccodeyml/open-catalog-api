@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Paths are case sensitive. `/V1/Software` and other letter cases of a
+  route answer `404` instead of serving the route.
+
 - The rate limit counts IPv6 clients per /64, so a client can no longer
   avoid it by sending each request from a different address of its
   network. IPv4-mapped IPv6 addresses count as their IPv4 address.
@@ -261,6 +264,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GET /v1/logs?search=` missed a log when the term had an uppercase
   accented letter, so `FORLÌ` didn't find `Forlì`. The term now folds
   case with the database's own `LOWER`, like the message it matches.
+- `GET /v1/status/` was cached for 10 seconds as `public`, so monitors
+  using it could see a healthy `204` after the database went down. It
+  now skips the cache too.
 
 ### Security
 

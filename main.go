@@ -164,6 +164,9 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: common.CustomErrorHandler,
+		// Route paths as the OpenAPI contract writes them, so /V1/Software
+		// is not a second name for /v1/software.
+		CaseSensitive: true,
 		// Bound request reads and keep-alive waits. The write limit is
 		// long enough for a full list page on a slow link, and stops a
 		// client that never reads from holding its response in memory.
@@ -261,8 +264,9 @@ func requiresAuth(method, requestPath string) bool {
 		return true
 	}
 
-	// Match Fiber's default case insensitive routing.
-	normalizedPath := "/" + strings.ToLower(strings.Trim(requestPath, "/"))
+	// Fold case as well, so the token check doesn't depend on how the
+	// router treats letter case.
+	normalizedPath := strings.ToLower(routePath(requestPath))
 	for _, pattern := range [...]string{
 		"/v1/events",
 		"/v1/events/*",
@@ -278,6 +282,12 @@ func requiresAuth(method, requestPath string) bool {
 	}
 
 	return false
+}
+
+// routePath returns the path as the router matches it, without a trailing
+// slash.
+func routePath(requestPath string) string {
+	return "/" + strings.Trim(requestPath, "/")
 }
 
 func newMetricsMiddleware() *fiberprometheus.FiberPrometheus {
