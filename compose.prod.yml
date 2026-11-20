@@ -2,7 +2,7 @@
 # docker compose -f compose.prod.yml up -d
 services:
   api:
-    image: ghcr.io/publiccodeyml/open-catalog-api:latest
+    image: ghcr.io/publiccodeyml/open-catalog-api:stable
     restart: unless-stopped
     depends_on:
       db:

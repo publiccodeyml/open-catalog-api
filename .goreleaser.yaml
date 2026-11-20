@@ -49,6 +49,9 @@ dockers_v2:
     tags:
       - "{{ .Tag }}"
       - "latest"
+      # Moves only on final releases, so deployments that follow it never
+      # get a release candidate. GoReleaser skips a tag that renders empty.
+      - "{{ if not .Prerelease }}stable{{ end }}"
     # Inline attestations contain build timestamps. CI attests separately.
     sbom: "false"
     build_args:
