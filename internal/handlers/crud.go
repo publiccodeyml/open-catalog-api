@@ -205,6 +205,10 @@ func patchAnalysis(ctx *fiber.Ctx, gormdb *gorm.DB, model models.Analyzable, opt
 		return err //nolint:wrapcheck
 	}
 
+	if err := common.CheckNULCharacters(ctx.Body(), opts.title); err != nil {
+		return err //nolint:wrapcheck
+	}
+
 	var incoming common.AnalysisData
 	if err := json.Unmarshal(ctx.Body(), &incoming); err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, opts.title, "invalid or malformed JSON")
@@ -354,6 +358,8 @@ func applyPatch[T any](ctx *fiber.Ctx, current *T, opts patchOptions[T]) (T, err
 		if err := common.ValidateRequestEntity(ctx, opts.request, opts.title); err != nil {
 			return zero, err //nolint:wrapcheck
 		}
+	} else if err := common.CheckNULCharacters(ctx.Body(), opts.title); err != nil {
+		return zero, err //nolint:wrapcheck
 	}
 
 	updated, patchErr := common.ApplyPatch(current, contentType, ctx.Body())

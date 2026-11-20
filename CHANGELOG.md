@@ -102,6 +102,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   percent-encodes non ASCII letters and spaces. A software or publisher
   created with such a URL could grow past the limit and then fail every
   PATCH with `422`.
+- A NUL character (U+0000) in a request body string now gets `422`, and
+  one in the path or a query parameter gets `400`. On PostgreSQL these
+  requests answered `500`, including reads that need no token.
 
 - Publisher PATCH responses include stored timestamps and the default group flag
   for newly added code hosting entries.

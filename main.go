@@ -211,6 +211,8 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	prometheus.RegisterAt(app, "/metrics")
 	app.Use(prometheus.Middleware)
 
+	app.Use(common.RefuseNULInURL)
+
 	app.Use(middleware.NewPasetoMiddleware(common.EnvironmentConfig, requiresAuth))
 
 	app.Use(newResponseCache(responseCacheMaxBytes, responseCacheMaxEntries, time.Now))

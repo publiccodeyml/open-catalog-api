@@ -241,6 +241,10 @@ func ValidateRequestEntity(ctx *fiber.Ctx, request any, errorMessage string) err
 		return err
 	}
 
+	if err := CheckNULCharacters(ctx.Body(), errorMessage); err != nil {
+		return err
+	}
+
 	if err := ctx.BodyParser(request); err != nil {
 		if errors.Is(err, jsondecoder.ErrUnknownField) {
 			return Error(fiber.StatusUnprocessableEntity, errorMessage, err.Error())
