@@ -16,7 +16,9 @@ var errUnsupportedDialect = errors.New("unsupported database dialect for analysi
 // MergeAnalysis atomically replaces the namespaces in patch while preserving
 // every namespace that is already stored but absent from patch. Null values
 // remove namespaces. It writes the row the model's primary key addresses
-// and reads the merged document back from the same statement.
+// and reads the merged document back from the same statement. A merged
+// document larger than common.MaxAnalysisSize is rolled back with a
+// common.AnalysisTooLargeError.
 func MergeAnalysis(
 	gormdb *gorm.DB,
 	model models.Analyzable,
@@ -48,7 +50,9 @@ func MergeAnalysis(
 			return gorm.ErrRecordNotFound
 		}
 
-		return nil
+		// Checked on the merged row, inside the transaction, so a document
+		// over the limit is rolled back and never seen by a reader.
+		return common.CheckAnalysisSize(patch, model.AnalysisDocument())
 	})
 	if err != nil {
 		return nil, fmt.Errorf("merge analysis: %w", err)

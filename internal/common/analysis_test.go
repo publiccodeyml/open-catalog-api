@@ -176,3 +176,28 @@ func TestWithTimestamps(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestCheckAnalysisSize(t *testing.T) {
+	payload := func(size int) json.RawMessage {
+		return json.RawMessage(`{"v":1,"x":"` + strings.Repeat("a", size) + `"}`)
+	}
+	// {"n":{"v":1,"x":""}} is 20 bytes around the payload.
+	atLimit := AnalysisData{"n": payload(MaxAnalysisSize - 20)}
+	overLimit := AnalysisData{"n": payload(MaxAnalysisSize - 19)}
+
+	assert.NoError(t, CheckAnalysisSize(atLimit, atLimit))
+	assert.Equal(t, AnalysisTooLargeError{Size: MaxAnalysisSize + 1}, CheckAnalysisSize(overLimit, overLimit))
+
+	t.Run("indentation in stored namespaces does not count", func(t *testing.T) {
+		indented := AnalysisData{"n": json.RawMessage("{\n  \"v\": 1,\n  \"x\": \"" +
+			strings.Repeat("a", MaxAnalysisSize-20) + "\"\n}")}
+
+		assert.NoError(t, CheckAnalysisSize(indented, indented))
+	})
+
+	t.Run("a patch that only removes namespaces passes", func(t *testing.T) {
+		removal := AnalysisData{"gone": json.RawMessage("null")}
+
+		assert.NoError(t, CheckAnalysisSize(removal, overLimit))
+	})
+}

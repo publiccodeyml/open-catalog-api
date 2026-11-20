@@ -99,6 +99,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `PATCH /v1/software/{id}/analysis` and `PATCH /v1/catalogs/{id}/analysis`
   answer `500` on SQLite. Namespaces may now nest at most 64 objects and
   arrays, and deeper ones get `422` on both databases.
+- The analysis of a software or catalog grew without limit when each
+  `PATCH` added a new namespace. A merged document larger than 1 MiB is
+  now rejected with `422` and nothing is written. Patches that only remove
+  namespaces are still accepted.
 - Publisher routes now decode a percent encoded `alternativeId` in the
   path, so a publisher whose `alternativeId` has a space or a non ASCII
   letter can be read, updated and deleted by it.

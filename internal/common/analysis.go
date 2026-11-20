@@ -27,6 +27,57 @@ var (
 // and read back on both dialects.
 const MaxAnalysisDepth = 64
 
+// MaxAnalysisSize is how many bytes the analysis document of a software or
+// catalog may take once merged, measured as compact JSON. Each request is
+// already bounded by the body limit, but merging new namespaces request
+// after request would otherwise grow the document without end.
+const MaxAnalysisSize = 1 << 20
+
+// AnalysisTooLargeError reports a merge whose result would exceed
+// MaxAnalysisSize. Size is the length of the merged document.
+type AnalysisTooLargeError struct {
+	Size int
+}
+
+func (e AnalysisTooLargeError) Error() string {
+	return fmt.Sprintf("analysis must not exceed %d bytes once merged, this patch would make it %d bytes",
+		MaxAnalysisSize, e.Size)
+}
+
+// CheckAnalysisSize answers an AnalysisTooLargeError when merged, the
+// document a patch produces, exceeds MaxAnalysisSize. A patch that only
+// removes namespaces always passes, so a document stored before the limit
+// existed can still be cleaned up.
+func CheckAnalysisSize(patch, merged AnalysisData) error {
+	if onlyRemovals(patch) {
+		return nil
+	}
+
+	// RawMessage values are compacted on marshal, so the size does not
+	// depend on how the database formats the stored document.
+	data, err := json.Marshal(merged)
+	if err != nil {
+		return fmt.Errorf("can't marshal AnalysisData: %w", err)
+	}
+
+	if len(data) > MaxAnalysisSize {
+		return AnalysisTooLargeError{Size: len(data)}
+	}
+
+	return nil
+}
+
+// onlyRemovals answers whether every namespace in patch is null.
+func onlyRemovals(patch AnalysisData) bool {
+	for _, raw := range patch {
+		if !bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // AnalysisData is a map of { namespace: arbitrary JSON object }
 // External software components (scanners, enrichers, security checkers, etc.) write under
 // their own key.

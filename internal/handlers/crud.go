@@ -235,6 +235,10 @@ func patchAnalysis(ctx *fiber.Ctx, gormdb *gorm.DB, model models.Analyzable, opt
 			return common.Error(fiber.StatusNotFound, opts.title, opts.name+" was not found")
 		}
 
+		if tooLarge, ok := errors.AsType[common.AnalysisTooLargeError](err); ok {
+			return common.Error(fiber.StatusUnprocessableEntity, opts.title, tooLarge.Error())
+		}
+
 		return common.InternalServerError(opts.title)
 	}
 
