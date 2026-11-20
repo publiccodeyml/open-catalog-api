@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -134,6 +135,40 @@ func TestWithTimestamps(t *testing.T) {
 	t.Run("v at boundary 999 is valid", func(t *testing.T) {
 		input := AnalysisData{
 			"scanner": json.RawMessage(`{"v": 999}`),
+		}
+
+		_, err := WithTimestamps(input, now)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("nesting at MaxAnalysisDepth is valid", func(t *testing.T) {
+		deep := strings.Repeat("[", MaxAnalysisDepth-1) + strings.Repeat("]", MaxAnalysisDepth-1)
+		input := AnalysisData{
+			"scanner": json.RawMessage(`{"v": 1, "x": ` + deep + `}`),
+		}
+
+		_, err := WithTimestamps(input, now)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("nesting over MaxAnalysisDepth returns error", func(t *testing.T) {
+		deep := strings.Repeat(`{"a":`, MaxAnalysisDepth) + "1" + strings.Repeat("}", MaxAnalysisDepth)
+		input := AnalysisData{
+			"scanner": json.RawMessage(`{"v": 1, "x": ` + deep + `}`),
+		}
+
+		_, err := WithTimestamps(input, now)
+
+		assert.ErrorIs(t, err, errAnalysisTooDeep)
+		assert.EqualError(t, err, "analysis.scanner: must not nest objects and arrays deeper than 64 levels")
+	})
+
+	t.Run("brackets inside strings do not count as nesting", func(t *testing.T) {
+		brackets := strings.Repeat("[{", MaxAnalysisDepth)
+		input := AnalysisData{
+			"scanner": json.RawMessage(`{"v": 1, "x": "\\\"` + brackets + `"}`),
 		}
 
 		_, err := WithTimestamps(input, now)

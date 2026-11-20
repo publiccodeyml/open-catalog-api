@@ -18,7 +18,14 @@ var (
 	errAnalysisVOutOfRange  = errors.New("'v' must be between 1 and 999")
 	errAnalysisUnexpectedDB = errors.New("unexpected database value type for analysis")
 	errAnalysisAddTimestamp = errors.New("could not add the 't' timestamp")
+	errAnalysisTooDeep      = fmt.Errorf("must not nest objects and arrays deeper than %d levels", MaxAnalysisDepth)
 )
+
+// MaxAnalysisDepth is how many objects and arrays a namespace may nest,
+// the namespace object itself included. SQLite refuses JSON nested deeper
+// than 1000 levels, so a namespace must stay well below that to be merged
+// and read back on both dialects.
+const MaxAnalysisDepth = 64
 
 // AnalysisData is a map of { namespace: arbitrary JSON object }
 // External software components (scanners, enrichers, security checkers, etc.) write under
@@ -66,7 +73,7 @@ type namespaceMeta struct {
 	V *json.RawMessage `json:"v"`
 }
 
-// WithTimestamps checks that each namespace is a JSON object with an integer "v",
+// WithTimestamps checks each namespace with checkNamespace,
 // then injects "t" (current time, RFC 3339). Null values request namespace deletion.
 func WithTimestamps(analysis AnalysisData, now time.Time) (AnalysisData, error) {
 	if analysis == nil {
@@ -86,23 +93,8 @@ func WithTimestamps(analysis AnalysisData, now time.Time) (AnalysisData, error) 
 			continue
 		}
 
-		var meta namespaceMeta
-
-		if err := json.Unmarshal(raw, &meta); err != nil {
-			return nil, fmt.Errorf("analysis.%s: %w", namespace, errAnalysisNotObject)
-		}
-
-		if meta.V == nil {
-			return nil, fmt.Errorf("analysis.%s: %w", namespace, errAnalysisMissingV)
-		}
-
-		var version int
-		if err := json.Unmarshal(*meta.V, &version); err != nil {
-			return nil, fmt.Errorf("analysis.%s: %w", namespace, errAnalysisInvalidV)
-		}
-
-		if version < 1 || version > 999 {
-			return nil, fmt.Errorf("analysis.%s: %w", namespace, errAnalysisVOutOfRange)
+		if err := checkNamespace(raw); err != nil {
+			return nil, fmt.Errorf("analysis.%s: %w", namespace, err)
 		}
 
 		// MergePatch fails only on invalid JSON and both inputs are
@@ -117,4 +109,55 @@ func WithTimestamps(analysis AnalysisData, now time.Time) (AnalysisData, error) 
 	}
 
 	return result, nil
+}
+
+// jsonDepth answers how deeply objects and arrays nest in data, 0 for a
+// scalar. On invalid JSON it answers the depth reached before the error.
+func jsonDepth(data []byte) int {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	depth, maxDepth := 0, 0
+
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			return maxDepth
+		}
+
+		switch token {
+		case json.Delim('{'), json.Delim('['):
+			depth++
+			maxDepth = max(maxDepth, depth)
+		case json.Delim('}'), json.Delim(']'):
+			depth--
+		}
+	}
+}
+
+// checkNamespace checks that raw is a JSON object with an integer "v"
+// between 1 and 999, nesting at most MaxAnalysisDepth levels.
+func checkNamespace(raw json.RawMessage) error {
+	if jsonDepth(raw) > MaxAnalysisDepth {
+		return errAnalysisTooDeep
+	}
+
+	var meta namespaceMeta
+
+	if err := json.Unmarshal(raw, &meta); err != nil {
+		return errAnalysisNotObject
+	}
+
+	if meta.V == nil {
+		return errAnalysisMissingV
+	}
+
+	var version int
+	if err := json.Unmarshal(*meta.V, &version); err != nil {
+		return errAnalysisInvalidV
+	}
+
+	if version < 1 || version > 999 {
+		return errAnalysisVOutOfRange
+	}
+
+	return nil
 }
