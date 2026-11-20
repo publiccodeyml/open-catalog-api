@@ -258,6 +258,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now also checks the stored row.
 - A JSON Patch on a log that changed its `entity` answered `200` with the
   new value, while the database kept the old one. It now gets `422`.
+- `GET /v1/logs?search=` missed a log when the term had an uppercase
+  accented letter, so `FORLÌ` didn't find `Forlì`. The term now folds
+  case with the database's own `LOWER`, like the message it matches.
 
 ### Security
 

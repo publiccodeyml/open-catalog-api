@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/utils"
 	"github.com/publiccodeyml/open-catalog-api/internal/common"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -69,11 +68,14 @@ func Clauses(ctx *fiber.Ctx, stmt *gorm.DB, filterField, searchField string, dat
 		}
 	}
 
+	// The database folds the term with the same LOWER as the column: a
+	// fold done here would follow other rules, so an uppercase accented
+	// letter in the term would never meet the column's folded form.
 	if searchField != "" {
 		if search := ctx.Query("search", ""); search != "" {
 			ret = ret.Where(clause.Expr{
-				SQL:  `LOWER(?) LIKE ? ESCAPE '\'`,
-				Vars: []any{clause.Column{Name: searchField}, "%" + escapeLike(utils.ToLower(search)) + "%"},
+				SQL:  `LOWER(?) LIKE LOWER(?) ESCAPE '\'`,
+				Vars: []any{clause.Column{Name: searchField}, "%" + escapeLike(search) + "%"},
 			})
 		}
 	}
