@@ -218,6 +218,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	app.Use(prometheus.Middleware)
 
 	app.Use(common.RefuseNULInURL)
+	app.Use(common.RefuseInvalidUTF8InURL)
 
 	app.Use(middleware.NewPasetoMiddleware(common.EnvironmentConfig, requiresAuth))
 

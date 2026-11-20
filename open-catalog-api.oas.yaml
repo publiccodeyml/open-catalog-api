@@ -84,6 +84,12 @@ info:
     with one in a string or member name is rejected with `422`, and a
     path or query parameter with one with `400`.
 
+    ## Invalid UTF-8
+
+    The path and query parameters, once percent-decoded, must be valid
+    UTF-8. A path that is not gets `404`, since no resource can have
+    it, and a query parameter name or value that is not gets `400`.
+
     ## Caching
 
     Cachable responses will contain the `Cache-Control` header that can be used by clients

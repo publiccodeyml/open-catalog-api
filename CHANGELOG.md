@@ -126,6 +126,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A NUL character (U+0000) in a request body string now gets `422`, and
   one in the path or a query parameter gets `400`. On PostgreSQL these
   requests answered `500`, including reads that need no token.
+- A path that is not valid UTF-8 once percent-decoded, such as `%ff`,
+  now gets `404`, and such a query parameter name or value gets `400`.
+  On PostgreSQL these requests answered `500`, including reads that
+  need no token.
 - `POST /v1/catalogs` and `PATCH /v1/catalogs/{id}` return `409` when
   `alternativeId` is the `id` of another catalog, as publishers already
   did. Requests for that `id` reached the catalog holding it as
