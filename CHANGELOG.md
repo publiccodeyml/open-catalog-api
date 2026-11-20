@@ -116,6 +116,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PATCH /v1/catalogs/{id}` returns `422` when it sets `alternativeId`
   to `∅` on a catalog that is not the root. The catalog took the place
   of the root, its writes went to the root, and it could not go back.
+- `DELETE /v1/catalogs/{id}` no longer succeeds alongside a concurrent
+  create of software, a publisher or a log in that catalog. The new
+  resource kept the id of the deleted catalog. Now the delete answers
+  `409` or the create answers `404`.
 
 - Publisher PATCH responses include stored timestamps and the default group flag
   for newly added code hosting entries.

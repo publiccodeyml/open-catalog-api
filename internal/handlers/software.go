@@ -190,6 +190,10 @@ func createSoftware(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	}
 
 	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
+		if err := lockOwnerCatalog(tran, catalogID, errMsg); err != nil {
+			return err
+		}
+
 		return tran.Create(software).Error
 	}); err != nil {
 		return writeError(err, errMsg)

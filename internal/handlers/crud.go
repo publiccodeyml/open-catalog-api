@@ -241,10 +241,15 @@ func patchAnalysis(ctx *fiber.Ctx, gormdb *gorm.DB, model models.Analyzable, opt
 	return ctx.JSON(merged)
 }
 
-// writeError maps the error of a create or update to Problem JSON: 409
-// when a unique constraint or the alternativeId check failed, 500
-// otherwise. The raw database error never reaches the client.
+// writeError maps the error of a create or update to Problem JSON: as it
+// is when it already is one, 409 when a unique constraint or the
+// alternativeId check failed, 500 otherwise. The raw database error never
+// reaches the client.
 func writeError(err error, title string) error {
+	if problem, ok := errors.AsType[common.ProblemJSONError](err); ok {
+		return problem
+	}
+
 	if idConflict, ok := errors.AsType[idConflictError](err); ok {
 		return common.Error(fiber.StatusConflict, title, idConflict.Error())
 	}
@@ -318,10 +323,6 @@ func patchInTransaction[T any](
 
 		return err
 	}); err != nil {
-		if problem, ok := errors.AsType[common.ProblemJSONError](err); ok {
-			return problem
-		}
-
 		return writeError(err, title)
 	}
 

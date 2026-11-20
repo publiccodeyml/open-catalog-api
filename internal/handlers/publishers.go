@@ -141,6 +141,10 @@ func createPublisher(ctx *fiber.Ctx, gormdb *gorm.DB, catalogID *string) error {
 	}
 
 	if err := models.Transaction(gormdb, func(tran *gorm.DB) error {
+		if err := lockOwnerCatalog(tran, catalogID, errMsg); err != nil {
+			return err
+		}
+
 		if err := checkAlternativeIDConflict[models.Publisher](tran, "Publisher", request.AlternativeID); err != nil {
 			return err
 		}
