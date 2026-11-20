@@ -3110,6 +3110,7 @@ components:
             (publishersNamespace, name, scopes, active) but its resources keep
             being addressed via `catalog_id IS NULL`. Only POST can set `∅`.
             Once set it cannot be changed via PATCH, and `sources` are not allowed.
+          minLength: 1
           maxLength: 255
           example: 'example-catalog'
         active:
@@ -3273,6 +3274,7 @@ components:
               - updatedAt
         description:
           type: string
+          minLength: 1
           maxLength: 255
           pattern: '.*'
           description: Human-readable name or description of the Publisher
@@ -3302,6 +3304,7 @@ components:
 
             This is useful for example if this Publisher has another id or code in a
             different database.
+          minLength: 1
           maxLength: 255
           example: 'ID-1234'
           pattern: '.*'

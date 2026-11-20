@@ -34,7 +34,7 @@ type CatalogPost struct {
 
 type CatalogPatch struct {
 	Name                *string        `json:"name" validate:"omitempty,min=1,max=255"`
-	AlternativeID       *string        `json:"alternativeId" validate:"omitempty,max=255"`
+	AlternativeID       *string        `json:"alternativeId" validate:"omitempty,min=1,max=255"`
 	Active              *bool          `json:"active"`
 	PublishersNamespace *string        `json:"publishersNamespace" validate:"omitempty,max=255"`
 	Scopes              *[]string      `json:"scopes" validate:"omitempty,max=20,dive,min=1,max=64"`
@@ -51,10 +51,10 @@ type PublisherPost struct {
 
 type PublisherPatch struct {
 	CodeHosting   *[]CodeHosting `json:"codeHosting" validate:"omitempty,gt=0,max=255,dive"`
-	Description   *string        `json:"description" validate:"omitempty,max=255"`
+	Description   *string        `json:"description" validate:"omitempty,min=1,max=255"`
 	Email         *string        `json:"email" validate:"omitempty,max=255,email"`
 	Active        *bool          `json:"active"`
-	AlternativeID *string        `json:"alternativeId" validate:"omitempty,max=255"`
+	AlternativeID *string        `json:"alternativeId" validate:"omitempty,min=1,max=255"`
 }
 
 type CodeHosting struct {
@@ -73,7 +73,7 @@ type SoftwarePost struct {
 type SoftwarePatch struct {
 	URL           *string   `json:"url" validate:"omitempty,normalized_max=255,http_url"`
 	Aliases       *[]string `json:"aliases" validate:"omitempty,max=255,dive,normalized_max=255,http_url"`
-	PubliccodeYml *string   `json:"publiccodeYml" validate:"omitempty,max=99999"`
+	PubliccodeYml *string   `json:"publiccodeYml" validate:"omitempty,min=1,max=99999"`
 	Active        *bool     `json:"active"`
 	Vitality      *string   `json:"vitality" validate:"omitempty,max=99999"`
 }
