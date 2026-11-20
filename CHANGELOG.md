@@ -331,6 +331,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   counts the compressed bytes, so a 1 MB request could make the API
   allocate over 4 GB. A body with any Content-Encoding other than
   `identity` now gets `415`.
+- Request headers alone made the API allocate the declared
+  Content-Length, up to 4 MiB, before checking the token, so 1000
+  connections sending only headers and no token held over 4 GB.
+  Request bodies are now streamed and read only after authentication,
+  and a body over 4 MiB gets `413` whether or not it declares its
+  length.
 
 ## [1.4.0] - 2026-08-19
 
