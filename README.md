@@ -92,7 +92,9 @@ You can configure the API with environment variables:
 
 * `TRUSTED_PROXIES` (optional): comma separated list of addresses or
   CIDRs of the reverse proxies in front of the API,
-  fe `10.0.0.0/8,192.168.1.7`.
+  fe `10.0.0.0/8,192.168.1.7`. Spaces around the entries are ignored,
+  and the API refuses to start on an entry that is not an IP address or
+  a CIDR, such as a hostname.
   The `X-Forwarded-For` header is trusted only on requests coming from
   these addresses, and its first entry is the client the rate limit
   counts. Leave it empty when the API is exposed directly: the header
