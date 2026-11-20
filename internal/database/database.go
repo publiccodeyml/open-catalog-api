@@ -1,11 +1,15 @@
 package database
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -211,9 +215,15 @@ func openDatabaseConnection(connection string, dialect Dialect) (*gorm.DB, error
 	case Postgres:
 		log.Println("using Postgres database")
 
-		database, err = gorm.Open(postgres.Open(connection), &gorm.Config{
-			PrepareStmt: true,
-			Logger:      logger.Default.LogMode(logger.Silent),
+		var dialector *postgres.Dialector
+
+		dialector, err = postgresDialector(connection)
+		if err != nil {
+			return nil, err
+		}
+
+		database, err = gorm.Open(dialector, &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Silent),
 		})
 	default:
 		return nil, ErrUnknownDialect
@@ -224,6 +234,39 @@ func openDatabaseConnection(connection string, dialect Dialect) (*gorm.DB, error
 	}
 
 	return database, nil
+}
+
+// queryExecModeParam is the pgx DSN parameter choosing how queries run.
+const queryExecModeParam = "default_query_exec_mode"
+
+// postgresDialector opens PostgreSQL without keeping prepared statements
+// around. A prepared SELECT * keeps the columns of the table as they
+// were when it was prepared, and PostgreSQL refuses to run it once
+// another instance adds a column, as a release does in AutoMigrate
+// while the old replicas still serve. GORM's PrepareStmt never drops
+// such a statement, and the pgx statement cache drops it only after
+// the query fails on each connection. pgx describes every query
+// instead, unless the DSN picks its own default_query_exec_mode.
+func postgresDialector(connection string) (*postgres.Dialector, error) {
+	config, err := pgconn.ParseConfig(connection)
+	if err != nil {
+		return nil, fmt.Errorf("can't parse the database DSN: %w", err)
+	}
+
+	var options []stdlib.OptionOpenDB
+
+	if _, ok := config.RuntimeParams[queryExecModeParam]; !ok {
+		options = append(options, stdlib.OptionBeforeConnect(func(_ context.Context, config *pgx.ConnConfig) error {
+			config.DefaultQueryExecMode = pgx.QueryExecModeDescribeExec
+
+			return nil
+		}))
+	}
+
+	return &postgres.Dialector{Config: &postgres.Config{
+		DSN:          connection,
+		OptionOpenDB: options,
+	}}, nil
 }
 
 func migrateModels(database *gorm.DB) error {

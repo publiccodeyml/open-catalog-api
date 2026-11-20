@@ -93,6 +93,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- On PostgreSQL, a running API keeps reading a table after another
+  instance adds a column to it, as a newer release does at startup
+  during a rolling update. Prepared statements kept the old columns and
+  every read of that table failed with `cached plan must not change
+  result type` until a restart. Queries are now described each time
+  they run, which costs one more round trip. A `default_query_exec_mode`
+  in `DATABASE_DSN` takes precedence.
 - A JSON Patch `test` operation whose value is an array holding `null`
   gets `422` instead of `500`. The JSON Patch library panicked comparing
   the null item.
