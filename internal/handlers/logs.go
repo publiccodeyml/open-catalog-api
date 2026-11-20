@@ -125,11 +125,7 @@ func (p *Log) PostCatalogLog(ctx *fiber.Ctx) error {
 	}
 
 	table := models.Catalog{}.TableName()
-
-	var entityID *string
-	if !isRoot(catalog) {
-		entityID = &catalog.ID
-	}
+	entityID := catalogOwnerID(catalog)
 
 	log := models.Log{
 		ID:         utils.UUIDv4(),
@@ -138,8 +134,14 @@ func (p *Log) PostCatalogLog(ctx *fiber.Ctx) error {
 		EntityType: &table,
 	}
 
-	if err := p.db.Create(&log).Error; err != nil {
-		return common.InternalServerError(errMsg)
+	if err := models.Transaction(p.db, func(tran *gorm.DB) error {
+		if err := lockOwnerCatalog(tran, entityID, errMsg); err != nil {
+			return err
+		}
+
+		return tran.Create(&log).Error
+	}); err != nil {
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(&log)

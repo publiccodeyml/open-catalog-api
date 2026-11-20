@@ -59,6 +59,29 @@ func catalogOwnerID(catalog *models.Catalog) *string {
 	return &catalog.ID
 }
 
+// lockOwnerCatalog locks the catalog that will own a new resource, see
+// lockRow, so that DeleteCatalog, which locks it before counting the
+// catalog's resources, either sees the resource or runs first and makes
+// the create answer 404. catalogID is nil for the root catalog, whose
+// resources never refer to its row.
+func lockOwnerCatalog(tran *gorm.DB, catalogID *string, title string) error {
+	if catalogID == nil {
+		return nil
+	}
+
+	result := tran.Model(&models.Catalog{}).Where("id = ?", *catalogID).
+		UpdateColumn("updated_at", gorm.Expr("updated_at"))
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return common.Error(fiber.StatusNotFound, title, "Catalog was not found")
+	}
+
+	return nil
+}
+
 // belongsToCatalog reports whether a resource whose catalog_id is catalogID
 // is a resource of catalog. On the root the column is NULL.
 func belongsToCatalog(catalog *models.Catalog, catalogID *string) bool {
@@ -285,6 +308,10 @@ func (c *Catalog) DeleteCatalog(ctx *fiber.Ctx) error {
 	var conflictErr error
 
 	if err := models.Transaction(writeDB(ctx, c.db), func(tran *gorm.DB) error {
+		if err := lockRow[models.Catalog](tran, "id = ?", catalog.ID); err != nil {
+			return err
+		}
+
 		var publisherCount, softwareCount int64
 
 		pubScope := tran.Model(&models.Publisher{}).Scopes(catalogScope(&catalog))
