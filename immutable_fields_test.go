@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -336,6 +337,56 @@ func TestPatchRejectsProtectedPaths(t *testing.T) {
 
 			assert.Equal(t, test.want, dbValue(t, test.table, test.column, "id", test.id))
 			assert.Equal(t, 0, dbCount(t, test.table, "id", unusedID))
+		})
+	}
+}
+
+// TestPatchRefusesLogEntity covers the resource a log was created on. The
+// route sets it and a patch never writes it, so an operation that changes it
+// is refused instead of answering with a value the database never stores.
+func TestPatchRefusesLogEntity(t *testing.T) {
+	const (
+		detail  = `"detail":"operation not allowed on a read-only field: /entity"`
+		message = `{"op": "replace", "path": "/message", "value": "patched"}`
+	)
+
+	tests := []struct {
+		description string
+		linked      bool
+		ops         string
+	}{
+		{"replace", true, `{"op": "replace", "path": "/entity", "value": "/software/forged"}, ` + message},
+		{"add on a log without entity", false, `{"op": "add", "path": "/entity", "value": "/publishers/forged"}, ` + message},
+		{"remove", true, `{"op": "remove", "path": "/entity"}, ` + message},
+		{"move", true, `{"op": "move", "from": "/entity", "path": "/message"}`},
+		{"root replace", true, `{"op": "replace", "path": "", "value": {"id": "` + fixtureLogID + `", ` +
+			`"createdAt": "2010-02-01T23:59:59Z", "updatedAt": "2010-12-31T23:59:59Z", ` +
+			`"message": "patched", "entity": "/software/forged"}}`},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			loadFixtures(t)
+
+			if test.linked {
+				_, err := db.Exec(
+					fmt.Sprintf("UPDATE logs SET entity_id = %s, entity_type = 'software' WHERE id = %s",
+						placeholder(1), placeholder(2)),
+					rootSoftwareID, fixtureLogID)
+				require.NoError(t, err)
+			}
+
+			code, body := patchJSON(t, logPath+fixtureLogID, "["+test.ops+"]")
+
+			assert.Equal(t, http.StatusUnprocessableEntity, code)
+			assert.Contains(t, string(body), detail)
+			assert.Equal(t, "A log message", dbValue(t, "logs", "message", "id", fixtureLogID))
+
+			if test.linked {
+				assert.Equal(t, rootSoftwareID, dbValue(t, "logs", "entity_id", "id", fixtureLogID))
+			} else {
+				assert.True(t, dbNull(t, "logs", "entity_id", "id", fixtureLogID))
+			}
 		})
 	}
 }

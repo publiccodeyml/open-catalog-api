@@ -256,6 +256,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   catalog, bundle or log both answered `200`, but the later one put back
   the fields the earlier one had changed. A JSON Patch `test` operation
   now also checks the stored row.
+- A JSON Patch on a log that changed its `entity` answered `200` with the
+  new value, while the database kept the old one. It now gets `422`.
 
 ### Security
 

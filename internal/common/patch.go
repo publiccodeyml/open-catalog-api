@@ -164,10 +164,11 @@ func validateOperation(operation jsonpatch.Operation) error {
 // show up in the JSON the patch runs over, so without this check an operation
 // on them would apply and then be silently undone by the handler, and a client
 // would have no way to tell. createdAt also keys the list cursors, so moving
-// it would reorder every listing.
+// it would reorder every listing. The entity of a log is the resource it was
+// created on, set by the route and never written by a patch.
 func isProtectedPath(path string) bool {
 	switch path {
-	case "/id", "/createdAt", "/updatedAt", "/catalogId", "/analysis":
+	case "/id", "/createdAt", "/updatedAt", "/catalogId", "/analysis", "/entity":
 		return true
 	}
 
@@ -202,12 +203,12 @@ func checkProtectedFields(originalJSON, updatedJSON []byte) error {
 		return err //nolint:wrapcheck
 	}
 
-	for _, field := range [...]string{"id", "catalogId", fieldCreatedAt, fieldUpdatedAt} {
+	for _, field := range [...]string{"id", "catalogId", fieldCreatedAt, fieldUpdatedAt, "entity"} {
 		before, hadField := original[field]
 		after, hasField := updated[field]
 
-		// Every serialized resource carries these fields, so a document
-		// without one asked for its removal.
+		// A document that lost or gained one of these fields asked for its
+		// removal or addition, which the server would drop.
 		if hadField != hasField || !reflect.DeepEqual(before, after) {
 			return fmt.Errorf("%w: /%s", errPatchProtected, field)
 		}
