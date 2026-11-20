@@ -50,6 +50,18 @@ func TestApplyPatchJSONPatchValidation(t *testing.T) {
 	})
 }
 
+func TestApplyPatchLimitsCopiedBytes(t *testing.T) {
+	entity := sampleEntity()
+	body := "[" + strings.TrimSuffix(strings.Repeat(
+		`{"op":"copy","from":"/aliases","path":"/aliases/-"},`, 100), ",") + "]"
+
+	_, err := common.ApplyPatch(&entity, common.ContentTypeJSONPatch, []byte(body))
+	require.NotNil(t, err)
+	assert.Equal(t, 422, err.Code)
+	assert.EqualError(t, err, "copy operations must not add more than 4194304 bytes")
+	assert.Equal(t, sampleEntity(), entity)
+}
+
 func TestApplyPatchRejectsMalformedMergePatch(t *testing.T) {
 	entity := sampleEntity()
 

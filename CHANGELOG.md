@@ -217,6 +217,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it in the listings and breaking the pagination cursors near it.
 - The database image used for local development is pinned by digest,
   and is the same one the tests run against.
+- A JSON Patch of `copy` operations that each doubled the document
+  could make the API allocate gigabytes. Copies may now add at most
+  4 MiB in total, and a patch going over gets `422`.
 
 ## [1.4.0] - 2026-08-19
 
