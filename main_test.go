@@ -441,6 +441,24 @@ func TestRateLimiterBuckets(t *testing.T) {
 		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "2001:db8::1"))
 	})
 
+	t.Run("an IPv6 client changing address within its /64 keeps a single bucket", func(t *testing.T) {
+		for i := range maxRequests {
+			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, fmt.Sprintf("2001:db8:0:1::%x", i+1)))
+		}
+
+		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "2001:db8:0:1:ffff:ffff:ffff:ffff"))
+		assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "2001:db8:0:2::1"))
+	})
+
+	t.Run("an IPv4-mapped IPv6 address counts as its IPv4 client", func(t *testing.T) {
+		for range maxRequests {
+			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "198.51.100.5"))
+		}
+
+		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "::ffff:c633:6405"))
+		assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "::ffff:c633:6406"))
+	})
+
 	t.Run("a rate limited request gets the problem document", func(t *testing.T) {
 		for range maxRequests {
 			assert.Equal(t, statusOK, requestFrom(t, proxiedApp, "198.51.100.4"))
@@ -467,6 +485,26 @@ func TestRateLimiterBuckets(t *testing.T) {
 			string(body),
 		)
 	})
+}
+
+func TestRateLimitKey(t *testing.T) {
+	tests := []struct {
+		ip   string
+		want string
+	}{
+		{"198.51.100.7", "198.51.100.7"},
+		{"::ffff:198.51.100.7", "198.51.100.7"},
+		{"::ffff:c633:6407", "198.51.100.7"},
+		{"2001:db8::1", "2001:db8::/64"},
+		{"2001:db8::ffff:ffff:ffff:ffff", "2001:db8::/64"},
+		{"2001:db8:0:1::1", "2001:db8:0:1::/64"},
+		{"fe80::1%eth0", "fe80::/64"},
+		{"not an address", "not an address"},
+	}
+
+	for _, test := range tests {
+		assert.Equal(t, test.want, rateLimitKey(test.ip), test.ip)
+	}
 }
 
 func TestSetupRejectsNegativeDurations(t *testing.T) {

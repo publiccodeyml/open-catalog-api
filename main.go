@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/netip"
 	"os"
 	"os/signal"
 	"path"
@@ -193,7 +194,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 			Max:               common.EnvironmentConfig.MaxRequests,
 			LimiterMiddleware: limiter.SlidingWindow{},
 			KeyGenerator: func(ctx *fiber.Ctx) string {
-				return ctx.IP()
+				return rateLimitKey(ctx.IP())
 			},
 			LimitReached: func(*fiber.Ctx) error {
 				return fiber.ErrTooManyRequests
@@ -362,4 +363,26 @@ func setupHandlers(app *fiber.App, gormDB *gorm.DB) { //nolint:funlen
 
 	v1.Get("/webhooks/:id<guid>", publisherWebhookHandler.GetWebhook)
 	v1.Delete("/webhooks/:id<guid>", publisherWebhookHandler.DeleteWebhook)
+}
+
+// rateLimitKey returns the bucket a client address counts against.
+// An IPv6 client usually gets a whole /64 and can take a fresh address
+// for every request, so IPv6 clients share one bucket per /64.
+func rateLimitKey(address string) string {
+	addr, err := netip.ParseAddr(address)
+	if err != nil {
+		return address
+	}
+
+	addr = addr.Unmap()
+	if addr.Is4() {
+		return addr.String()
+	}
+
+	prefix, err := addr.Prefix(64)
+	if err != nil {
+		return address
+	}
+
+	return prefix.String()
 }

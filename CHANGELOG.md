@@ -37,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The rate limit counts IPv6 clients per /64, so a client can no longer
+  avoid it by sending each request from a different address of its
+  network. IPv4-mapped IPv6 addresses count as their IPv4 address.
+
 - Event creation times are indexed to speed up retention purges and date filters.
 
 - The Helm chart runs the API as UID/GID 10001 with the security defaults
