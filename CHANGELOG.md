@@ -227,6 +227,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A JSON Patch of `copy` operations that each doubled the document
   could make the API allocate gigabytes. Copies may now add at most
   4 MiB in total, and a patch going over gets `422`.
+- Public `GET` requests that differed only in their query string were
+  each kept in the response cache, so one client could grow memory by
+  hundreds of megabytes in seconds. The cache now keeps at most 10000
+  responses and 32 MiB of bodies, and serves later responses uncached
+  until older ones expire.
 
 ## [1.4.0] - 2026-08-19
 
