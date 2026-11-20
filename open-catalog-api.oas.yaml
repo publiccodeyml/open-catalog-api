@@ -78,6 +78,12 @@ info:
     [PASETO](https://paseto.io/) token in the `Authorization: Bearer`
     header.
 
+    ## NUL characters
+
+    Strings must not contain the NUL character (U+0000). A request body
+    with one in a string or member name is rejected with `422`, and a
+    path or query parameter with one with `400`.
+
     ## Caching
 
     Cachable responses will contain the `Cache-Control` header that can be used by clients
