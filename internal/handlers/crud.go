@@ -309,6 +309,25 @@ func lockRow[T any](tran *gorm.DB, conds ...any) error {
 		UpdateColumn("updated_at", gorm.Expr("updated_at")).Error
 }
 
+// lockParent locks the row with the given id in table, see lockRow, for a
+// create that ties a new row to it, and answers 404 when it is gone. The
+// delete of that row locks it first too, so one of them waits for the
+// other: the create either sees the row deleted or commits before the
+// delete removes the rows tied to it.
+func lockParent(tran *gorm.DB, table, id, title, name string) error {
+	result := tran.Table(table).Where("id = ?", id).
+		UpdateColumn("updated_at", gorm.Expr("updated_at"))
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return common.Error(fiber.StatusNotFound, title, name+" was not found")
+	}
+
+	return nil
+}
+
 // patchInTransaction runs patch in one write transaction and answers the
 // entity it returns. patch locks the row with lockRow, reads it and writes
 // it back, so two concurrent PATCH requests on the same entity apply one

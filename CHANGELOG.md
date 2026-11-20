@@ -126,6 +126,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   create of software, a publisher or a log in that catalog. The new
   resource kept the id of the deleted catalog. Now the delete answers
   `409` or the create answers `404`.
+- `DELETE /v1/software/{id}` and `DELETE /v1/publishers/{id}` no longer
+  leave behind a log or webhook created on the same resource at the same
+  time. It kept the id of the deleted resource and stayed listed. Now the
+  create answers `404` or its log or webhook goes with the resource.
 - `TRUSTED_PROXIES` ignores spaces around its entries, and the API
   refuses to start on an entry that is not an IP address or a CIDR. A
   padded entry, a hostname or a bad CIDR never matched the proxy, so

@@ -90,6 +90,11 @@ func (p *Publisher) DeletePublisher(ctx *fiber.Ctx) error {
 	publisher := *found
 
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
+		// Before the logs, so a log or webhook create waits, see lockParent.
+		if err := lockRow[models.Publisher](tran, "id = ?", publisher.ID); err != nil {
+			return err
+		}
+
 		if err := deleteEntityLogs(tran, publisher); err != nil {
 			return err
 		}
