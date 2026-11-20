@@ -89,6 +89,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `PATCH` rejects an empty software `publiccodeYml`, catalog
+  `alternativeId`, publisher `description` and publisher `alternativeId`
+  with `422`, as POST does, instead of storing `""`. A row already
+  holding `""` in one of these fields fails every `PATCH` until it sets
+  a value for that field.
 - Software url and aliases, publisher codeHosting, webhook and catalog
   source URLs containing whitespace are rejected with `422`. A trailing
   space used to pass and was stored as `%20`, creating a second software
