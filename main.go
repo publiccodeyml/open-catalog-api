@@ -34,6 +34,9 @@ import (
 // would find nothing new to delete.
 const eventPurgeInterval = 24 * time.Hour
 
+// requestBodyLimit is the longest request body the API reads.
+const requestBodyLimit = fiber.DefaultBodyLimit
+
 func main() {
 	rootCmd := &cobra.Command{
 		Use:   "open-catalog-api",
@@ -162,31 +165,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 
 	stopEvents := startEventWorker(models.EventChan, debouncer)
 
-	app := fiber.New(fiber.Config{
-		ErrorHandler: common.CustomErrorHandler,
-		// Route paths as the OpenAPI contract writes them, so /V1/Software
-		// is not a second name for /v1/software.
-		CaseSensitive: true,
-		// Bound request reads and keep-alive waits. The write limit is
-		// long enough for a full list page on a slow link, and stops a
-		// client that never reads from holding its response in memory.
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 5 * time.Minute,
-		IdleTimeout:  120 * time.Second,
-		// Fiber doesn't set DisallowUnknownFields by default
-		// (https://github.com/gofiber/fiber/issues/2601)
-		JSONDecoder: jsondecoder.UnmarshalDisallowUnknownFields,
-
-		// With the check on and no trusted proxy configured, Fiber ignores
-		// X-Forwarded-For and c.IP() is the peer of the connection, so a
-		// client can't pick the address it is rate limited by.
-		ProxyHeader:             fiber.HeaderXForwardedFor,
-		EnableTrustedProxyCheck: true,
-		TrustedProxies:          common.EnvironmentConfig.TrustedProxies,
-		// Without validation c.IP() is the whole header value, so a client
-		// behind a trusted proxy could still change it on every request.
-		EnableIPValidation: true,
-	})
+	app := fiber.New(appConfig())
 
 	// Automatically recover panics in handlers
 	app.Use(recovermw.New())
@@ -221,6 +200,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	app.Use(common.RefuseInvalidUTF8InURL)
 
 	app.Use(middleware.NewPasetoMiddleware(common.EnvironmentConfig, requiresAuth))
+	app.Use(common.LimitRequestBody(requestBodyLimit))
 	app.Use(common.RefuseEncodedBodies)
 
 	app.Use(newResponseCache(responseCacheMaxBytes, responseCacheMaxEntries, time.Now))
@@ -231,6 +211,43 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 		stopEvents()
 		stopEventPurge()
 	}, gormDB
+}
+
+// appConfig is the server configuration the API runs with.
+func appConfig() fiber.Config {
+	return fiber.Config{
+		ErrorHandler: common.CustomErrorHandler,
+		// Route paths as the OpenAPI contract writes them, so /V1/Software
+		// is not a second name for /v1/software.
+		CaseSensitive: true,
+		// Bound request reads and keep-alive waits. The write limit is
+		// long enough for a full list page on a slow link, and stops a
+		// client that never reads from holding its response in memory.
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 5 * time.Minute,
+		IdleTimeout:  120 * time.Second,
+		// Without streaming, fasthttp allocates the declared Content-Length
+		// before any handler runs, so headers alone would cost the whole
+		// body limit per connection. LimitRequestBody enforces the limit
+		// once the request is authenticated. Multipart bodies are not
+		// pre-parsed, since that would read them before the limit too.
+		BodyLimit:                    requestBodyLimit,
+		StreamRequestBody:            true,
+		DisablePreParseMultipartForm: true,
+		// Fiber doesn't set DisallowUnknownFields by default
+		// (https://github.com/gofiber/fiber/issues/2601)
+		JSONDecoder: jsondecoder.UnmarshalDisallowUnknownFields,
+
+		// With the check on and no trusted proxy configured, Fiber ignores
+		// X-Forwarded-For and c.IP() is the peer of the connection, so a
+		// client can't pick the address it is rate limited by.
+		ProxyHeader:             fiber.HeaderXForwardedFor,
+		EnableTrustedProxyCheck: true,
+		TrustedProxies:          common.EnvironmentConfig.TrustedProxies,
+		// Without validation c.IP() is the whole header value, so a client
+		// behind a trusted proxy could still change it on every request.
+		EnableIPValidation: true,
+	}
 }
 
 func newWebhookDebouncer(gormDB *gorm.DB) *webhooks.Debouncer {
