@@ -1059,8 +1059,9 @@ paths:
           name: search
           description: >
             Only logs whose message contains the search string, ignoring
-            case. On PostgreSQL an index serves terms of three or more
-            letters or digits.
+            case as the database folds it: PostgreSQL folds accented
+            letters too on a UTF-8 locale. On PostgreSQL an index serves
+            terms of three or more letters or digits.
         - schema:
             type: string
             maxLength: 255
