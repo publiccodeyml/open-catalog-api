@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -169,6 +170,85 @@ func TestWithTimestamps(t *testing.T) {
 		brackets := strings.Repeat("[{", MaxAnalysisDepth)
 		input := AnalysisData{
 			"scanner": json.RawMessage(`{"v": 1, "x": "\\\"` + brackets + `"}`),
+		}
+
+		_, err := WithTimestamps(input, now)
+
+		assert.NoError(t, err)
+	})
+}
+
+func TestCheckNumber(t *testing.T) {
+	zeros := strings.Repeat("0", maxAnalysisNumberScale)
+
+	for _, tc := range []struct {
+		literal string
+		want    error
+	}{
+		{"0", nil},
+		{"-0", nil},
+		{"42", nil},
+		{"-1.5", nil},
+		{"1E+308", nil},
+		{"1.7976931348623157e308", nil},
+		{"4.9e-324", nil},
+		{"0e16383", nil},
+		{"0e-16383", nil},
+		{"0." + zeros, nil},
+		{"1e400", errAnalysisNumberRange},
+		{"1e131072", errAnalysisNumberRange},
+		{"-1e1000000", errAnalysisNumberRange},
+		{"1" + strings.Repeat("0", 140000), errAnalysisNumberRange},
+		{"1e-400", errAnalysisNumberRange},
+		{"1e-20000", errAnalysisNumberRange},
+		{"0." + zeros + "1", errAnalysisNumberRange},
+		{"0e-20000", errAnalysisExponent},
+		{"0e20000", errAnalysisExponent},
+		{"0e99999999999999999999", errAnalysisExponent},
+		{"0e-99999999999999999999", errAnalysisExponent},
+		{"1." + zeros + "0", errAnalysisNumberScale},
+		{"0." + zeros + "0", errAnalysisNumberScale},
+		{"1." + zeros + "e-1", errAnalysisNumberScale},
+		{"0.0e-16383", errAnalysisNumberScale},
+	} {
+		name := tc.literal
+		if len(name) > 32 {
+			name = fmt.Sprintf("%s... (%d bytes)", name[:16], len(name))
+		}
+
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, checkNumber(tc.literal))
+		})
+	}
+}
+
+func TestWithTimestampsNumbers(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("refuses a number nested in an array", func(t *testing.T) {
+		input := AnalysisData{
+			"scanner": json.RawMessage(`{"v": 1, "x": [{"y": 1e400}]}`),
+		}
+
+		_, err := WithTimestamps(input, now)
+
+		assert.EqualError(t, err,
+			"analysis.scanner: numbers must fit a float64 without rounding to zero or infinity")
+	})
+
+	t.Run("refuses a number as v", func(t *testing.T) {
+		input := AnalysisData{
+			"scanner": json.RawMessage(`{"v": 1e-20000}`),
+		}
+
+		_, err := WithTimestamps(input, now)
+
+		assert.ErrorIs(t, err, errAnalysisNumberRange)
+	})
+
+	t.Run("keeps numbers inside strings", func(t *testing.T) {
+		input := AnalysisData{
+			"scanner": json.RawMessage(`{"v": 1, "x": "1e400"}`),
 		}
 
 		_, err := WithTimestamps(input, now)

@@ -395,6 +395,9 @@ paths:
         a JSON object with an integer "v" field.
         Objects and arrays may nest at most 64 levels in a namespace, the
         namespace object included. A deeper namespace is rejected with 422.
+        Numbers must fit a float64 without rounding to zero or infinity,
+        with an exponent between -16383 and 16383 and at most 16383 digits
+        after the decimal point. Other numbers are rejected with 422.
         The merged document may take at most 1048576 bytes (1 MiB) as
         compact JSON. A patch that would make it larger is rejected with 422
         and nothing is written. A patch that only removes namespaces is
@@ -1562,6 +1565,9 @@ paths:
         a JSON object with an integer "v" field.
         Objects and arrays may nest at most 64 levels in a namespace, the
         namespace object included. A deeper namespace is rejected with 422.
+        Numbers must fit a float64 without rounding to zero or infinity,
+        with an exponent between -16383 and 16383 and at most 16383 digits
+        after the decimal point. Other numbers are rejected with 422.
         The merged document may take at most 1048576 bytes (1 MiB) as
         compact JSON. A patch that would make it larger is rejected with 422
         and nothing is written. A patch that only removes namespaces is
