@@ -84,6 +84,11 @@ func (p *Software) DeleteSoftware(ctx *fiber.Ctx) error {
 	software := models.Software{ID: ctx.Params("id")}
 
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
+		// Before the logs, so a log or webhook create waits, see lockParent.
+		if err := lockRow[models.Software](tran, "id = ?", software.ID); err != nil {
+			return err
+		}
+
 		if err := deleteEntityLogs(tran, software); err != nil {
 			return err
 		}

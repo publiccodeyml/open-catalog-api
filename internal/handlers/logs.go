@@ -223,8 +223,14 @@ func (p *Log) postEntityLog(ctx *fiber.Ctx, entity models.Model, entityName stri
 		EntityType: &table,
 	}
 
-	if err := p.db.Create(&log).Error; err != nil {
-		return common.InternalServerError(errMsg)
+	if err := models.Transaction(p.db, func(tran *gorm.DB) error {
+		if err := lockParent(tran, table, entityID, errMsg, entityName); err != nil {
+			return err
+		}
+
+		return tran.Create(&log).Error
+	}); err != nil {
+		return writeError(err, errMsg)
 	}
 
 	return ctx.JSON(&log)

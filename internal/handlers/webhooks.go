@@ -130,6 +130,10 @@ func (p *Webhook[T]) PostSingleResourceWebhook(ctx *fiber.Ctx) error {
 	}
 
 	if err := models.Transaction(writeDB(ctx, p.db), func(tran *gorm.DB) error {
+		if err := lockParent(tran, webhook.EntityType, webhook.EntityID, errMsg, "resource"); err != nil {
+			return err
+		}
+
 		return tran.Create(&webhook).Error
 	}); err != nil {
 		return writeError(err, errMsg)
