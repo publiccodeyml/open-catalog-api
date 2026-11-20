@@ -98,6 +98,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Publisher routes now decode a percent encoded `alternativeId` in the
   path, so a publisher whose `alternativeId` has a space or a non ASCII
   letter can be read, updated and deleted by it.
+- URL length limits apply to the URL as stored, after normalization
+  percent-encodes non ASCII letters and spaces. A software or publisher
+  created with such a URL could grow past the limit and then fail every
+  PATCH with `422`.
 
 - Publisher PATCH responses include stored timestamps and the default group flag
   for newly added code hosting entries.
