@@ -87,6 +87,7 @@ You can configure the API with environment variables:
 
 * `MAX_REQUESTS` (optional): number of requests per minute after which
   responses will be ratelimited. Set to 0 to disable rate limiting.
+  Each IPv4 address counts on its own, IPv6 addresses count per /64.
   Default: `0`.
 
 * `TRUSTED_PROXIES` (optional): comma separated list of addresses or
