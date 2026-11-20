@@ -279,6 +279,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hundreds of megabytes in seconds. The cache now keeps at most 10000
   responses and 32 MiB of bodies, and serves later responses uncached
   until older ones expire.
+- Bundle reads loaded the full row of every member software, with its
+  `publiccodeYml`, only to list `softwareIds`. They now load the ids
+  alone, so listing large bundles no longer reads megabytes per bundle.
 
 ## [1.4.0] - 2026-08-19
 

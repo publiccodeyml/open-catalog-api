@@ -120,6 +120,8 @@ type findOptions struct {
 	// byAlternativeID also matches the alternative_id column.
 	byAlternativeID bool
 	preloads        []string
+	// scopes apply to the read only, after the preloads.
+	scopes []func(*gorm.DB) *gorm.DB
 	// lock takes the write lock on the row before reading it, see lockRows.
 	lock bool
 }
@@ -161,6 +163,8 @@ func findOne[T any](gormdb *gorm.DB, rawID string, opts findOptions) (*T, error)
 	for _, preload := range opts.preloads {
 		stmt = stmt.Preload(preload)
 	}
+
+	stmt = stmt.Scopes(opts.scopes...)
 
 	if err := stmt.First(&item, conds...).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

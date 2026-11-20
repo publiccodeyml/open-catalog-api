@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 const (
@@ -570,4 +572,66 @@ func TestBundlePatchWithoutSoftware(t *testing.T) {
 
 		assert.Equal(t, 422, code, "body: %s", body)
 	})
+}
+
+// TestBundlesLoadOnlySoftwareIDs checks that bundle reads and writes
+// select only the id of their software. The full rows carry publiccodeYml
+// and vitality, and a bundle only answers softwareIds.
+func TestBundlesLoadOnlySoftwareIDs(t *testing.T) {
+	loadFixtures(t)
+
+	const name = "test:record_software_selects"
+
+	var (
+		mu      sync.Mutex
+		selects []string
+	)
+
+	queries := gormDB.Callback().Query()
+
+	require.NoError(t, queries.After("gorm:query").Register(name, func(tx *gorm.DB) {
+		if tx.Statement.Table != "software" {
+			return
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		selects = append(selects, tx.Statement.SQL.String())
+	}))
+
+	t.Cleanup(func() { require.NoError(t, queries.Remove(name)) })
+
+	requests := []struct {
+		method, path, body string
+	}{
+		{http.MethodGet, "/v1/bundles?onlySoftwareIDs=1", ""},
+		{http.MethodGet, "/v1/bundles/" + municipalitiesID + "?onlySoftwareIDs=1", ""},
+		{http.MethodPatch, "/v1/bundles/" + municipalitiesID, `{"softwareIds": ["` + existingSoftwareID3 + `"]}`},
+		{http.MethodPost, "/v1/bundles", `{"name": "Only ids", "softwareIds": ["` + existingSoftwareID + `"]}`},
+	}
+
+	for _, r := range requests {
+		req, err := newTestRequest(r.method, r.path, strings.NewReader(r.body))
+		require.NoError(t, err)
+
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode, "%s %s", r.method, r.path)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.NotEmpty(t, selects)
+
+	for _, sql := range selects {
+		assert.NotContains(t, sql, "*", sql)
+		assert.NotContains(t, sql, "publiccode_yml", sql)
+	}
 }

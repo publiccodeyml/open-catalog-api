@@ -26,7 +26,7 @@ func NewBundle(db *gorm.DB) *Bundle {
 }
 
 func (b *Bundle) GetBundles(ctx *fiber.Ctx) error {
-	return list[models.Bundle](ctx, b.db.Preload(softwareAssociation), listOptions{
+	return list[models.Bundle](ctx, b.db.Scopes(preloadSoftwareIDs), listOptions{
 		title:      "can't get Bundles",
 		activeOnly: true,
 	})
@@ -34,9 +34,9 @@ func (b *Bundle) GetBundles(ctx *fiber.Ctx) error {
 
 func (b *Bundle) GetBundle(ctx *fiber.Ctx) error {
 	bundle, err := findOne[models.Bundle](b.db, ctx.Params("id"), findOptions{
-		title:    "can't get Bundle",
-		name:     bundleEntityName,
-		preloads: []string{softwareAssociation},
+		title:  "can't get Bundle",
+		name:   bundleEntityName,
+		scopes: []func(*gorm.DB) *gorm.DB{preloadSoftwareIDs},
 	})
 	if err != nil {
 		return err
@@ -84,10 +84,10 @@ func (b *Bundle) PatchBundle(ctx *fiber.Ctx) error {
 
 	return patchInTransaction(ctx, b.db, errMsg, func(tran *gorm.DB) (*models.Bundle, error) {
 		bundle, err := findOne[models.Bundle](tran, ctx.Params("id"), findOptions{
-			title:    errMsg,
-			name:     bundleEntityName,
-			preloads: []string{softwareAssociation},
-			lock:     true,
+			title:  errMsg,
+			name:   bundleEntityName,
+			scopes: []func(*gorm.DB) *gorm.DB{preloadSoftwareIDs},
+			lock:   true,
 		})
 		if err != nil {
 			return nil, err
@@ -154,12 +154,22 @@ func (b *Bundle) DeleteBundle(ctx *fiber.Ctx) error {
 	return ctx.SendStatus(fiber.StatusNoContent)
 }
 
-// findSoftwareByIDs resolves ids to their software rows. Request
+// preloadSoftwareIDs loads only the id of each software in a bundle.
+// Bundles answer just softwareIds, and the full rows carry publiccodeYml
+// and vitality, so loading them would read megabytes per bundle.
+func preloadSoftwareIDs(gormdb *gorm.DB) *gorm.DB {
+	return gormdb.Preload(softwareAssociation, func(tx *gorm.DB) *gorm.DB {
+		return tx.Select("id")
+	})
+}
+
+// findSoftwareByIDs resolves ids to their software rows, with only the
+// id loaded since the bundle links them without writing them. Request
 // validation rejects duplicate ids, so a short result means a missing id.
 func findSoftwareByIDs(gormdb *gorm.DB, ids []string) ([]models.Software, error) {
 	var software []models.Software
 
-	if err := gormdb.Where("id IN ?", ids).Find(&software).Error; err != nil {
+	if err := gormdb.Select("id").Where("id IN ?", ids).Find(&software).Error; err != nil {
 		return nil, err
 	}
 
