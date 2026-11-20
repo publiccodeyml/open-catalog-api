@@ -60,6 +60,29 @@ func TestResponseCacheSeparatesPathAndQuery(t *testing.T) {
 	}
 }
 
+func TestResponseCacheSkipsStatusPathVariants(t *testing.T) {
+	loadFixtures(t)
+
+	cachedApp := fiber.New(fiber.Config{ErrorHandler: common.CustomErrorHandler, CaseSensitive: true})
+	cachedApp.Use(newResponseCache(responseCacheMaxBytes, responseCacheMaxEntries, time.Now))
+	setupHandlers(cachedApp, gormDB)
+
+	for _, target := range []string{"/v1/status", "/v1/status/"} {
+		for range 2 {
+			request, err := newTestRequest(http.MethodGet, target, nil)
+			require.NoError(t, err)
+
+			response, err := cachedApp.Test(request, -1)
+			require.NoError(t, err)
+			require.NoError(t, response.Body.Close())
+
+			assert.Equal(t, http.StatusNoContent, response.StatusCode, target)
+			assert.Equal(t, "unreachable", response.Header.Get("X-Cache"), target)
+			assert.Equal(t, "no-cache", response.Header.Get("Cache-Control"), target)
+		}
+	}
+}
+
 func TestResponseCacheBounds(t *testing.T) {
 	loadFixtures(t)
 

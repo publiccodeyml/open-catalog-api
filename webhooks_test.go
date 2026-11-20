@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -231,7 +232,9 @@ func TestSensitiveReadsRequireAuthenticationAndBypassCache(t *testing.T) {
 		"/v1/webhooks/007bc84a-7e2d-43a0-b7e1-a256d4114aa7",
 	}
 
-	for _, path := range append([]string(nil), paths...) {
+	var otherCases []string
+
+	for _, path := range paths {
 		upperPath := strings.NewReplacer(
 			"/v1/", "/V1/",
 			"events", "EVENTS",
@@ -239,17 +242,23 @@ func TestSensitiveReadsRequireAuthenticationAndBypassCache(t *testing.T) {
 			"publishers", "PUBLISHERS",
 			"webhooks", "WEBHOOKS",
 		).Replace(path)
-		paths = append(paths, upperPath, strings.ReplaceAll(strings.ReplaceAll(path, "events", "Events"), "webhooks", "Webhooks"))
+		otherCases = append(otherCases, upperPath, strings.ReplaceAll(strings.ReplaceAll(path, "events", "Events"), "webhooks", "Webhooks"))
 	}
 
-	for _, path := range paths {
+	for _, path := range append(paths, otherCases...) {
+		// Routing is case sensitive, so other letter cases are not found.
+		expected := http.StatusNotFound
+		if slices.Contains(paths, path) {
+			expected = http.StatusOK
+		}
+
 		request, err := newTestRequest(http.MethodGet, path, nil)
 		require.NoError(t, err)
 		request.Header.Set("Authorization", goodToken)
 
 		response, err := app.Test(request, -1)
 		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, response.StatusCode, path)
+		require.Equal(t, expected, response.StatusCode, path)
 		require.NoError(t, response.Body.Close())
 
 		request, err = newTestRequest(http.MethodGet, path, nil)

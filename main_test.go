@@ -611,6 +611,29 @@ func TestRequiresAuth(t *testing.T) {
 	}
 }
 
+func TestRoutesAreCaseSensitive(t *testing.T) {
+	loadFixtures(t)
+
+	for target, expected := range map[string]int{
+		"/v1/software?page[size]=1&case=lower":  http.StatusOK,
+		"/v1/software/?page[size]=1&case=lower": http.StatusOK,
+		"/v1/Software?page[size]=1&case=mixed":  http.StatusNotFound,
+		"/V1/SOFTWARE?page[size]=1&case=upper":  http.StatusNotFound,
+		"/v1/status":                            http.StatusNoContent,
+		"/v1/Status":                            http.StatusNotFound,
+		"/V1/STATUS/":                           http.StatusNotFound,
+	} {
+		request, err := newTestRequest(http.MethodGet, target, nil)
+		require.NoError(t, err)
+
+		response, err := app.Test(request, -1)
+		require.NoError(t, err)
+		require.NoError(t, response.Body.Close())
+
+		assert.Equal(t, expected, response.StatusCode, target)
+	}
+}
+
 func TestSetupRejectsInvalidPoolSize(t *testing.T) {
 	savedConfig := common.EnvironmentConfig
 	t.Cleanup(func() { common.EnvironmentConfig = savedConfig })
