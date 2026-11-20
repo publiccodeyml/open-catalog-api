@@ -267,6 +267,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GET /v1/status/` was cached for 10 seconds as `public`, so monitors
   using it could see a healthy `204` after the database went down. It
   now skips the cache too.
+- Replicas starting together on the same PostgreSQL database raced on
+  the schema migration, and all but one could exit with a duplicate key
+  error. They now migrate one at a time under an advisory lock.
 
 ### Security
 
