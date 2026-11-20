@@ -2803,6 +2803,7 @@ components:
         softwareIds:
           type: array
           minItems: 0
+          maxItems: 255
           items:
             type: string
             maxLength: 36
@@ -2843,6 +2844,7 @@ components:
         softwareIds:
           type: array
           minItems: 1
+          maxItems: 255
           uniqueItems: true
           items:
             type: string
@@ -2869,6 +2871,7 @@ components:
         softwareIds:
           type: array
           minItems: 1
+          maxItems: 255
           uniqueItems: true
           items:
             type: string
