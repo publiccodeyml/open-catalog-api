@@ -86,8 +86,58 @@ func NewDatabase(connection string, maxConnections int) (*gorm.DB, error) {
 		pool.SetMaxIdleConns(maxConnections)
 	}
 
-	if err := migrateModels(database); err != nil {
+	if err := migrate(database, dialect); err != nil {
 		return nil, fmt.Errorf("database migration error: %w", err)
+	}
+
+	return database, nil
+}
+
+// migrationLockKey is the PostgreSQL advisory lock taken around the
+// migration. Its value only has to differ from other advisory locks on
+// the same database.
+const migrationLockKey int64 = 0x6f63615f6d6967
+
+// migrate brings the schema up to date. On PostgreSQL several replicas
+// can start at the same time, and GORM checks for a table, column or
+// index before creating it, so two of them create the same one and the
+// slower one fails. They take turns under an advisory lock instead,
+// held on one pinned connection because the lock belongs to the
+// session. SQLite already serializes writers.
+func migrate(database *gorm.DB, dialect Dialect) error {
+	if dialect != Postgres {
+		return migrateSchema(database, dialect)
+	}
+
+	err := database.Connection(func(pinned *gorm.DB) error {
+		// Connection hands out a statement every call would build on,
+		// a new session starts each call from a clean one.
+		conn := pinned.Session(&gorm.Session{NewDB: true})
+
+		if err := conn.Exec("SELECT pg_advisory_lock(?)", migrationLockKey).Error; err != nil {
+			return fmt.Errorf("can't take the migration lock: %w", err)
+		}
+
+		defer func() {
+			// An error here means the connection is gone, and
+			// PostgreSQL releases the lock with the session.
+			if err := conn.Exec("SELECT pg_advisory_unlock(?)", migrationLockKey).Error; err != nil {
+				log.Printf("can't unlock the database migration: %s", err)
+			}
+		}()
+
+		return migrateSchema(conn, dialect)
+	})
+	if err != nil {
+		return fmt.Errorf("can't migrate on one connection: %w", err)
+	}
+
+	return nil
+}
+
+func migrateSchema(database *gorm.DB, dialect Dialect) error {
+	if err := migrateModels(database); err != nil {
+		return err
 	}
 
 	// Workaround until #72 (proper migrations): GIN index on analysis for
@@ -95,18 +145,18 @@ func NewDatabase(connection string, maxConnections int) (*gorm.DB, error) {
 	if dialect != SQLite {
 		sql := "CREATE INDEX IF NOT EXISTS idx_software_analysis_gin ON software USING GIN (analysis)"
 		if err := database.Exec(sql).Error; err != nil {
-			return nil, fmt.Errorf("can't create analysis GIN index: %w", err)
+			return fmt.Errorf("can't create analysis GIN index: %w", err)
 		}
 
 		sql = "CREATE INDEX IF NOT EXISTS idx_catalogs_analysis_gin ON catalogs USING GIN (analysis)"
 		if err := database.Exec(sql).Error; err != nil {
-			return nil, fmt.Errorf("can't create catalog analysis GIN index: %w", err)
+			return fmt.Errorf("can't create catalog analysis GIN index: %w", err)
 		}
 
 		createLogSearchIndex(database)
 	}
 
-	return database, nil
+	return nil
 }
 
 // LogSearchIndex is the trigram index serving ?search on the log list,

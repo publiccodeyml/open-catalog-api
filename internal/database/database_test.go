@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/publiccodeyml/open-catalog-api/internal/models"
@@ -122,11 +124,13 @@ func postgresTestConnection(t *testing.T, adminConnection string) string {
 
 	const scratch = "logmigration_test"
 
-	require.NoError(t, admin.Exec("DROP DATABASE IF EXISTS "+scratch).Error)
+	// FORCE: the backends of connections a test just closed may still be
+	// exiting.
+	require.NoError(t, admin.Exec("DROP DATABASE IF EXISTS "+scratch+" WITH (FORCE)").Error)
 	require.NoError(t, admin.Exec("CREATE DATABASE "+scratch).Error)
 
 	t.Cleanup(func() {
-		admin.Exec("DROP DATABASE IF EXISTS " + scratch)
+		admin.Exec("DROP DATABASE IF EXISTS " + scratch + " WITH (FORCE)")
 
 		if pool, err := admin.DB(); err == nil {
 			_ = pool.Close()
@@ -427,4 +431,42 @@ func TestMigrationRemovesLogsOfDeletedResources(t *testing.T) {
 	require.NoError(t, migrated.Unscoped().Model(&models.Log{}).Where("deleted_at IS NOT NULL").Count(&deleted).Error)
 
 	assert.Equal(t, int64(3), deleted)
+}
+
+func TestConcurrentMigrationsOnAnEmptyDatabase(t *testing.T) {
+	if dialect, err := DialectFromDSN(os.Getenv("DATABASE_DSN")); err != nil || dialect == SQLite {
+		t.Skip("SQLite serializes writers, the race is PostgreSQL only")
+	}
+
+	const replicas = 4
+
+	for round := range 5 {
+		t.Run(strconv.Itoa(round), func(t *testing.T) {
+			connection := testConnection(t)
+
+			var group sync.WaitGroup
+
+			errs := make(chan error, replicas)
+
+			for range replicas {
+				group.Go(func() {
+					database, err := NewDatabase(connection, 2)
+					if err == nil {
+						if pool, err := database.DB(); err == nil {
+							_ = pool.Close()
+						}
+					}
+
+					errs <- err
+				})
+			}
+
+			group.Wait()
+			close(errs)
+
+			for err := range errs {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
