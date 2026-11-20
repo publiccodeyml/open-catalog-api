@@ -2994,9 +2994,11 @@ components:
           format: uri
           minLength: 1
           maxLength: 255
+          pattern: '^[Hh][Tt][Tt][Pp][Ss]?://[^/?#]'
           description: >
             Repository URL this software is available at.
-            This is the current and canonical one. Canonical URLs and aliases are
+            This is the current and canonical one. It must be an http or
+            https URL with a host. Canonical URLs and aliases are
             unique within a catalog, including the root catalog. The same URL
             can belong to software in different catalogs.
             The 255 character limit applies to the URL as stored, after
@@ -3007,7 +3009,8 @@ components:
           description: >
             List of aliases for the current repository URL.
             This is useful to keep track, for example, of previous addresses that redirect
-            to the current one. The 255 character limit on each alias applies
+            to the current one. Each alias must be an http or https URL with
+            a host. The 255 character limit on each alias applies
             to the URL as stored, after normalization percent-encodes non ASCII
             letters and spaces.
           example: ['https://github.com/example/old-repo']
@@ -3018,6 +3021,7 @@ components:
             format: uri
             minLength: 1
             maxLength: 255
+            pattern: '^[Hh][Tt][Tt][Pp][Ss]?://[^/?#]'
         active:
           type: boolean
           description: >

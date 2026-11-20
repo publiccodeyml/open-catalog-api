@@ -1145,7 +1145,7 @@ func TestSoftwareEndpoints(t *testing.T) {
 
 			expectedCode:        422,
 			expectedContentType: "application/problem+json",
-			expectedBody:        `{"title":"can't update Software","detail":"invalid format: url is invalid","status":422,"validationErrors":[{"field":"url","rule":"url","value":""}]}`,
+			expectedBody:        `{"title":"can't update Software","detail":"invalid format: url is invalid","status":422,"validationErrors":[{"field":"url","rule":"http_url","value":""}]}`,
 		},
 		{
 			description: "PATCH software with empty body",
