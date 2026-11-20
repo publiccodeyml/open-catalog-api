@@ -120,6 +120,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   create of software, a publisher or a log in that catalog. The new
   resource kept the id of the deleted catalog. Now the delete answers
   `409` or the create answers `404`.
+- `TRUSTED_PROXIES` ignores spaces around its entries, and the API
+  refuses to start on an entry that is not an IP address or a CIDR. A
+  padded entry, a hostname or a bad CIDR never matched the proxy, so
+  every client behind it shared one rate limit.
 
 - Publisher PATCH responses include stored timestamps and the default group flag
   for newly added code hosting entries.

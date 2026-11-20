@@ -41,6 +41,39 @@ func TestEnvironmentValidate(t *testing.T) {
 	}
 }
 
+func TestTrustedProxiesEnvironment(t *testing.T) {
+	for _, test := range []struct {
+		value string
+		want  []string
+		err   string
+	}{
+		{value: "10.9.9.9,127.0.0.1", want: []string{"10.9.9.9", "127.0.0.1"}},
+		{value: "10.9.9.9, 127.0.0.1 ", want: []string{"10.9.9.9", "127.0.0.1"}},
+		{value: "10.0.0.0/8,", want: []string{"10.0.0.0/8"}},
+		{value: "2001:DB8:0:0::1,::ffff:192.0.2.1", want: []string{"2001:db8::1", "192.0.2.1"}},
+		{value: "2001:db8::/32", want: []string{"2001:db8::/32"}},
+		{value: "localhost", err: `TRUSTED_PROXIES entries must be IP addresses or CIDRs: "localhost"`},
+		{value: "10.9.9.9, 127.0.0.1/33", err: `TRUSTED_PROXIES entries must be IP addresses or CIDRs: " 127.0.0.1/33"`},
+		{value: "127.0.0.1:8080", err: `TRUSTED_PROXIES entries must be IP addresses or CIDRs: "127.0.0.1:8080"`},
+	} {
+		t.Run(test.value, func(t *testing.T) {
+			t.Setenv("TRUSTED_PROXIES", test.value)
+
+			var config Environment
+			require.NoError(t, env.Parse(&config))
+
+			err := config.Validate()
+			if test.err != "" {
+				assert.EqualError(t, err, test.err)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, test.want, config.TrustedProxies)
+		})
+	}
+}
+
 func TestDatabasePoolEnvironment(t *testing.T) {
 	for _, test := range []struct {
 		value string

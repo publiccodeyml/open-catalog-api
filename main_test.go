@@ -406,6 +406,10 @@ func TestRateLimiterBuckets(t *testing.T) {
 	t.Setenv("TRUSTED_PROXIES", "0.0.0.0/32")
 	proxiedApp, _, _, _ := Setup()
 
+	// The space after the comma must not hide the proxy.
+	t.Setenv("TRUSTED_PROXIES", "10.9.9.9, 0.0.0.0")
+	paddedApp, _, _, _ := Setup()
+
 	t.Run("a client varying X-Forwarded-For stays in one bucket", func(t *testing.T) {
 		codes := make([]int, 0, maxRequests+1)
 		for i := range maxRequests + 1 {
@@ -423,6 +427,15 @@ func TestRateLimiterBuckets(t *testing.T) {
 
 		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "198.51.100.1"))
 		assert.Equal(t, statusRateLimited, requestFrom(t, proxiedApp, "198.51.100.2"))
+	})
+
+	t.Run("a trusted proxy listed after a space keeps clients apart", func(t *testing.T) {
+		for range maxRequests {
+			assert.Equal(t, statusOK, requestFrom(t, paddedApp, "198.51.100.1"))
+			assert.Equal(t, statusOK, requestFrom(t, paddedApp, "198.51.100.2"))
+		}
+
+		assert.Equal(t, statusRateLimited, requestFrom(t, paddedApp, "198.51.100.1"))
 	})
 
 	t.Run("the first entry of the forwarded chain identifies the client", func(t *testing.T) {

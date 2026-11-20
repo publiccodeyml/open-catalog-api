@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
+	"strings"
 	"time"
 )
 
@@ -18,6 +20,7 @@ var (
 	errWebhookDebounceMaxNegative = errors.New("WEBHOOK_DEBOUNCE_MAX_MS must not be negative")
 	errEventRetentionNegative     = errors.New("EVENT_RETENTION_DAYS must not be negative")
 	errEventRetentionOverflow     = fmt.Errorf("EVENT_RETENTION_DAYS must not exceed %d", math.MaxInt64/(24*time.Hour))
+	errTrustedProxyInvalid        = errors.New("TRUSTED_PROXIES entries must be IP addresses or CIDRs")
 )
 
 type Environment struct {
@@ -68,7 +71,9 @@ func (k *Base64Key) UnmarshalText(text []byte) error {
 	return nil
 }
 
-// Validate rejects negative settings and retention windows that overflow a duration.
+// Validate rejects negative settings, retention windows that overflow a
+// duration and trusted proxies that are not addresses or CIDRs. It also
+// rewrites the trusted proxies in the form Fiber compares them in.
 func (e *Environment) Validate() error {
 	// The rate limiter replaces a non positive limit with its own default
 	// of 5 requests, so a negative value would not disable it.
@@ -92,9 +97,44 @@ func (e *Environment) Validate() error {
 		return errEventRetentionOverflow
 	}
 
-	return nil
+	return e.normalizeTrustedProxies()
 }
 
 func (e *Environment) IsTest() bool {
 	return e.CurrentEnvironment == "test"
+}
+
+// normalizeTrustedProxies trims the entries and drops the empty ones. Fiber
+// keeps an entry it can't parse and only matches the peer address against
+// it, as net.IP prints it: a hostname, a padded or a differently written
+// address would never match, and every client behind the proxy would share
+// the proxy's rate limit.
+func (e *Environment) normalizeTrustedProxies() error {
+	proxies := make([]string, 0, len(e.TrustedProxies))
+
+	for _, entry := range e.TrustedProxies {
+		proxy := strings.TrimSpace(entry)
+		if proxy == "" {
+			continue
+		}
+
+		if strings.Contains(proxy, "/") {
+			if _, _, err := net.ParseCIDR(proxy); err != nil {
+				return fmt.Errorf("%w: %q", errTrustedProxyInvalid, entry)
+			}
+		} else {
+			ip := net.ParseIP(proxy)
+			if ip == nil {
+				return fmt.Errorf("%w: %q", errTrustedProxyInvalid, entry)
+			}
+
+			proxy = ip.String()
+		}
+
+		proxies = append(proxies, proxy)
+	}
+
+	e.TrustedProxies = proxies
+
+	return nil
 }
