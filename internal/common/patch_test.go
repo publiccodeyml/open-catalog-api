@@ -142,3 +142,16 @@ func TestApplyPatchRejectsUnknownMembers(t *testing.T) {
 		})
 	}
 }
+
+func TestApplyPatchRecoversFromLibraryPanics(t *testing.T) {
+	for _, value := range []string{`[null]`, `["a", null]`, `[null, null]`, `[[null]]`} {
+		t.Run(value, func(t *testing.T) {
+			entity := sampleEntity()
+			body := []byte(`[{"op":"test","path":"/aliases","value":` + value + `}]`)
+
+			_, err := common.ApplyPatch(&entity, common.ContentTypeJSONPatch, body)
+			require.NotNil(t, err)
+			assert.Equal(t, 422, err.Code)
+		})
+	}
+}
