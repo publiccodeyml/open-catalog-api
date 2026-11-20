@@ -63,16 +63,16 @@ type CodeHosting struct {
 }
 
 type SoftwarePost struct {
-	URL           string   `json:"url" validate:"required,normalized_max=255,url"`
-	Aliases       []string `json:"aliases" validate:"max=255,dive,normalized_max=255,url"`
+	URL           string   `json:"url" validate:"required,normalized_max=255,http_url"`
+	Aliases       []string `json:"aliases" validate:"max=255,dive,normalized_max=255,http_url"`
 	PubliccodeYml string   `json:"publiccodeYml" validate:"required,max=99999"`
 	Active        *bool    `json:"active"`
 	Vitality      *string  `json:"vitality" validate:"omitempty,max=99999"`
 }
 
 type SoftwarePatch struct {
-	URL           *string   `json:"url" validate:"omitempty,normalized_max=255,url"`
-	Aliases       *[]string `json:"aliases" validate:"omitempty,max=255,dive,normalized_max=255,url"`
+	URL           *string   `json:"url" validate:"omitempty,normalized_max=255,http_url"`
+	Aliases       *[]string `json:"aliases" validate:"omitempty,max=255,dive,normalized_max=255,http_url"`
 	PubliccodeYml *string   `json:"publiccodeYml" validate:"omitempty,max=99999"`
 	Active        *bool     `json:"active"`
 	Vitality      *string   `json:"vitality" validate:"omitempty,max=99999"`

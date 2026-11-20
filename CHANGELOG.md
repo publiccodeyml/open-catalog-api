@@ -293,6 +293,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bundle reads loaded the full row of every member software, with its
   `publiccodeYml`, only to list `softwareIds`. They now load the ids
   alone, so listing large bundles no longer reads megabytes per bundle.
+- Software `url` and `aliases` accepted any URI scheme, so a write token
+  could store a `javascript:`, `data:` or `file:` URL that every reader
+  got back as the repository URL. They now need `http` or `https` and a
+  host, and other values get `422`. Software already stored with
+  another scheme fails every `PATCH` until its URL and aliases change.
 
 ## [1.4.0] - 2026-08-19
 
