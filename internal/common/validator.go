@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json/v2"
 	"errors"
+	"mime"
 	"net"
 	"net/url"
 	"reflect"
@@ -205,7 +206,30 @@ func ValidateStruct(validateStruct any) []ValidationError {
 	return validationErrors
 }
 
+// CheckJSONContentType answers 415 when the request names a Content-Type
+// that is not JSON. BodyParser would otherwise decode XML and form bodies,
+// which skip the unknown field check and are not part of the API. A missing
+// Content-Type passes: the decoder rejects it as before.
+func CheckJSONContentType(ctx *fiber.Ctx, errorMessage string) error {
+	contentType := ctx.Get(fiber.HeaderContentType)
+	if contentType == "" {
+		return nil
+	}
+
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err == nil && (mediaType == fiber.MIMEApplicationJSON ||
+		strings.HasPrefix(mediaType, "application/") && strings.HasSuffix(mediaType, "+json")) {
+		return nil
+	}
+
+	return Error(fiber.StatusUnsupportedMediaType, errorMessage, "Content-Type must be a JSON media type")
+}
+
 func ValidateRequestEntity(ctx *fiber.Ctx, request any, errorMessage string) error {
+	if err := CheckJSONContentType(ctx, errorMessage); err != nil {
+		return err
+	}
+
 	if err := ctx.BodyParser(request); err != nil {
 		if errors.Is(err, jsondecoder.ErrUnknownField) {
 			return Error(fiber.StatusUnprocessableEntity, errorMessage, err.Error())

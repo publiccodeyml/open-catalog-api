@@ -184,6 +184,10 @@ type analysisOptions struct {
 // otherwise. Errors are Problem JSON errors, ready to be returned from a
 // handler as they are.
 func patchAnalysis(ctx *fiber.Ctx, gormdb *gorm.DB, model models.Analyzable, opts analysisOptions) error {
+	if err := common.CheckJSONContentType(ctx, opts.title); err != nil {
+		return err //nolint:wrapcheck
+	}
+
 	var incoming common.AnalysisData
 	if err := json.Unmarshal(ctx.Body(), &incoming); err != nil {
 		return common.Error(fiber.StatusUnprocessableEntity, opts.title, "invalid or malformed JSON")
