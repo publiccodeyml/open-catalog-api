@@ -2728,7 +2728,17 @@ components:
     UnsupportedMediaType:
       description: >
         Unsupported Media Type: the Content-Type is not one of the JSON
-        media types the operation accepts.
+        media types the operation accepts, or the body has a
+        Content-Encoding other than `identity`. Request bodies must not
+        be compressed.
+      headers:
+        Accept-Encoding:
+          description: >
+            Set to `identity` when the Content-Encoding caused the error.
+          schema:
+            type: string
+            enum:
+              - identity
       content:
         application/problem+json:
           schema:

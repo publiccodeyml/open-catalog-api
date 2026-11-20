@@ -221,6 +221,7 @@ func Setup() (*fiber.App, *webhooks.Debouncer, func(), *gorm.DB) {
 	app.Use(common.RefuseInvalidUTF8InURL)
 
 	app.Use(middleware.NewPasetoMiddleware(common.EnvironmentConfig, requiresAuth))
+	app.Use(common.RefuseEncodedBodies)
 
 	app.Use(newResponseCache(responseCacheMaxBytes, responseCacheMaxEntries, time.Now))
 

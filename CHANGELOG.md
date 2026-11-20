@@ -323,6 +323,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   got back as the repository URL. They now need `http` or `https` and a
   host, and other values get `422`. Software already stored with
   another scheme fails every `PATCH` until its URL and aliases change.
+- Request bodies with a `gzip`, `deflate` or `br` Content-Encoding
+  were decompressed with no size limit, since the 4 MiB body limit
+  counts the compressed bytes, so a 1 MB request could make the API
+  allocate over 4 GB. A body with any Content-Encoding other than
+  `identity` now gets `415`.
 
 ## [1.4.0] - 2026-08-19
 
