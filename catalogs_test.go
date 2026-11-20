@@ -1277,6 +1277,35 @@ func TestRootCatalogMaterialize(t *testing.T) {
 		assert.Equal(t, "alternativeId on the root catalog cannot be changed", resp["detail"])
 	})
 
+	t.Run("PATCH ordinary catalog rejects the root alternativeId", func(t *testing.T) {
+		loadFixtures(t)
+
+		status, resp := patch(t, "/v1/catalogs/"+swissID, `{"alternativeId":"∅"}`)
+		assert.Equal(t, 422, status)
+		assert.Equal(t, "alternativeId ∅ can only be set when creating the root catalog", resp["detail"])
+
+		req, err := newTestRequest("PATCH", "/v1/catalogs/"+swissID,
+			strings.NewReader(`[{"op":"replace","path":"/alternativeId","value":"∅"}]`))
+		require.NoError(t, err)
+		req.Header = map[string][]string{
+			"Authorization": {goodToken},
+			"Content-Type":  {"application/json-patch+json"},
+		}
+
+		res, err := app.Test(req, -1)
+		require.NoError(t, err)
+		require.NoError(t, json.NewDecoder(res.Body).Decode(&resp))
+		assert.Equal(t, 422, res.StatusCode)
+		assert.Equal(t, "alternativeId ∅ can only be set when creating the root catalog", resp["detail"])
+
+		req, err = newTestRequest("GET", "/v1/catalogs/%E2%88%85?rootTaken=1", nil)
+		require.NoError(t, err)
+
+		res, err = app.Test(req, -1)
+		require.NoError(t, err)
+		assert.Equal(t, 404, res.StatusCode)
+	})
+
 	t.Run("PATCH root rejects sources", func(t *testing.T) {
 		loadFixtures(t)
 

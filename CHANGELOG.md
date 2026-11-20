@@ -113,6 +113,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `alternativeId` is the `id` of another catalog, as publishers already
   did. Requests for that `id` reached the catalog holding it as
   `alternativeId` instead.
+- `PATCH /v1/catalogs/{id}` returns `422` when it sets `alternativeId`
+  to `∅` on a catalog that is not the root. The catalog took the place
+  of the root, its writes went to the root, and it could not go back.
 
 - Publisher PATCH responses include stored timestamps and the default group flag
   for newly added code hosting entries.
